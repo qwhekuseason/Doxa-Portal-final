@@ -7,6 +7,18 @@ export interface UserProfile {
   phoneNumber?: string;
   hostelName?: string;
   dateOfBirth?: string;
+  stats?: {
+    versesHighlighted?: number;
+    quizzesTaken?: number;
+    sermonsHeard?: number;
+    bookmarks?: number;
+    [key: string]: number | undefined;
+  };
+  bibleData?: Record<string, {
+    highlights?: Record<number, string>;
+    bookmarked?: boolean;
+    lastRead?: string;
+  }>;
 }
 
 export interface AuthState {
@@ -46,6 +58,7 @@ export interface CalendarEvent {
   date: string;
   type: 'service' | 'youth' | 'outreach';
   location?: string;
+  meetingLink?: string; // Room name for Jitsi
   createdBy: string;
   createdAt?: string;
 }

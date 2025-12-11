@@ -3,7 +3,7 @@ import { collection, query, orderBy, addDoc, deleteDoc, doc, Timestamp } from 'f
 import { db } from '../../firebase';
 import { useFirestoreQuery } from '../../hooks';
 import { CalendarEvent } from '../../types';
-import { Calendar, Trash2, Plus, MapPin, Loader2, Clock } from 'lucide-react';
+import { Calendar, Trash2, Plus, MapPin, Loader2, Clock, Video } from 'lucide-react';
 
 export const EventManager: React.FC = () => {
     const q = useMemo(() => query(collection(db, 'events'), orderBy('date', 'asc')), []);
@@ -14,7 +14,8 @@ export const EventManager: React.FC = () => {
         description: '',
         date: '',
         type: 'service' as 'service' | 'youth' | 'outreach',
-        location: ''
+        location: '',
+        meetingLink: ''
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +34,8 @@ export const EventManager: React.FC = () => {
                 description: '',
                 date: '',
                 type: 'service',
-                location: ''
+                location: '',
+                meetingLink: ''
             });
             alert('Event created successfully');
         } catch (err) {
@@ -173,6 +175,7 @@ export const EventManager: React.FC = () => {
                                     <div className="flex items-center gap-4 text-sm text-gray-500 mt-2 mb-3">
                                         <span className="flex items-center gap-1"><Clock size={14} /> {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         {event.location && <span className="flex items-center gap-1"><MapPin size={14} /> {event.location}</span>}
+                                        {event.meetingLink && <span className="flex items-center gap-1 text-red-500 font-bold"><Video size={14} /> LIVE: {event.meetingLink}</span>}
                                     </div>
 
                                     <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">{event.description}</p>

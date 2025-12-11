@@ -84,6 +84,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // User Bible Data (Highlights/Bookmarks)
+    // ID Format: {uid}_{book}_{chapter}
+    match /user_bible_data/{docId} {
+      allow read, write: if request.auth != null && docId.matches(request.auth.uid + '_.*');
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

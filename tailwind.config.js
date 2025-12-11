@@ -10,9 +10,10 @@ export default {
         extend: {
             colors: {
                 church: {
-                    green: '#2C7A4B',
-                    gold: '#c8a528',
-                    muted: '#e9f6eb',
+                    green: '#16A34A', // More vibrant green (Tailwind Green-600)
+                    gold: '#EAB308', // More vibrant gold (Yellow-500)
+                    muted: '#F0FDF4', // Very light green tint
+                    surface: '#FAFAF9', // Warm stone/gray for backgrounds
                 }
             },
             fontFamily: {

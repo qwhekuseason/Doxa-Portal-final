@@ -10,7 +10,8 @@ import {
   Clock,
   MapPin,
   Heart,
-  Brain
+  Brain,
+  ArrowRight
 } from 'lucide-react';
 import { SkeletonCard, FloatingSocialMenu } from '../components/UIComponents';
 import { useTheme } from '../components/ThemeContext';
@@ -51,24 +52,24 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
   }, [event?.date]);
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
-      <div className="bg-white/20 p-2 rounded-lg">
-        <Clock size={20} className="text-white" />
+    <div className="bg-church-green/10 dark:bg-church-green/20 rounded-lg p-3 flex items-center gap-3 border border-church-green/20">
+      <div className="bg-church-green text-white p-2 rounded-md">
+        <Clock size={16} />
       </div>
       <div>
-        <p className="text-xs text-white/70 font-bold uppercase tracking-wider">Starting In</p>
-        <p className="text-lg font-bold text-white font-mono">{timeLeft}</p>
+        <p className="text-[10px] text-church-green font-bold uppercase tracking-wider">Starting In</p>
+        <p className="text-lg font-bold text-gray-900 dark:text-white font-mono">{timeLeft}</p>
       </div>
     </div>
   );
 };
 
-// Interface for HomeScreen props - accepting user now
 interface HomeScreenProps {
   user?: UserProfile;
+  onNavigate: (tab: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
   const { theme } = useTheme();
 
   // Queries
@@ -87,7 +88,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
     return 'Good Evening';
   }, []);
 
-  // Pick a verse based on the day of the month to keep it consistent for the day
   const dailyVerse = useMemo(() => {
     const day = new Date().getDate();
     return VERSES[day % VERSES.length];
@@ -97,107 +97,119 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
     <div className="space-y-8 animate-fade-in-up">
 
       {/* 1. Header & Welcome */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h1 className="text-3xl font-serif font-bold dark:text-white">
-            {greeting}, <span className="text-church-green dark:text-church-gold">{user?.displayName?.split(' ')[0] || 'Friend'}</span>
+          <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-white tracking-tight">
+            {greeting}, <span className="text-church-green">{user?.displayName?.split(' ')[0] || 'Friend'}</span>
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1">
-            Ready to grow in faith today?
+          <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 text-sm">
+            Welcome back to your spiritual dashboard.
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Live Services Online: 10AM Sun</span>
-        </div>
+
+        {nextEvent && (
+          <div
+            onClick={() => onNavigate('events')}
+            className="hidden md:flex items-center gap-3 px-5 py-2.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105"
+          >
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Next Service: {new Date(nextEvent.date).toLocaleDateString()}</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Left Column: Main Feed */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
 
-          {/* Dynamic Hero Card: Verse OR Upcoming Event */}
+          {/* Featured Card */}
           {nextEvent ? (
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-900 to-indigo-900 text-white p-8 shadow-xl">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div
+              onClick={() => onNavigate('events')}
+              className="bg-white dark:bg-gray-900 rounded-xl p-8 border-l-4 border-church-green shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-y border-r border-gray-200 dark:border-gray-800 cursor-pointer group"
+            >
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 rounded-md bg-white/20 text-xs font-bold uppercase">Next Event</span>
-                    <span className="text-blue-200 text-sm flex items-center gap-1"><Calendar size={14} /> {parseDateSafe(nextEvent.date)?.toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-3 py-1 rounded-md bg-church-green/10 text-church-green text-xs font-bold uppercase tracking-wide group-hover:bg-church-green group-hover:text-white transition-colors">Upcoming Event</span>
+                    <span className="text-gray-500 text-sm flex items-center gap-1 font-medium"><Calendar size={14} /> {parseDateSafe(nextEvent.date)?.toLocaleDateString()}</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold font-serif mb-2">{nextEvent.title}</h2>
-                  {nextEvent.location && <p className="text-blue-200 flex items-center gap-2"><MapPin size={16} /> {nextEvent.location}</p>}
+                  <h2 className="text-2xl md:text-3xl font-bold font-serif text-gray-900 dark:text-white mb-2">{nextEvent.title}</h2>
+                  {nextEvent.location && <p className="text-gray-500 dark:text-gray-400 flex items-center gap-2 text-sm"><MapPin size={16} /> {nextEvent.location}</p>}
                 </div>
                 <EventCountdown event={nextEvent} />
               </div>
             </div>
           ) : (
-            /* Verse Fallback if no event */
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-church-green to-emerald-800 text-white p-8 shadow-xl group hover:shadow-2xl transition-all duration-500">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/20 transition-colors duration-500"></div>
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-8 border-l-4 border-church-gold shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-y border-r border-gray-200 dark:border-gray-800 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
+                <BookOpen size={120} className="text-church-gold" />
+              </div>
               <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4 opacity-80">
-                  <BookOpen size={18} />
-                  <span className="text-xs font-bold uppercase tracking-widest">Verse of the Day</span>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-8 h-[1px] bg-church-gold"></span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-church-gold">Verse of the Day</span>
                 </div>
-                <blockquote className="text-2xl md:text-3xl font-serif leading-relaxed mb-6 italic">
+                <blockquote className="text-2xl md:text-3xl font-serif leading-relaxed mb-6 text-gray-900 dark:text-white">
                   "{dailyVerse.text}"
                 </blockquote>
-                <p className="font-bold text-church-gold">{dailyVerse.reference}</p>
+                <p className="font-bold text-gray-500 dark:text-gray-400 text-sm">— {dailyVerse.reference}</p>
               </div>
             </div>
           )}
 
+          {/* Secondary Verse Card */}
           {nextEvent && (
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <p className="text-sm font-bold text-church-green uppercase mb-2">Verse of the Day</p>
-              <p className="text-lg font-serif italic text-gray-800 dark:text-gray-200">"{dailyVerse.text}"</p>
-              <p className="text-sm text-gray-500 mt-2 font-bold">— {dailyVerse.reference}</p>
+            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-800 hover:border-church-gold flex flex-col justify-center">
+              <p className="text-xs font-bold text-church-gold uppercase mb-2 tracking-wide">Verse of the Day</p>
+              <p className="text-lg font-serif italic text-gray-800 dark:text-gray-200 leading-relaxed">"{dailyVerse.text}"</p>
+              <p className="text-xs text-gray-500 mt-3 font-bold uppercase">— {dailyVerse.reference}</p>
             </div>
           )}
 
-
           {/* Recent Sermons Section */}
-          <div>
+          <div className="pt-4">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold font-serif dark:text-white flex items-center gap-2">
-                <PlayCircle className="text-church-green dark:text-church-gold" size={20} /> Latest Sermons
+              <h2 className="text-xl font-bold font-serif text-gray-900 dark:text-white flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-church-green rounded-full"></span> Latest Sermons
               </h2>
-              <button className="text-sm font-bold text-gray-500 hover:text-church-green dark:text-gray-400 dark:hover:text-church-gold hover:underline">
-                View Library
+              <button
+                onClick={() => onNavigate('sermons')}
+                className="text-sm font-bold text-gray-500 hover:text-church-green dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1 group"
+              >
+                View Library <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
             {sermonsLoading ? (
               <div className="space-y-4">
-                {[1, 2].map(i => <SkeletonCard key={i} height="h-24" />)}
+                {[1, 2].map(i => <SkeletonCard key={i} height="h-28" />)}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {recentSermons.map(sermon => (
-                  <div key={sermon.id} className="group bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all flex gap-4 cursor-pointer">
-                    <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-gray-700 bg-cover bg-center flex-shrink-0" style={{ backgroundImage: `url(${sermon.coverUrl})` }}>
-                      {/* Removed Play Overlay */}
+                  <div key={sermon.id} className="group bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:border-church-green dark:hover:border-church-green hover:shadow-lg hover:-translate-y-0.5 transition-all flex gap-5 cursor-pointer items-start">
+                    <div className="w-32 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 bg-cover bg-center flex-shrink-0 border border-gray-100 dark:border-gray-700 shadow-inner" style={{ backgroundImage: `url(${sermon.coverUrl})` }}>
                     </div>
-                    <div className="flex-1 py-1">
-                      <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-church-green dark:group-hover:text-church-gold transition-colors line-clamp-1">
-                        {sermon.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-2 line-clamp-1">
-                        {sermon.preacher} • {sermon.series}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                          <span className="flex items-center gap-1"><Calendar size={12} /> {parseDateSafe(sermon.date)?.toLocaleDateString() || 'Unknown'}</span>
-                          <span className="flex items-center gap-1"><Clock size={12} /> {sermon.duration}</span>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-church-green transition-colors text-lg truncate pr-4">
+                          {sermon.title}
+                        </h3>
                         {sermon.downloadUrl && (
-                          <a href={sermon.downloadUrl} target="_blank" rel="noopener noreferrer" className="text-church-green hover:underline text-xs font-bold">
-                            Download
-                          </a>
+                          <span className="text-[10px] font-bold px-2 py-1 rounded bg-church-muted text-church-green border border-church-green/20 uppercase">PDF</span>
                         )}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-2 truncate">
+                        {sermon.preacher} • {sermon.series || 'Sunday Service'}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
+                        <span className="flex items-center gap-1"><Calendar size={12} /> {parseDateSafe(sermon.date)?.toLocaleDateString() || 'Unknown'}</span>
+                        <span className="flex items-center gap-1"><Clock size={12} /> {sermon.duration || '45m'}</span>
                       </div>
                     </div>
                   </div>
@@ -208,52 +220,80 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
         </div>
 
         {/* Right Column: Quick Actions & Stats */}
-        <div className="space-y-8">
+        <div className="space-y-6">
 
-          {/* Quick Actions Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <button className="p-4 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-2xl border border-orange-100 dark:border-orange-800 hover:bg-orange-100 transition-colors text-left group">
-              <Heart className="mb-3 group-hover:scale-110 transition-transform" />
+          {/* Quick Actions Grid - WIRED & POLISHED */}
+          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => onNavigate('prayer')}
+              className="p-4 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-church-gold hover:shadow-lg hover:-translate-y-1 transition-all text-left group flex flex-col justify-between h-28"
+            >
+              <Heart className="text-church-gold group-hover:scale-110 transition-transform" />
               <div className="font-bold text-sm">Prayer Request</div>
             </button>
-            <button className="p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded-2xl border border-purple-100 dark:border-purple-800 hover:bg-purple-100 transition-colors text-left group">
-              <Brain className="mb-3 group-hover:scale-110 transition-transform" />
+            <button
+              onClick={() => onNavigate('quiz')}
+              className="p-4 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-church-green hover:shadow-lg hover:-translate-y-1 transition-all text-left group flex flex-col justify-between h-28"
+            >
+              <Brain className="text-church-green group-hover:scale-110 transition-transform" />
               <div className="font-bold text-sm">Bible Quiz</div>
             </button>
-            <button className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition-colors text-left group">
-              <BookOpen className="mb-3 group-hover:scale-110 transition-transform" />
+            <button
+              onClick={() => onNavigate('bible')}
+              className="p-4 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1 transition-all text-left group flex flex-col justify-between h-28"
+            >
+              <BookOpen className="text-blue-500 group-hover:scale-110 transition-transform" />
               <div className="font-bold text-sm">Read Bible</div>
             </button>
-            <button className="p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-2xl border border-green-100 dark:border-green-800 hover:bg-green-100 transition-colors text-left group">
-              <Calendar className="mb-3 group-hover:scale-110 transition-transform" />
+            <button
+              onClick={() => onNavigate('events')}
+              className="p-4 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-purple-500 hover:shadow-lg hover:-translate-y-1 transition-all text-left group flex flex-col justify-between h-28"
+            >
+              <Calendar className="text-purple-500 group-hover:scale-110 transition-transform" />
               <div className="font-bold text-sm">Events</div>
             </button>
           </div>
 
-          {/* User Stats Placeholder */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="font-bold text-lg dark:text-white mb-4">Your Journey</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Sermons Listened</span>
-                <span className="font-bold dark:text-white">12</span>
-              </div>
-              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-church-gold h-2 rounded-full w-[40%]"></div>
+          {/* User Stats - Clickable for Journey */}
+          <div
+            onClick={() => onNavigate('journey')}
+            className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 mt-6 cursor-pointer hover:shadow-lg transition-all group"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white font-serif">Your Journey</h3>
+              <ArrowRight size={16} className="text-gray-400 group-hover:text-church-green group-hover:translate-x-1 transition-all" />
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-gray-500 font-medium">Sermons Completed</span>
+                  <span className="font-bold text-gray-900 dark:text-white">12</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-church-green h-1.5 rounded-full w-[40%] group-hover:w-[45%] transition-all duration-700"></div>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Quiz Points</span>
-                  <span className="font-bold dark:text-white">850</span>
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-gray-500 font-medium">Quiz Points</span>
+                  <span className="font-bold text-gray-900 dark:text-white">850</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-church-gold h-1.5 rounded-full w-[85%] group-hover:w-[88%] transition-all duration-700"></div>
                 </div>
               </div>
             </div>
+
+            <button className="w-full mt-6 py-2.5 text-xs font-bold uppercase tracking-wide border border-gray-200 dark:border-gray-700 rounded-lg group-hover:bg-church-green group-hover:text-white group-hover:border-church-green transition-all">
+              View Full Profile
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Floating Social Menu */}
       <FloatingSocialMenu />
     </div>
   );
