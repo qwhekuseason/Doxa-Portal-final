@@ -6,6 +6,7 @@ import { auth, db } from './src/firebase';
 import { UserProfile } from './src/types';
 import AuthPage from './src/components/AuthPage';
 import { ThemeProvider, useTheme } from './src/components/ThemeContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 // Import Screen Components
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
@@ -54,10 +55,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 
   useEffect(() => {
-    if (Notification.permission === 'default') setShowNotifPrompt(true);
+    // Check if browser supports notifications
+    if ('Notification' in window && Notification.permission === 'default') {
+      setShowNotifPrompt(true);
+    }
   }, []);
 
   const enableNotifications = async () => {
+    if (!('Notification' in window)) return;
     await Notification.requestPermission();
     setShowNotifPrompt(false);
   };
@@ -76,23 +81,30 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       : 'bg-gray-50 text-gray-900'
       }`}>
 
+      {/* Mobile Sidebar Backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-4 bottom-4 left-4 h-[calc(100vh-32px)] w-72 rounded-3xl z-50 transform transition-all duration-500 lg:translate-x-0 border ${sidebarOpen ? 'translate-x-4' : '-translate-x-[120%]'
-        } ${theme === 'dark'
-          ? 'bg-[#111] border-yellow-600/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]' // Dark card, subtle gold glow
-          : 'bg-white border-green-100 shadow-[0_20px_40px_rgba(22,163,74,0.1)]' // White card, subtle green shadow
+      <aside className={`fixed lg:sticky top-0 lg:top-4 lg:bottom-4 left-0 lg:left-4 h-[100dvh] lg:h-[calc(100vh-32px)] w-72 lg:rounded-3xl z-50 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 border-r lg:border border-gray-100 dark:border-gray-800 ${theme === 'dark'
+          ? 'bg-[#111] lg:shadow-[0_0_30px_rgba(234,179,8,0.1)]'
+          : 'bg-white lg:shadow-[0_20px_40px_rgba(22,163,74,0.1)]'
         }`}>
 
         {/* Sidebar Header */}
-        <div className="p-8 flex items-center justify-between">
+        <div className="p-6 lg:p-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Doxa Portal" className="w-10 h-10 object-contain" />
             <span className="font-serif font-bold text-xl tracking-tight bg-gradient-to-r from-green-700 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">Doxa Portal</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className={`lg:hidden p-2 rounded-lg transition-all duration-300 ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-green-50'
-              }`}
+            className={`lg:hidden p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-green-50'}`}
           >
             <X size={20} />
           </button>
@@ -224,7 +236,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden relative">
+      <main className="flex-1 min-w-0 flex flex-col h-[100dvh] overflow-hidden relative">
 
         {/* Header */}
         <header className={`sticky top-0 z-30 px-8 py-5 flex items-center justify-between transition-colors duration-500 backdrop-blur-md border-b ${theme === 'dark'
@@ -433,13 +445,15 @@ const App: React.FC = () => {
   }
 
   return (
-    <ThemeProvider>
-      {user ? (
-        <Dashboard user={user} refreshUser={() => fetchUserData(user.uid, auth.currentUser)} />
-      ) : (
-        <UnauthenticatedView />
-      )}
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        {user ? (
+          <Dashboard user={user} refreshUser={() => fetchUserData(user.uid, auth.currentUser)} />
+        ) : (
+          <UnauthenticatedView />
+        )}
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

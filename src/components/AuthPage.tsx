@@ -251,14 +251,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
 
       {/* Main Card */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-2xl rounded-[2.5rem] overflow-hidden transition-all duration-500">
+        <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/50 dark:border-white/10 shadow-2xl rounded-3xl md:rounded-[2.5rem] overflow-hidden transition-all duration-500">
 
-          <div className="p-8 md:p-10">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-church-green to-church-gold mb-2 font-serif tracking-tight drop-shadow-sm">
+          <div className="p-6 md:p-10">
+            <div className="text-center mb-6 md:mb-8">
+              <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-church-green to-church-gold mb-2 font-serif tracking-tight drop-shadow-sm">
                 Doxa Portal
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+              <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm font-medium">
                 {authMode === 'login' && "Welcome back to your spiritual home"}
                 {authMode === 'register' && "Join our digital sanctuary"}
                 {authMode === 'forgot' && "Recover your account access"}

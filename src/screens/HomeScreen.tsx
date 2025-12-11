@@ -6,18 +6,15 @@ import { Sermon, UserProfile, CalendarEvent } from '../types';
 import {
   BookOpen,
   Calendar,
-  Zap,
   PlayCircle,
-  ArrowRight,
-  Search,
-  Mic2,
-  Heart,
-  Brain,
   Clock,
-  MapPin
+  MapPin,
+  Heart,
+  Brain
 } from 'lucide-react';
 import { SkeletonCard, FloatingSocialMenu } from '../components/UIComponents';
 import { useTheme } from '../components/ThemeContext';
+import { parseDateSafe } from '../utils/dateUtils';
 
 // Static Verses Collection
 const VERSES = [
@@ -35,7 +32,10 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const difference = +new Date(event.date) - +new Date();
+      const eventDate = parseDateSafe(event?.date);
+      if (!eventDate) return;
+
+      const difference = +eventDate - +new Date();
       if (difference > 0) {
         const d = Math.floor(difference / (1000 * 60 * 60 * 24));
         const h = Math.floor((difference / (1000 * 60 * 60)) % 24);
@@ -48,7 +48,7 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
     calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 60000);
     return () => clearInterval(timer);
-  }, [event.date]);
+  }, [event?.date]);
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 flex items-center gap-3">
@@ -125,7 +125,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="px-2 py-1 rounded-md bg-white/20 text-xs font-bold uppercase">Next Event</span>
-                    <span className="text-blue-200 text-sm flex items-center gap-1"><Calendar size={14} /> {new Date(nextEvent.date).toLocaleDateString()}</span>
+                    <span className="text-blue-200 text-sm flex items-center gap-1"><Calendar size={14} /> {parseDateSafe(nextEvent.date)?.toLocaleDateString()}</span>
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold font-serif mb-2">{nextEvent.title}</h2>
                   {nextEvent.location && <p className="text-blue-200 flex items-center gap-2"><MapPin size={16} /> {nextEvent.location}</p>}
@@ -150,11 +150,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
             </div>
           )}
 
-          {/* If event was shown above, show Verse here as smaller card, or vice-versa logic could applied. 
-               For now, let's just keep the verse visible always below if event exists, or maybe side by side? 
-               Let's simplify: If event exists, it takes top spot. Verse moves to side or below. 
-               Actually, let's keep the Verse as a secondary card in the grid if Event is hero.
-           */}
           {nextEvent && (
             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
               <p className="text-sm font-bold text-church-green uppercase mb-2">Verse of the Day</p>
@@ -195,7 +190,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user }) => {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-xs text-gray-400">
-                          <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(sermon.date).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1"><Calendar size={12} /> {parseDateSafe(sermon.date)?.toLocaleDateString() || 'Unknown'}</span>
                           <span className="flex items-center gap-1"><Clock size={12} /> {sermon.duration}</span>
                         </div>
                         {sermon.downloadUrl && (
