@@ -1,0 +1,92 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin safely
+    // Checks Firestore role OR hardcoded email for safety
+    function isAdmin() {
+      return request.auth != null && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         request.auth.token.email == 'admin@gmail.com'
+      );
+    }
+
+    // Helper to check if user is owner
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      allow read, update: if isOwner(userId) || isAdmin();
+    }
+
+    // Testimonies
+    match /testimonies/{testimonyId} {
+      // Users can read their own submitted testimonies (even if unapproved)
+      allow read: if resource.data.approved == true || 
+                     (request.auth != null && resource.data.uid == request.auth.uid) || 
+                     isAdmin();
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+    
+    // Prayer Requests
+    match /prayer_requests/{requestId} {
+      allow read: if (resource.data.approved == true && resource.data.isPrivate == false) ||
+                     (request.auth != null && resource.data.uid == request.auth.uid) ||
+                     isAdmin();
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if true;
+      // Authenticated users can create events
+      allow create: if request.auth != null;
+      // Only admins can update or delete events
+      allow update, delete: if isAdmin();
+    }
+
+    // Bible Quizzes
+    match /bible_quizzes/{quizId} {
+      allow read: if true;
+      // Only admins can write (create, update, delete) quizzes
+      allow write: if isAdmin();
+    }
+
+    // Quiz Scores
+    match /quiz_scores/{scoreId} {
+      // Users can only read their own scores, admins can read all
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if request.auth != null;
+    }
+    
+    // Sermons
+    match /sermons/{sermonId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Gallery
+    match /gallery/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
