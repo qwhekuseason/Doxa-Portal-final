@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { UserProfile } from '../types';
-import { Trophy, Star, TrendingUp, BookOpen, Mic, Clock, Shield, Bell } from 'lucide-react';
+import { Trophy, Star, TrendingUp, BookOpen, Mic, Clock, Shield, Bell, Zap, Heart, Award, ArrowUpRight } from 'lucide-react';
+import { SectionHeader, StatCard as UIStatCard } from '../components/UIComponents';
 
 // Helper if date-fns is missing
 const timeAgo = (dateStr?: string) => {
@@ -15,29 +16,28 @@ const timeAgo = (dateStr?: string) => {
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
 };
 
-const StatCard: React.FC<{ label: string; value: string; icon: React.ReactNode; color: string }> = ({ label, value, icon, color }) => (
-    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color} bg-opacity-10 dark:bg-opacity-20`}>
-            <div className={`${color.replace('bg-', 'text-')}`}>{icon}</div>
-        </div>
-        <p className="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wide">{label}</p>
-        <h3 className="text-3xl font-bold font-serif text-gray-900 dark:text-white mt-1 group-hover:scale-105 transition-transform origin-left">{value}</h3>
-    </div>
-);
-
-const Badge: React.FC<{ title: string; desc: string; icon: React.ReactNode; locked?: boolean }> = ({ title, desc, icon, locked }) => (
-    <div className={`p-4 rounded-xl border flex items-center gap-4 transition-all ${locked
-        ? 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 opacity-60 grayscale'
-        : 'bg-white dark:bg-gray-800 border-church-green/30 shadow-sm hover:shadow-md cursor-pointer'
-        }`}>
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl ${locked ? 'bg-gray-200 dark:bg-gray-800 text-gray-400' : 'bg-gradient-to-br from-church-gold to-yellow-500 text-white shadow-lg'}`}>
+const Badge: React.FC<{ title: string; desc: string; icon: string; locked?: boolean; index: number }> = ({ title, desc, icon, locked, index }) => (
+    <div
+        className={`group p-6 rounded-[2rem] border-2 transition-all duration-700 animate-fade-in-up flex flex-col items-center text-center ${locked
+                ? 'bg-gray-50/50 dark:bg-white/5 border-gray-100 dark:border-white/5 opacity-40 grayscale scale-95'
+                : 'glass-card border-white/40 dark:border-white/5 shadow-premium hover:shadow-premium-lg hover:-translate-y-2'
+            }`}
+        style={{ animationDelay: `${index * 0.1}s` }}
+    >
+        <div className={`w-20 h-20 rounded-[2rem] mb-6 flex items-center justify-center text-4xl shadow-2xl transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12 ${locked
+                ? 'bg-gray-200 dark:bg-white/10 text-gray-400'
+                : 'bg-gradient-to-br from-church-gold to-amber-600 text-white shadow-church-gold/30'
+            }`}>
             {icon}
         </div>
-        <div>
-            <h4 className="font-bold text-gray-900 dark:text-white">{title}</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{desc}</p>
-            {locked && <span className="text-[10px] font-bold uppercase bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-500 mt-2 inline-block">Locked</span>}
-        </div>
+        <h4 className="font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">{title}</h4>
+        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 leading-relaxed uppercase tracking-widest">{desc}</p>
+
+        {locked && (
+            <div className="mt-4 px-3 py-1 bg-gray-200 dark:bg-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-gray-500">
+                Locked Quest
+            </div>
+        )}
     </div>
 );
 
@@ -50,97 +50,136 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     const quizXP = stats.quizXP || 0;
     const bookmarks = stats.bookmarks || 0;
 
-    // Calculate Total XP (Example formula)
     const totalXP = (sermonsHeard * 50) + (prayers * 20) + quizXP + (bookmarks * 5);
     const nextLevelXP = Math.ceil((totalXP + 1) / 1000) * 1000;
-    const progressPercent = Math.min(100, (totalXP % 1000) / 10); // simplified for demo
+    const progressPercent = Math.min(100, (totalXP % 1000) / 10);
 
     const currentLevel = totalXP > 2000 ? "Kingdom Builder" : totalXP > 1000 ? "Faithful Steward" : "Seeker";
 
-    // Badges Logic
     const badges = [
-        { title: "Welcome Home", desc: "Joined the community", icon: "🏠", locked: false },
-        { title: "Prayer Warrior", desc: "Submitted 5 prayer requests", icon: "🙏", locked: prayers < 5 },
-        { title: "Scholar", desc: "Gained 500 Quiz XP", icon: "🎓", locked: quizXP < 500 },
-        { title: "Devoted Listener", desc: "Listened to 10 sermons", icon: "🎧", locked: sermonsHeard < 10 },
-        { title: "Bible Student", desc: "Bookmarked 5 chapters", icon: "📖", locked: bookmarks < 5 }
+        { title: "First Steps", desc: "Joined the Doxa community", icon: "🏠", locked: false },
+        { title: "Prayer Warrior", desc: "5 prayer requests submitted", icon: "🙏", locked: prayers < 5 },
+        { title: "Bible Scholar", desc: "Gained 500 Quiz Experience", icon: "🎓", locked: quizXP < 500 },
+        { title: "Word Devotee", desc: "10 sermons absorbed", icon: "🎧", locked: sermonsHeard < 10 },
+        { title: "Truth Seeker", desc: "5 chapters bookmarked", icon: "📖", locked: bookmarks < 5 }
     ];
 
     return (
-        <div className="space-y-8 animate-fade-in-up pb-20">
+        <div className="space-y-12 animate-fade-in pb-20">
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-100 dark:border-gray-800 pb-6">
-                <div>
-                    <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-white">Your Spiritual Journey</h1>
-                    <p className="text-gray-500 mt-1">Consistency builds character. Keep growing.</p>
-                </div>
-                <div className="flex items-center gap-2 bg-church-green/10 px-4 py-2 rounded-lg text-church-green font-bold text-sm animate-pulse">
-                    <div className="w-2 h-2 rounded-full bg-church-green"></div>
-                    <span>Live Updates Active</span>
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
+                <SectionHeader
+                    title="Spiritual Journey"
+                    subtitle="Visualize your path of faith. Every sermon heard and prayer shared is a step closer to the Divine."
+                />
+
+                <div className="flex items-center gap-3 px-6 py-3 glass-card border-none bg-church-green/5 rounded-2xl animate-pulse">
+                    <div className="w-2 h-2 rounded-full bg-church-green shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+                    <span className="text-[10px] font-black text-church-green uppercase tracking-widest">Divine Sync Active</span>
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="Sermons Heard" value={sermonsHeard.toString()} icon={<Mic size={24} />} color="bg-blue-500" />
-                <StatCard label="Prayer Requests" value={prayers.toString()} icon={<Trophy size={24} />} color="bg-orange-500" />
-                <StatCard label="Bible Quiz XP" value={quizXP.toString()} icon={<Star size={24} />} color="bg-church-gold" />
-                <StatCard label="Chapters Bookmarked" value={bookmarks.toString()} icon={<BookOpen size={24} />} color="bg-pink-500" />
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <UIStatCard title="Sermons" value={sermonsHeard} icon={<Mic />} color="bg-blue-500" trend="Faithful Listener" />
+                <UIStatCard title="Prayers" value={prayers} icon={<Heart />} color="bg-rose-500" trend="Warrior Spirit" />
+                <UIStatCard title="Quiz XP" value={quizXP} icon={<Zap />} color="bg-church-gold" trend="Wisdom Seeker" />
+                <UIStatCard title="Bookmarks" value={bookmarks} icon={<BookOpen />} color="bg-emerald-500" trend="Verse Keeper" />
             </div>
 
-            {/* Progress & Badges */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* Level Detail Card */}
+                <div className="lg:col-span-1">
+                    <div className="glass-card rounded-[3rem] p-10 shadow-premium border-white/40 relative overflow-hidden h-full flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
-                {/* Badges List */}
-                <div className="lg:col-span-2 space-y-6">
-                    <h2 className="text-xl font-bold font-serif dark:text-white flex items-center gap-2">
-                        <Shield className="text-church-green" size={20} /> Achievements
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {badges.map(b => (
-                            <Badge key={b.title} {...b} />
+                        <div className="relative z-10">
+                            <div className="w-16 h-16 bg-gradient-to-br from-church-green to-emerald-800 rounded-2xl flex items-center justify-center text-white shadow-xl mb-8">
+                                <TrendingUp size={32} />
+                            </div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">Current Standing</p>
+                            <h3 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-2 leading-none">{currentLevel}</h3>
+                            <div className="flex items-center gap-2 mb-10">
+                                <span className="w-8 h-1 bg-church-gold rounded-full"></span>
+                                <span className="text-[10px] font-black text-church-gold uppercase tracking-widest">Level Mastery</span>
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 space-y-6">
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Global XP</span>
+                                    <span className="text-xl font-black text-church-green tracking-tighter">{totalXP} / {nextLevelXP}</span>
+                                </div>
+                                <div className="w-full h-3 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-gray-100 dark:border-white/5 shadow-inner">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-church-green to-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-[2000ms]"
+                                        style={{ width: `${progressPercent}%` }}
+                                    ></div>
+                                </div>
+                                <p className="text-[9px] font-black text-gray-400 text-right uppercase tracking-[0.2em]">{nextLevelXP - totalXP} XP remaining for promotion</p>
+                            </div>
+
+                            <div className="p-6 bg-gray-50 dark:bg-white/5 rounded-[2rem] border border-gray-100 dark:border-white/5">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Bell size={14} className="text-church-gold" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">Divine Echoes</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { text: "Absorbed 'Faith over Fear' sermon", time: "2h ago" },
+                                        { text: "Earned Wisdom Badge in NT Trivia", time: "Yesterday" },
+                                        { text: "Interceded for Brother John's health", time: "2d ago" }
+                                    ].map((act, i) => (
+                                        <div key={i} className="flex justify-between items-center group/item cursor-pointer">
+                                            <p className="text-[10px] font-bold text-gray-800 dark:text-gray-200 group-hover/item:text-church-green transition-colors leading-tight">{act.text}</p>
+                                            <span className="text-[8px] font-black text-gray-400 uppercase min-w-[40px] text-right">{act.time}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button className="w-full mt-6 text-[9px] font-black uppercase tracking-widest text-church-green flex items-center justify-center gap-2 group">
+                                    View Hall of Fame <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Achievements List */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase flex items-center gap-4">
+                            <Award className="text-church-gold" size={28} /> Divine Accolades
+                        </h2>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {badges.filter(b => !b.locked).length} / {badges.length} Collected
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {badges.map((b, i) => (
+                            <Badge key={b.title} {...b} index={i} />
                         ))}
                     </div>
-                </div>
 
-                {/* Level Card */}
-                <div className="bg-gradient-to-br from-church-green to-emerald-900 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-
-                    <div className="relative z-10">
-                        <h3 className="text-lg font-bold opacity-80 uppercase tracking-widest mb-1">Current Level</h3>
-                        <div className="text-4xl font-serif font-bold mb-6">{currentLevel}</div>
-
-                        <div className="space-y-2 mb-6">
-                            <div className="flex justify-between text-sm font-bold opacity-90">
-                                <span>XP Progress</span>
-                                <span>{totalXP} / {nextLevelXP}</span>
+                    {/* Locked Reward Banner */}
+                    <div className="mt-8 p-10 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-[3rem] text-white relative overflow-hidden group">
+                        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                            <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center text-church-gold shadow-2xl group-hover:scale-110 transition-transform duration-700">
+                                <Trophy size={40} className="animate-float" />
                             </div>
-                            <div className="w-full bg-black/20 rounded-full h-2">
-                                <div
-                                    className="bg-church-gold h-2 rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all duration-1000"
-                                    style={{ width: `${(totalXP % 1000) / 10}%` }}
-                                ></div>
+                            <div className="flex-1 text-center md:text-left">
+                                <h4 className="text-2xl font-black uppercase tracking-tighter mb-2">Grandmaster Revelation</h4>
+                                <p className="text-xs text-white/60 font-medium leading-relaxed max-w-md">Reach 5,000 Total XP to unlock the secret Grandmaster portal and exclusive community features.</p>
                             </div>
-                            <div className="text-xs opacity-60 mt-2">{nextLevelXP - totalXP} XP to next level</div>
-                        </div>
-
-                        <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                            <div className="flex items-center gap-2 text-sm font-bold mb-2">
-                                <Bell size={14} className="text-church-gold" /> Recent Activity
-                            </div>
-                            <div className="text-xs opacity-80 space-y-2">
-                                {bookmarks > 0 && <div>• Bookmarked a chapter</div>}
-                                {quizXP > 0 && <div>• Completed a Bible Quiz</div>}
-                                {prayers > 0 && <div>• Submitted a Prayer Request</div>}
-                                {totalXP === 0 && <div>• Start your journey today!</div>}
+                            <div className="px-8 py-4 bg-church-gold text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-church-gold/20">
+                                Level Up
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };

@@ -3,6 +3,7 @@ import * as firebaseApp from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -28,5 +29,11 @@ export const db = initializeFirestore(app, {
 });
 
 export const storage = getStorage(app);
+
+// Initialize Firebase Functions
+export const functions = getFunctions(app);
+
+// Uncomment for local emulator testing:
+// connectFunctionsEmulator(functions, 'localhost', 5001);
 
 export default app;

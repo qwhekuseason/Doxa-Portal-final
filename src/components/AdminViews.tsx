@@ -14,7 +14,10 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { GoogleGenAI, Type } from "@google/genai";
 import { db, storage } from '../firebase';
+import { notifyTestimonyApproved, notifyNewSermon, notifyNewGalleryImage, notifyNewQuiz } from '../utils/notificationService';
 import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification } from '../types';
+import { getGoogleDriveDirectLink } from '../utils/galleryUtils';
+import { GalleryCard } from './GalleryCard';
 import {
   Plus,
   Trash2,
@@ -32,7 +35,12 @@ import {
   MessageCircle,
   Bell,
   Video,
-  Link
+  Link,
+  Eye,
+  Phone,
+  Building2,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 
 // --- Reusable Admin Table ---
@@ -133,15 +141,12 @@ export const AdminTestimonyManager: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
+      const testimony = testimonies.find(t => t.id === id);
       await updateDoc(doc(db, 'testimonies', id), { approved: true });
-      // Log notification
-      await addDoc(collection(db, 'notifications'), {
-        title: 'Testimony Approved',
-        message: 'A new testimony has been approved and is now public.',
-        type: 'success',
-        isRead: false,
-        createdAt: new Date().toISOString()
-      });
+      // Send notification
+      if (testimony) {
+        await notifyTestimonyApproved(testimony.authorName);
+      }
       fetchTestimonies();
     } catch (e) { console.error(e); alert("Failed to approve."); }
   };
@@ -189,18 +194,7 @@ export const AdminTestimonyManager: React.FC = () => {
   );
 };
 
-// --- Helper for Google Drive Links ---
-const getGoogleDriveDirectLink = (url: string) => {
-  if (!url) return '';
-  // Convert standard "share" links to direct "view" links
-  // Pattern 1: /file/d/ID/view
-  const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (fileIdMatch && fileIdMatch[1]) {
-    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
-  }
-  // If it's already a direct link or another external link, return as is
-  return url;
-};
+
 
 // --- Sermon Manager ---
 export const AdminSermonManager: React.FC = () => {
@@ -239,6 +233,8 @@ export const AdminSermonManager: React.FC = () => {
         date: new Date().toISOString(),
         createdAt: new Date().toISOString()
       });
+      // Send notification
+      await notifyNewSermon(formData.title || 'New Sermon');
       setIsModalOpen(false);
       fetchSermons();
       setFormData({ title: '', preacher: '', series: '', description: '', originalAudioLink: '', originalCoverLink: '', duration: '' });
@@ -375,6 +371,7 @@ export const AdminSermonManager: React.FC = () => {
 // --- User Manager ---
 export const AdminUserManager: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   const fetchUsers = async () => {
     const q = query(collection(db, 'users'));
@@ -396,7 +393,7 @@ export const AdminUserManager: React.FC = () => {
       <h3 className="text-xl font-bold dark:text-white font-serif">User Management</h3>
       <AdminTable headers={['User', 'Email', 'Role', 'Actions']}>
         {users.map(u => (
-          <tr key={u.uid} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+          <tr key={u.uid} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
             <td className="px-6 py-4 flex items-center gap-3">
               <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-700 shadow-sm" alt="" />
               <span className="font-bold text-gray-900 dark:text-white">{u.displayName}</span>
@@ -408,13 +405,104 @@ export const AdminUserManager: React.FC = () => {
               </span>
             </td>
             <td className="px-6 py-4">
-              <button onClick={() => toggleRole(u.uid, u.role)} className="text-blue-600 hover:text-blue-700 text-xs font-bold hover:underline">
-                Switch Role
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedUser(u)}
+                  className="p-2 text-church-green hover:bg-church-green/10 rounded-lg transition-colors"
+                  title="View Details"
+                >
+                  <Eye size={18} />
+                </button>
+                <button onClick={() => toggleRole(u.uid, u.role)} className="text-blue-600 hover:text-blue-700 text-xs font-bold hover:underline">
+                  Switch Role
+                </button>
+              </div>
             </td>
           </tr>
         ))}
       </AdminTable>
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-200">
+            {/* Modal Header/Hero */}
+            <div className="relative h-32 bg-gradient-to-r from-church-green to-emerald-900">
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-10"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="relative px-8 pb-10">
+              {/* Avatar Overlap */}
+              <div className="absolute -top-12 left-8">
+                <img
+                  src={selectedUser.photoURL || `https://ui-avatars.com/api/?name=${selectedUser.displayName}`}
+                  className="w-24 h-24 rounded-3xl border-4 border-white dark:border-gray-900 shadow-xl object-cover"
+                  alt=""
+                />
+              </div>
+
+              <div className="pt-16">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">{selectedUser.displayName}</h2>
+                    <p className="text-gray-500 font-medium">{selectedUser.email}</p>
+                  </div>
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-church-green/10 text-church-green border-church-green/20'}`}>
+                    {selectedUser.role}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-gray-800 pb-2">Biographical</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                        <Phone size={16} className="text-church-green" />
+                        <span className="text-sm font-bold">{selectedUser.phoneNumber || 'No phone added'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                        <Building2 size={16} className="text-church-gold" />
+                        <span className="text-sm font-bold">{selectedUser.hostelName || 'No residence added'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                        <Calendar size={16} className="text-blue-500" />
+                        <span className="text-sm font-bold">{selectedUser.dateOfBirth ? new Date(selectedUser.dateOfBirth).toLocaleDateString() : 'No birth date'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-gray-800 pb-2">Spiritual Stats</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.sermonsHeard || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Sermons</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.quizzesTaken || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Quizzes</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.versesHighlighted || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Highlights</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.quizPoints || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">XP Points</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -425,6 +513,7 @@ export const AdminGalleryManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [imageLink, setImageLink] = useState('');
   const [caption, setCaption] = useState('');
+  const [externalLink, setExternalLink] = useState('');
 
   const fetchImages = async () => {
     const q = query(collection(db, 'gallery'), orderBy('date', 'desc'));
@@ -436,19 +525,44 @@ export const AdminGalleryManager: React.FC = () => {
 
   const handleAddImage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageLink) return;
     setLoading(true);
     try {
-      const directUrl = getGoogleDriveDirectLink(imageLink);
+      // If they gave an external link but no cover, use a high-quality default
+      let finalImageUrl = imageLink;
+      if (!finalImageUrl && externalLink) {
+        finalImageUrl = 'https://images.unsplash.com/photo-1510133539744-11d206f9abe2?auto=format&fit=crop&q=80&w=1000';
+      }
+
+      // If they pasted a Pixieset link in the image box by mistake, move it
+      let finalExternalUrl = externalLink;
+      if (imageLink.includes('pixieset.com') || imageLink.includes('gallery.')) {
+        finalExternalUrl = imageLink;
+        if (!imageLink.match(/\.(jpeg|jpg|gif|png)$/) && !imageLink.includes('lh3.googleusercontent.com')) {
+          finalImageUrl = 'https://images.unsplash.com/photo-1510133539744-11d206f9abe2?auto=format&fit=crop&q=80&w=1000';
+        }
+      }
+
+      if (!finalImageUrl && !finalExternalUrl) {
+        alert("Please provide either a cover image or an album link.");
+        setLoading(false);
+        return;
+      }
+
+      const directUrl = getGoogleDriveDirectLink(finalImageUrl || 'https://images.unsplash.com/photo-1510133539744-11d206f9abe2?auto=format&fit=crop&q=80&w=1000');
+
       await addDoc(collection(db, 'gallery'), {
         url: directUrl,
-        caption: caption || 'Gallery Image',
+        caption: caption || 'New Album',
+        externalLink: finalExternalUrl || null,
         date: new Date().toISOString()
       });
+
+      await notifyNewGalleryImage(caption || 'New Album');
       fetchImages();
       setImageLink('');
       setCaption('');
-      alert("Image added!");
+      setExternalLink('');
+      alert("Album added successfully!");
     } catch (e) {
       console.error(e);
       alert("Failed to add image");
@@ -466,26 +580,36 @@ export const AdminGalleryManager: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Add Image Form */}
+        {/* Add Album Form */}
         <div className="md:col-span-1">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 sticky top-4">
-            <h3 className="text-lg font-bold dark:text-white mb-4">Add Image</h3>
+            <h3 className="text-lg font-bold dark:text-white mb-4">Add Album</h3>
 
             <div className="p-3 mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                Paste a Google Drive or Direct Image Link below.
+              <p className="text-xs text-blue-700 dark:text-blue-300 font-bold">
+                Enter your Pixieset link and a cover photo.
               </p>
             </div>
-
             <form onSubmit={handleAddImage} className="space-y-4">
-              <div>
+
+              <div className="space-y-1">
                 <input
-                  placeholder="Image Link"
+                  placeholder="Album Link (Pixieset/External)"
                   className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-church-green"
-                  value={imageLink}
-                  onChange={e => setImageLink(e.target.value)}
+                  value={externalLink}
+                  onChange={e => setExternalLink(e.target.value)}
                   required
                 />
+                <p className="text-[9px] text-blue-500/60 ml-1 italic font-bold uppercase tracking-tighter">Required: The gallery link (e.g. doxamedia.pixieset.com)</p>
+              </div>
+              <div className="space-y-1">
+                <input
+                  placeholder="Cover Image URL (Optional)"
+                  className="w-full p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-church-green text-xs"
+                  value={imageLink}
+                  onChange={e => setImageLink(e.target.value)}
+                />
+                <p className="text-[9px] text-gray-400 ml-1 italic font-bold uppercase tracking-tighter">If left blank, a default cover will be used.</p>
               </div>
               <div>
                 <input
@@ -506,14 +630,15 @@ export const AdminGalleryManager: React.FC = () => {
         <div className="md:col-span-2">
           <h3 className="text-xl font-bold dark:text-white font-serif mb-4">Gallery Grid</h3>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {images.map(img => (
-              <div key={img.id} className="relative group rounded-xl overflow-hidden aspect-square border border-gray-200 dark:border-gray-700 shadow-sm bg-gray-100 dark:bg-gray-900">
-                <img src={img.url} className="w-full h-full object-cover" alt="" onError={(e) => (e.currentTarget.src = 'https://placehold.co/400?text=Broken+Link')} />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4 text-center">
-                  <p className="text-white text-xs font-bold line-clamp-2">{img.caption}</p>
-                  <button onClick={() => deleteImage(img.id)} className="p-2 bg-red-500 text-white rounded-full hover:scale-110 transition-transform shadow-lg"><Trash2 size={16} /></button>
-                </div>
-              </div>
+            {images.map((img, idx) => (
+              <GalleryCard
+                key={img.id}
+                img={img}
+                index={idx}
+                isAdmin={true}
+                onDelete={() => deleteImage(img.id)}
+                onClick={() => { }}
+              />
             ))}
             {images.length === 0 && (
               <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300">
@@ -523,7 +648,7 @@ export const AdminGalleryManager: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
@@ -581,12 +706,17 @@ export const AdminQuizManager: React.FC = () => {
         const jsonText = response.text || "{}";
         const generatedData = JSON.parse(jsonText);
         if (generatedData && generatedData.questions) {
-          await addDoc(collection(db, 'bible_quizzes'), { topic: topic || `AI Generated: ${difficulty}`, difficulty, questions: generatedData.questions, createdAt: new Date().toISOString() });
+          const quizTopic = topic || `AI Generated: ${difficulty}`;
+          await addDoc(collection(db, 'bible_quizzes'), { topic: quizTopic, difficulty, questions: generatedData.questions, createdAt: new Date().toISOString() });
+          // Send notification
+          await notifyNewQuiz(quizTopic, difficulty);
           setIsModalOpen(false); fetchQuizzes(); setTopic('');
         } else { alert("AI response structure was invalid."); }
       } catch (e) { console.error(e); alert("Failed to generate quiz."); } finally { setGenerating(false); }
     } else {
       await addDoc(collection(db, 'bible_quizzes'), { topic, difficulty, questions, createdAt: new Date().toISOString() });
+      // Send notification
+      await notifyNewQuiz(topic, difficulty);
       setIsModalOpen(false); fetchQuizzes(); setTopic(''); setQuestions([{ question: '', options: ['', '', '', ''], correctIndex: 0 }]);
     }
   };

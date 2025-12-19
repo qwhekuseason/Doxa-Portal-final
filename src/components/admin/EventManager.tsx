@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { collection, query, orderBy, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { notifyNewEvent } from '../../utils/notificationService';
 import { useFirestoreQuery } from '../../hooks';
 import { CalendarEvent } from '../../types';
 import { Calendar, Trash2, Plus, MapPin, Loader2, Clock, Video } from 'lucide-react';
@@ -29,6 +30,9 @@ export const EventManager: React.FC = () => {
                 createdAt: new Date().toISOString(),
                 createdBy: 'admin' // In real app, user.uid
             });
+            // Send notification
+            const eventDate = new Date(formData.date).toLocaleDateString();
+            await notifyNewEvent(formData.title, eventDate);
             setFormData({
                 title: '',
                 description: '',

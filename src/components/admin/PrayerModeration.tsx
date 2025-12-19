@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { collection, query, where, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { notifyPrayerApproved } from '../../utils/notificationService';
 import { useFirestoreQuery } from '../../hooks';
 import { PrayerRequest } from '../../types';
 import { Check, X, Loader2, Heart, Lock, Globe } from 'lucide-react';
@@ -13,9 +14,14 @@ export const PrayerModeration: React.FC = () => {
     const handleApprove = async (id: string) => {
         setProcessingId(id);
         try {
+            const request = requests.find(r => r.id === id);
             await updateDoc(doc(db, 'prayer_requests', id), {
                 approved: true
             });
+            // Send notification
+            if (request) {
+                await notifyPrayerApproved(request.authorName);
+            }
         } catch (err) {
             console.error('Error approving request:', err);
             alert('Failed to approve request');

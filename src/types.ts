@@ -7,6 +7,7 @@ export interface UserProfile {
   phoneNumber?: string;
   hostelName?: string;
   dateOfBirth?: string;
+  publicProfile?: boolean;
   stats?: {
     versesHighlighted?: number;
     quizzesTaken?: number;
@@ -97,6 +98,7 @@ export interface GalleryImage {
   caption: string;
   date: string;
   uploadedBy: string;
+  externalLink?: string;
 }
 
 export interface AppNotification {
