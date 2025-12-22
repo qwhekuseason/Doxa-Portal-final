@@ -40,11 +40,11 @@ export const getAgoraToken = async (
     uid: number | string
 ): Promise<string> => {
     try {
-        // Dynamically determine server URL based on current client hostname
-        // This allows mobile devices to connect when accessing via IP address
-        // Use relative path - Vite proxy will forward this to http://localhost:3001
-        // This avoids Mixed Content errors and certificate trust issues
-        const tokenServerUrl = '/api/token/generateToken';
+        // In production (Vercel): /api/generateToken routes to serverless function
+        // In development: /api/token/generateToken proxies to local token server
+        const tokenServerUrl = import.meta.env.PROD
+            ? '/api/generateToken'
+            : '/api/token/generateToken';
 
         console.log('📡 Requesting token from:', tokenServerUrl);
 
