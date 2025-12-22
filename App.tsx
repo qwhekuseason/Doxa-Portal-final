@@ -34,7 +34,8 @@ import {
   AdminUserManager,
   AdminTestimonyManager,
   AdminQuizManager,
-  AdminGalleryManager
+  AdminGalleryManager,
+  AdminSettingsManager
 } from './src/components/AdminViews';
 
 // Import Components
@@ -77,6 +78,7 @@ const ADMIN_NAV_ITEMS = [
   { id: 'admin-users', icon: <Users size={20} />, label: 'Users' },
   { id: 'admin-gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
   { id: 'admin-testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
+  { id: 'admin-settings', icon: <Settings size={20} />, label: 'System Settings' },
 ];
 
 const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ user, refreshUser }) => {
@@ -380,6 +382,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               {activeTab === 'admin-users' && <AdminUserManager />}
               {activeTab === 'admin-quizzes' && <AdminQuizManager />}
               {activeTab === 'admin-gallery' && <AdminGalleryManager />}
+              {activeTab === 'admin-settings' && <AdminSettingsManager />}
             </div>
           </div>
         </div>
@@ -396,8 +399,17 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<'dashboard' | 'live_window'>('dashboard');
+  const [initialRoom, setInitialRoom] = useState('');
 
   useEffect(() => {
+    // Check for standalone mode (new window)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'live_window') {
+      setMode('live_window');
+      setInitialRoom(params.get('room') || '');
+    }
+
     let unsubscribeUserDoc: () => void;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
@@ -457,7 +469,11 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <ThemeProvider>
         {user ? (
-          <Dashboard user={user} refreshUser={() => { /* Real-time listener handles updates */ }} />
+          mode === 'live_window' ? (
+            <LiveSessionScreen initialRoom={initialRoom} user={user} autoJoin={true} />
+          ) : (
+            <Dashboard user={user} refreshUser={() => { /* Real-time listener handles updates */ }} />
+          )
         ) : (
           <UnauthenticatedView />
         )}

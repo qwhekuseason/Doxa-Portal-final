@@ -109,3 +109,23 @@ export interface AppNotification {
   isRead: boolean;
   createdAt: string;
 }
+
+export interface SiteSettings {
+  contactEmail?: string;
+  momoNumber?: string;
+  momoName?: string;
+  telecelNumber?: string;
+  telecelName?: string;
+  bankInfo?: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    branch: string;
+  };
+}
+
+export interface GivingStats {
+  weeklyGoal: number;
+  currentProgress: number;
+  lastResetDate: string;
+}

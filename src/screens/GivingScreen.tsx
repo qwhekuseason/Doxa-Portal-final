@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import { doc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useFirestoreDoc } from '../hooks';
+import { SiteSettings, GivingStats } from '../types';
 import {
     Heart,
     Lock,
@@ -21,6 +25,9 @@ const GivingScreen: React.FC = () => {
     const [frequency, setFrequency] = useState<'once' | 'monthly'>('once');
     const [category, setCategory] = useState<string>('General');
     const [step, setStep] = useState<1 | 2>(1);
+
+    const { data: settings } = useFirestoreDoc<SiteSettings>(doc(db, 'site_settings', 'global'));
+    const { data: stats } = useFirestoreDoc<GivingStats>(doc(db, 'giving_stats', 'weekly'));
 
     const categories = ['General', 'Tithes', 'Missions', 'Building Fund', 'Youth Ministry'];
     const presetAmounts = ['50', '100', '200', '500', '1000'];
@@ -129,14 +136,20 @@ const GivingScreen: React.FC = () => {
                                         <h4 className="font-black text-xs uppercase tracking-widest text-church-green mb-4">Mobile Money</h4>
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-center bg-white dark:bg-white/5 p-3 rounded-xl border border-church-green/10">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">MTN MoMo</span>
-                                                <span className="text-xs font-black dark:text-white">024 123 4567</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">MTN MoMo</span>
+                                                    <span className="text-[8px] font-medium text-gray-400">{settings?.momoName || 'Doxa Portal'}</span>
+                                                </div>
+                                                <span className="text-xs font-black dark:text-white uppercase">{settings?.momoNumber || '024 000 0000'}</span>
                                             </div>
                                             <div className="flex justify-between items-center bg-white dark:bg-white/5 p-3 rounded-xl border border-church-green/10">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Telecel Cash</span>
-                                                <span className="text-xs font-black dark:text-white">020 123 4567</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Telecel Cash</span>
+                                                    <span className="text-[8px] font-medium text-gray-400">{settings?.telecelName || 'Doxa Portal'}</span>
+                                                </div>
+                                                <span className="text-xs font-black dark:text-white uppercase">{settings?.telecelNumber || '020 000 0000'}</span>
                                             </div>
-                                            <p className="text-[8px] font-bold text-gray-400 text-center mt-2">Doxa Portal Official Receipts</p>
+                                            <p className="text-[8px] font-bold text-gray-400 text-center mt-2">Authenticated Divine Giving</p>
                                         </div>
                                     </div>
 
@@ -146,9 +159,10 @@ const GivingScreen: React.FC = () => {
                                         </div>
                                         <h4 className="font-black text-xs uppercase tracking-widest text-church-gold mb-4">Bank Transfer</h4>
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black dark:text-white uppercase">Ecobank Ghana</p>
-                                            <p className="text-xs font-black text-gray-400">Acc: 1441001234567</p>
-                                            <p className="text-[9px] font-bold text-gray-500 mt-2 uppercase">Branch: Ring Road</p>
+                                            <p className="text-[10px] font-black dark:text-white uppercase">{settings?.bankInfo?.bankName || 'Ecobank Ghana'}</p>
+                                            <p className="text-xs font-black text-gray-400">Acc: {settings?.bankInfo?.accountNumber || '144100XXXXXXX'}</p>
+                                            <p className="text-[9px] font-bold text-gray-500 mt-2 uppercase">Name: {settings?.bankInfo?.accountName || 'Doxa Ministries'}</p>
+                                            <p className="text-[9px] font-bold text-gray-500 uppercase">Branch: {settings?.bankInfo?.branch || 'Ring Road'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -217,8 +231,8 @@ const GivingScreen: React.FC = () => {
                         <div className="pt-6 border-t border-white/10">
                             <p className="text-[10px] font-black uppercase tracking-widest mb-1 italic">Weekly Goal</p>
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl font-black">GH₵8,400</span>
-                                <span className="text-[10px] font-bold text-white/40 uppercase">of GH₵10,000</span>
+                                <span className="text-2xl font-black">GH₵{stats?.currentProgress.toLocaleString() || '0'}</span>
+                                <span className="text-[10px] font-bold text-white/40 uppercase">of GH₵{stats?.weeklyGoal.toLocaleString() || '10,000'}</span>
                             </div>
                         </div>
                     </div>

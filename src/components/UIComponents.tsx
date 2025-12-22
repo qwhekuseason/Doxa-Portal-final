@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Loader2, ChevronRight, ArrowUpRight, Bell, Sun, Moon, Plus, Users, Calendar, Activity, TrendingUp } from 'lucide-react';
+import { Loader2, ChevronRight, ArrowUpRight, Bell, Sun, Moon, Plus, Users, Calendar, Activity, TrendingUp, ChevronUp } from 'lucide-react';
 
 // --- Hooks ---
 export const useClickOutside = (ref: React.RefObject<HTMLElement>, handler: () => void) => {
@@ -78,7 +78,7 @@ export const FloatingSocialMenu: React.FC = () => {
         className={`w-16 h-16 rounded-3xl shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center border-t border-white/20 ${isOpen ? 'bg-black text-white' : 'bg-gradient-to-br from-church-green to-emerald-700 text-white shadow-church-green/30'}`}
       >
         <div className={`transition-transform duration-500 ${isOpen ? 'rotate-[135deg]' : 'rotate-0'}`}>
-          <Plus size={32} />
+          <ChevronUp size={32} />
         </div>
       </button>
     </div>
@@ -99,19 +99,19 @@ export const StatCard: React.FC<{
   if (loading) return <SkeletonCard height="h-32" />;
 
   return (
-    <div onClick={onClick} className={`group relative glass-card p-5 rounded-2xl shadow-glass hover:shadow-premium hover:-translate-y-1 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
-      <div className={`absolute -top-12 -right-12 w-32 h-32 bg-${colorBase}-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:bg-${colorBase}-500/20`}></div>
+    <div onClick={onClick} className={`group relative glass-card p-4 md:p-5 rounded-2xl shadow-glass hover:shadow-premium hover:-translate-y-1 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
+      <div className={`absolute -top-12 -right-12 w-24 h-24 md:w-32 md:h-32 bg-${colorBase}-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:bg-${colorBase}-500/20`}></div>
 
       <div className="relative z-10">
-        <div className="flex justify-between items-start mb-4">
-          <div className={`p-3 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20 text-${colorBase}-600 dark:text-${colorBase}-400 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-sm shadow-${colorBase}-500/20`}>
+        <div className="flex justify-between items-start mb-3 md:mb-4">
+          <div className={`p-2.5 md:p-3 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20 text-${colorBase}-600 dark:text-${colorBase}-400 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-sm shadow-${colorBase}-500/20`}>
             {React.isValidElement(icon)
-              ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 })
+              ? React.cloneElement(icon as React.ReactElement<any>, { size: 18, className: 'md:w-5 md:h-5' })
               : icon
             }
           </div>
           {trend && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 dark:bg-green-500/20 rounded-lg border border-green-500/20">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 dark:bg-green-500/20 rounded-lg border border-green-500/20">
               <TrendingUp size={12} className="text-green-500" />
               <span className="text-[9px] font-black text-green-600 dark:text-green-400 uppercase tracking-wider">{trend}</span>
             </div>
@@ -119,10 +119,10 @@ export const StatCard: React.FC<{
         </div>
         <div>
           <div className="flex items-baseline gap-1 mb-1">
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</h3>
-            <div className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse"></div>
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tighter truncate">{value}</h3>
+            <div className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse hidden md:block"></div>
           </div>
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em]">{title}</p>
+          <p className="text-[9px] md:text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] truncate">{title}</p>
         </div>
       </div>
     </div>

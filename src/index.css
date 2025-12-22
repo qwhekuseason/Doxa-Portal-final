@@ -3,6 +3,15 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    /* Fluid typography base */
+    font-size: 14px;
+
+    @screen md {
+      font-size: 16px;
+    }
+  }
+
   body {
     @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-black;
   }

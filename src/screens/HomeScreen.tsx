@@ -115,11 +115,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                 <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Divine Dashboard</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
                 {greeting},<br />
                 <span className="text-church-gold">{user?.displayName?.split(' ')[0] || 'Beloved'}</span>
               </h1>
-              <p className="text-white/70 font-medium text-base max-w-xl leading-relaxed">
+              <p className="text-white/70 font-medium text-sm md:text-base max-w-xl leading-relaxed">
                 Your spiritual journey continues here. Explore the Word, join the community, and grow in grace.
               </p>
             </div>
@@ -128,12 +128,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
               {nextEvent ? (
                 <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                   <EventCountdown event={nextEvent} />
-                  <p className="mt-2 text-center text-white/50 text-[9px] font-black uppercase tracking-widest">{nextEvent.title}</p>
+                  <p className="mt-2 text-center text-white/50 text-[9px] font-black uppercase tracking-widest truncate">{nextEvent.title}</p>
                 </div>
               ) : (
                 <div className="p-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl animate-fade-in-up">
                   <p className="text-[9px] font-black text-white/60 mb-1 uppercase tracking-[0.2em]">Wisdom for now</p>
-                  <p className="text-white font-serif italic text-base leading-relaxed">"{dailyVerse.text.slice(0, 80)}..."</p>
+                  <p className="text-white font-serif italic text-sm md:text-base leading-relaxed line-clamp-3">"{dailyVerse.text}"</p>
                 </div>
               )}
             </div>
@@ -142,27 +142,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
       </section>
 
       {/* Main Stats Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard
-          title="Lessons Completed"
+          title="Lessons"
           value={user?.stats?.sermonsHeard || 0}
           icon={<BookOpen />}
           color="bg-church-green"
         />
         <StatCard
-          title="Spiritual Points"
+          title="Points"
           value={user?.stats?.quizPoints || 0}
           icon={<Star />}
           color="bg-church-gold"
         />
         <StatCard
-          title="Quizzes Taken"
+          title="Quizzes"
           value={user?.stats?.quizzesTaken || 0}
           icon={<TrendingUp />}
           color="bg-blue-500"
         />
         <StatCard
-          title="Bible Highlights"
+          title="Highlights"
           value={user?.stats?.versesHighlighted || 0}
           icon={<Flame />}
           color="bg-orange-500"
@@ -243,6 +243,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
 
         {/* Right Column: Actions & Verse */}
         <div className="space-y-12">
+
+          {/* Bible Verse Spotlight (Moved Higher) */}
+          <div className="relative p-6 glass-card border-church-gold/30 rounded-3xl overflow-hidden group shadow-premium">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-church-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000"></div>
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="p-3 bg-church-gold/10 rounded-xl mb-4 text-church-gold">
+                <Star size={24} fill="currentColor" />
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-church-gold/60 mb-4">Light for your path</p>
+              <blockquote className="text-base font-serif text-gray-900 dark:text-white italic leading-relaxed mb-5">
+                "{dailyVerse.text}"
+              </blockquote>
+              <div className="w-12 h-0.5 bg-church-gold/20 rounded-full mb-3"></div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— {dailyVerse.reference}</p>
+
+              <button onClick={() => onNavigate('bible')} className="mt-8 px-8 py-3 bg-church-gold text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-church-gold/30 hover:scale-105 transition-all active:scale-95">
+                Open Scriptures
+              </button>
+            </div>
+          </div>
+
           {/* Quick Actions */}
           <div className="space-y-6">
             <SectionHeader title="Actions" />
@@ -266,27 +288,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                   </span>
                 </button>
               ))}
-            </div>
-          </div>
-
-          {/* Bible Verse Spotlight */}
-          <div className="relative p-6 glass-card border-church-gold/30 rounded-3xl overflow-hidden group shadow-premium">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-church-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000"></div>
-
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="p-3 bg-church-gold/10 rounded-xl mb-4 text-church-gold">
-                <Star size={24} fill="currentColor" />
-              </div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-church-gold/60 mb-4">Light for your path</p>
-              <blockquote className="text-base font-serif text-gray-900 dark:text-white italic leading-relaxed mb-5">
-                "{dailyVerse.text}"
-              </blockquote>
-              <div className="w-12 h-0.5 bg-church-gold/20 rounded-full mb-3"></div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— {dailyVerse.reference}</p>
-
-              <button onClick={() => onNavigate('bible')} className="mt-8 px-8 py-3 bg-church-gold text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-church-gold/30 hover:scale-105 transition-all active:scale-95">
-                Open Scriptures
-              </button>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.32.0",
+    "@huggingface/inference": "^4.13.5",
     "agora-rtc-react": "^2.3.0",
     "agora-rtc-sdk-ng": "^4.21.0",
     "agora-token": "^2.0.5",

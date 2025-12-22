@@ -9,13 +9,14 @@ import {
   orderBy,
   getDocs,
   where,
-  limit
+  limit,
+  getDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { GoogleGenAI, Type } from "@google/genai";
+import { HfInference } from "@huggingface/inference";
 import { db, storage } from '../firebase';
 import { notifyTestimonyApproved, notifyNewSermon, notifyNewGalleryImage, notifyNewQuiz } from '../utils/notificationService';
-import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification } from '../types';
+import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification, SiteSettings, GivingStats } from '../types';
 import { getGoogleDriveDirectLink } from '../utils/galleryUtils';
 import { GalleryCard } from './GalleryCard';
 import {
@@ -40,7 +41,8 @@ import {
   Phone,
   Building2,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Settings
 } from 'lucide-react';
 
 // --- Reusable Admin Table ---
@@ -681,38 +683,61 @@ export const AdminQuizManager: React.FC = () => {
     if (mode === 'ai') {
       setGenerating(true);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `Generate 5 Bible quiz questions about "${topic || 'General Bible'}" with difficulty "${difficulty}". Include the correct answer index (0-3).`;
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                questions: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctIndex: { type: Type.INTEGER } },
-                    required: ["question", "options", "correctIndex"]
-                  }
-                }
-              }
-            }
-          }
+        const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+        const prompt = `Generate a Bible quiz about "${topic || 'General Bible'}" with difficulty "${difficulty}". 
+Return EXACTLY 5 questions in a JSON array format. 
+Each object MUST have:
+- "question": string
+- "options": array of 4 strings
+- "correctIndex": integer (0 to 3)
+
+Example format:
+[
+  {
+    "question": "Who was the first man?",
+    "options": ["Noah", "Adam", "Moses", "Abraham"],
+    "correctIndex": 1
+  }
+]
+Only return the JSON array, no other text.`;
+
+        const response = await hf.chatCompletion({
+          model: 'HuggingFaceH4/zephyr-7b-beta',
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 1200,
         });
-        const jsonText = response.text || "{}";
-        const generatedData = JSON.parse(jsonText);
-        if (generatedData && generatedData.questions) {
+
+        const generatedText = response.choices[0].message.content || '';
+        // Extract JSON if there is extra text
+        const jsonMatch = generatedText.match(/\[\s*\{.*\}\s*\]/s);
+        const jsonText = jsonMatch ? jsonMatch[0] : generatedText;
+
+        const quizQuestions = JSON.parse(jsonText);
+
+        if (Array.isArray(quizQuestions)) {
           const quizTopic = topic || `AI Generated: ${difficulty}`;
-          await addDoc(collection(db, 'bible_quizzes'), { topic: quizTopic, difficulty, questions: generatedData.questions, createdAt: new Date().toISOString() });
+          await addDoc(collection(db, 'bible_quizzes'), {
+            topic: quizTopic,
+            difficulty,
+            questions: quizQuestions,
+            createdAt: new Date().toISOString()
+          });
           // Send notification
           await notifyNewQuiz(quizTopic, difficulty);
-          setIsModalOpen(false); fetchQuizzes(); setTopic('');
-        } else { alert("AI response structure was invalid."); }
-      } catch (e) { console.error(e); alert("Failed to generate quiz."); } finally { setGenerating(false); }
+          setIsModalOpen(false);
+          fetchQuizzes();
+          setTopic('');
+        } else {
+          alert("AI response structure was invalid.");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Failed to generate quiz with AI. Please try again or use manual mode.");
+      } finally {
+        setGenerating(false);
+      }
     } else {
       await addDoc(collection(db, 'bible_quizzes'), { topic, difficulty, questions, createdAt: new Date().toISOString() });
       // Send notification
@@ -776,6 +801,233 @@ export const AdminQuizManager: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// --- Settings Manager ---
+export const AdminSettingsManager: React.FC = () => {
+  const [settings, setSettings] = useState<SiteSettings>({
+    momoNumber: '', momoName: '', telecelNumber: '', telecelName: '', contactEmail: '',
+    bankInfo: { bankName: '', accountName: '', accountNumber: '', branch: '' }
+  });
+  const [stats, setStats] = useState<GivingStats>({ weeklyGoal: 10000, currentProgress: 0, lastResetDate: new Date().toISOString() });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const settingsSnap = await getDoc(doc(db, 'site_settings', 'global'));
+        if (settingsSnap.exists()) setSettings(settingsSnap.data() as SiteSettings);
+
+        const statsSnap = await getDoc(doc(db, 'giving_stats', 'weekly'));
+        if (statsSnap.exists()) setStats(statsSnap.data() as GivingStats);
+      } catch (e) {
+        console.error("Error fetching settings:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'site_settings', 'global'), { ...settings });
+      alert("Site settings updated!");
+    } catch (e) {
+      // If doc doesn't exist, set it
+      try {
+        await addDoc(collection(db, 'site_settings'), { ...settings, id: 'global' }); // This is wrong for setDoc but good for addDoc. Better use setDoc.
+      } catch (err) {
+        console.error(err);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Refined save using setDoc for absolute control
+  const saveGlobalSettings = async () => {
+    setSaving(true);
+    try {
+      // Import setDoc for this
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(doc(db, 'site_settings', 'global'), settings);
+      await setDoc(doc(db, 'giving_stats', 'weekly'), stats);
+      alert("All settings and stats synchronized!");
+    } catch (e) {
+      console.error(e);
+      alert("Sync failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-church-green" size={40} /></div>;
+
+  return (
+    <div className="space-y-12 animate-fade-in pb-20">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+        {/* Payment & Contact Settings */}
+        <div className="space-y-8">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-church-green/10 text-church-green flex items-center justify-center">
+              <Settings size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase">Site Constants</h3>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Global Payment & Contact Info</p>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 rounded-[2.5rem] space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">MTN MoMo Number</label>
+                <input
+                  value={settings.momoNumber}
+                  onChange={e => setSettings({ ...settings, momoNumber: e.target.value })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-green outline-none font-bold"
+                  placeholder="024 XXX XXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">MTN Account Name</label>
+                <input
+                  value={settings.momoName}
+                  onChange={e => setSettings({ ...settings, momoName: e.target.value })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-green outline-none font-bold"
+                  placeholder="Doxa Portal"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Telecel Number</label>
+                <input
+                  value={settings.telecelNumber}
+                  onChange={e => setSettings({ ...settings, telecelNumber: e.target.value })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-green outline-none font-bold"
+                  placeholder="020 XXX XXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Telecel Name</label>
+                <input
+                  value={settings.telecelName}
+                  onChange={e => setSettings({ ...settings, telecelName: e.target.value })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-green outline-none font-bold"
+                  placeholder="Doxa Portal"
+                />
+              </div>
+            </div>
+
+            <div className="h-px bg-gray-100 dark:bg-white/5 my-4"></div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-church-gold uppercase tracking-[0.2em] ml-2">Bank Details</h4>
+              <input
+                value={settings.bankInfo?.bankName}
+                onChange={e => setSettings({ ...settings, bankInfo: { ...settings.bankInfo!, bankName: e.target.value } })}
+                className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-gold outline-none font-bold"
+                placeholder="Bank Name (e.g. Ecobank)"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  value={settings.bankInfo?.accountNumber}
+                  onChange={e => setSettings({ ...settings, bankInfo: { ...settings.bankInfo!, accountNumber: e.target.value } })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-gold outline-none font-bold font-mono"
+                  placeholder="Account Number"
+                />
+                <input
+                  value={settings.bankInfo?.branch}
+                  onChange={e => setSettings({ ...settings, bankInfo: { ...settings.bankInfo!, branch: e.target.value } })}
+                  className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-gold outline-none font-bold"
+                  placeholder="Branch"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Giving Stats Manager */}
+        <div className="space-y-8">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-church-gold/10 text-church-gold flex items-center justify-center">
+              <Heart size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase">Generosity Stats</h3>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Real-time Goal Tracking</p>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 rounded-[2.5rem] space-y-8">
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Weekly Goal (GH₵)</label>
+              <div className="relative">
+                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-church-gold">GH₵</span>
+                <input
+                  type="number"
+                  value={stats.weeklyGoal}
+                  onChange={e => setStats({ ...stats, weeklyGoal: Number(e.target.value) })}
+                  className="w-full pl-16 pr-6 py-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl focus:border-church-gold outline-none text-2xl font-black dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Current Progress (GH₵)</label>
+              <div className="relative">
+                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-church-green">GH₵</span>
+                <input
+                  type="number"
+                  value={stats.currentProgress}
+                  onChange={e => setStats({ ...stats, currentProgress: Number(e.target.value) })}
+                  className="w-full pl-16 pr-6 py-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl focus:border-church-green outline-none text-2xl font-black dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Preview Bar</span>
+                <span className="text-[10px] font-black text-church-green uppercase tracking-widest">{Math.round((stats.currentProgress / stats.weeklyGoal) * 100)}% Reached</span>
+              </div>
+              <div className="h-4 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-church-green transition-all duration-1000"
+                  style={{ width: `${Math.min(100, (stats.currentProgress / stats.weeklyGoal) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setStats({ ...stats, currentProgress: 0, lastResetDate: new Date().toISOString() })}
+              className="w-full py-4 text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500/5 rounded-2xl transition-all"
+            >
+              Reset Weekly Progress
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div className="flex justify-center pt-8">
+        <button
+          onClick={saveGlobalSettings}
+          disabled={saving}
+          className="px-12 py-5 bg-church-green hover:bg-emerald-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-premium flex items-center gap-4 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+          Synchronize Divine Data
+        </button>
+      </div>
     </div>
   );
 };

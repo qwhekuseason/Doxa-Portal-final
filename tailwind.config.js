@@ -62,8 +62,27 @@ export default {
                 float: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-10px)' },
+                },
+                shake: {
+                    '0%, 100%': { transform: 'translateX(0)' },
+                    '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
+                    '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
+                },
+                floatUp: {
+                    '0%': { transform: 'translateY(0) translateX(-50%) scale(0.5)', opacity: '0' },
+                    '10%': { opacity: '1', transform: 'translateY(-20px) translateX(-50%) scale(1.2)' },
+                    '100%': { transform: 'translateY(-150px) translateX(-50%) scale(1)', opacity: '0' },
                 }
-            }
+            },
+            animation: {
+                'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                'fade-in': 'fadeIn 0.5s ease-out',
+                'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'shimmer': 'shimmer 2s linear infinite',
+                'float': 'float 3s ease-in-out infinite',
+                'shake': 'shake 0.5s ease-in-out',
+                'float-up': 'floatUp 2s ease-out forwards',
+            },
         },
     },
     plugins: [],
