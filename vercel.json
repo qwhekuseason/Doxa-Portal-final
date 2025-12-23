@@ -1,4 +1,8 @@
 {
+    "env": {
+        "AGORA_APP_ID": "@agora_app_id",
+        "AGORA_APP_CERTIFICATE": "@agora_app_certificate"
+    },
     "functions": {
         "api/generateToken.js": {
             "memory": 1024,

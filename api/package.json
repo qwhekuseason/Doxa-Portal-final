@@ -1,0 +1,9 @@
+{
+    "name": "agora-token-api",
+    "version": "1.0.0",
+    "description": "Vercel serverless function for Agora token generation",
+    "main": "generateToken.js",
+    "dependencies": {
+        "agora-token": "^2.0.3"
+    }
+}
