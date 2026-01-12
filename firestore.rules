@@ -15,6 +15,21 @@ service cloud.firestore {
     }
 
     /**
+     * @Security - ROLE CHECKS
+     */
+    function isPublicity() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'publicity';
+    }
+
+    function isPrayer() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'prayer';
+    }
+
+    /**
      * @Security - OWNER CHECK
      */
     function isOwner(userId) {
@@ -24,11 +39,12 @@ service cloud.firestore {
     /**
      * @Collection - User Profiles
      * Owners can read/write their own profiles. Admins can manage all.
+     * Publicity role can read all profiles (for birthdays).
      */
     match /users/{userId} {
       allow create: if isOwner(userId);
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin() || isPublicity();
+      allow list: if isAdmin() || isPublicity();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
@@ -48,12 +64,13 @@ service cloud.firestore {
     
     /**
      * @Collection - Prayer Requests
-     * Public sees APPROVED+NON-PRIVATE. Owners/Admins see ALL.
+     * Public sees APPROVED+NON-PRIVATE. Owners/Admins/Prayer Team see ALL APPROVED (Prayer team sees private too).
      * Only Admins can moderate.
      */
     match /prayer_requests/{requestId} {
       allow read: if (resource.data.approved == true && resource.data.isPrivate == false) ||
                      (request.auth != null && resource.data.uid == request.auth.uid) ||
+                     (resource.data.approved == true && isPrayer()) ||
                      isAdmin();
       allow create: if request.auth != null;
       allow update, delete: if isAdmin();

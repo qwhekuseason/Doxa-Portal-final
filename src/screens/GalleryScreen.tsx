@@ -7,11 +7,13 @@ import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 import { GalleryCard } from '../components/GalleryCard';
 import { X, ZoomIn, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
+// Define query outside component to ensure stability
+const galleryQ = query(collection(db, 'gallery'), orderBy('date', 'desc'));
+
 const GalleryView: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
-  const galleryQ = useMemo(() => query(collection(db, 'gallery'), orderBy('date', 'desc')), []);
   const { data: images, loading } = useFirestoreQuery<GalleryImage>(galleryQ);
 
   const openLightbox = (img: GalleryImage, index: number) => {

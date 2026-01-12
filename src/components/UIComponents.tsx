@@ -27,15 +27,18 @@ export const SkeletonCard: React.FC<{ height?: string }> = ({ height = "h-48" })
   </div>
 );
 
-export const LoadingSpinner: React.FC = () => (
-  <div className="flex flex-col justify-center items-center p-12 gap-4">
-    <div className="relative">
-      <div className="w-12 h-12 border-4 border-church-green/20 border-t-church-green rounded-full animate-spin"></div>
-      <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-church-green animate-pulse" size={20} />
+export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ size = 48, color }) => {
+  const sizePx = typeof size === 'number' ? `${size}px` : size;
+  return (
+    <div className="flex flex-col justify-center items-center p-4 gap-4">
+      <div className="relative" style={{ width: sizePx, height: sizePx }}>
+        <div className={`w-full h-full border-4 ${color ? color.replace('text-', 'border-').replace('/20', '') + '/20' : 'border-church-green/20'} ${color ? color.replace('text-', 'border-') : 'border-t-church-green'} rounded-full animate-spin border-t-transparent`}></div>
+        <Loader2 className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse ${color ? color.replace('border-', 'text-') : 'text-church-green'}`} size={size ? size * 0.4 : 20} />
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 animate-pulse">Loading Glory...</span>
     </div>
-    <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 animate-pulse">Loading Glory...</span>
-  </div>
-);
+  );
+};
 
 export const SectionHeader: React.FC<{ title: string; subtitle?: string; action?: React.ReactNode }> = ({ title, subtitle, action }) => (
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 group">
@@ -98,31 +101,33 @@ export const StatCard: React.FC<{
 
   if (loading) return <SkeletonCard height="h-32" />;
 
+  const shadowClass = colorBase === 'gold' ? 'shadow-premium-gold' : colorBase === 'green' ? 'shadow-premium-green' : 'shadow-premium';
+
   return (
-    <div onClick={onClick} className={`group relative glass-card p-4 md:p-5 rounded-2xl shadow-glass hover:shadow-premium hover:-translate-y-1 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
-      <div className={`absolute -top-12 -right-12 w-24 h-24 md:w-32 md:h-32 bg-${colorBase}-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:bg-${colorBase}-500/20`}></div>
+    <div onClick={onClick} className={`group relative glass-card p-5 md:p-6 rounded-[2rem] ${shadowClass} hover:-translate-y-2 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
+      <div className={`absolute -top-12 -right-12 w-32 h-32 bg-${colorBase}-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:bg-${colorBase}-500/20`}></div>
 
       <div className="relative z-10">
-        <div className="flex justify-between items-start mb-3 md:mb-4">
-          <div className={`p-2.5 md:p-3 rounded-xl ${color} bg-opacity-10 dark:bg-opacity-20 text-${colorBase}-600 dark:text-${colorBase}-400 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-sm shadow-${colorBase}-500/20`}>
+        <div className="flex justify-between items-start mb-4 md:mb-6">
+          <div className={`p-3 md:p-4 rounded-2xl ${color} bg-opacity-10 dark:bg-opacity-20 text-${colorBase}-600 dark:text-${colorBase}-400 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm animate-float`}>
             {React.isValidElement(icon)
-              ? React.cloneElement(icon as React.ReactElement<any>, { size: 18, className: 'md:w-5 md:h-5' })
+              ? React.cloneElement(icon as React.ReactElement<any>, { size: 24, className: 'md:w-6 md:h-6' })
               : icon
             }
           </div>
           {trend && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 dark:bg-green-500/20 rounded-lg border border-green-500/20">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 dark:bg-green-500/20 rounded-xl border border-green-500/20">
               <TrendingUp size={12} className="text-green-500" />
-              <span className="text-[9px] font-black text-green-600 dark:text-green-400 uppercase tracking-wider">{trend}</span>
+              <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">{trend}</span>
             </div>
           )}
         </div>
         <div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tighter truncate">{value}</h3>
-            <div className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse hidden md:block"></div>
+          <div className="flex items-baseline gap-2 mb-1.5">
+            <h3 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter truncate leading-none">{value}</h3>
+            <div className="w-2 h-2 rounded-full bg-church-green animate-pulse"></div>
           </div>
-          <p className="text-[9px] md:text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] truncate">{title}</p>
+          <p className="text-[10px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] truncate">{title}</p>
         </div>
       </div>
     </div>
@@ -137,17 +142,22 @@ export const SidebarItem: React.FC<{
 }> = ({ icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 group relative overflow-hidden ${active
-      ? 'bg-church-green text-white shadow-lg shadow-church-green/20 scale-[1.02]'
-      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-church-green dark:hover:text-church-gold'
+    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${active
+      ? 'bg-gradient-to-r from-church-green to-emerald-700 text-white shadow-xl shadow-church-green/30 scale-[1.02] z-10'
+      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-church-green dark:hover:text-church-gold hover:translate-x-1'
       }`}
   >
-    <div className={`relative z-10 transition-all duration-500 ${active ? 'scale-110 text-white' : 'group-hover:scale-110 group-hover:rotate-6 group-hover:text-church-green dark:group-hover:text-church-gold'}`}>
-      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 18 }) : icon}
-    </div>
-    <span className={`relative z-10 font-black text-[10px] uppercase tracking-[0.15em] ${active ? 'opacity-100' : 'opacity-60 group-hover:opacity-100 transition-opacity'}`}>{label}</span>
     {active && (
-      <div className="ml-auto relative z-10 w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+      <div className="absolute inset-0 bg-white/10 opacity-20 pointer-events-none"></div>
+    )}
+    <div className={`relative z-10 transition-all duration-500 ${active ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-6 group-hover:text-church-green dark:group-hover:text-gold-500'}`}>
+      {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 }) : icon}
+    </div>
+    <span className={`relative z-10 font-bold text-[11px] uppercase tracking-[0.2em] ${active ? 'opacity-100 font-black' : 'opacity-60 group-hover:opacity-100 transition-opacity'}`}>{label}</span>
+    {active && (
+      <div className="ml-auto relative z-10">
+        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] animate-pulse"></div>
+      </div>
     )}
   </button>
 );

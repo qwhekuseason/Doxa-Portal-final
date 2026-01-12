@@ -383,11 +383,24 @@ export const AdminUserManager: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const toggleRole = async (uid: string, currentRole?: string) => {
-    const newRole = currentRole === 'admin' ? 'member' : 'admin';
+  const updateRole = async (uid: string, newRole: string) => {
     if (!confirm(`Change role to ${newRole}?`)) return;
-    await updateDoc(doc(db, 'users', uid), { role: newRole });
-    fetchUsers();
+    try {
+      await updateDoc(doc(db, 'users', uid), { role: newRole });
+      fetchUsers();
+    } catch (e) {
+      console.error("Error updating role:", e);
+      alert("Failed to update role in database.");
+    }
+  };
+
+  const getRoleBadgeStyle = (role?: string) => {
+    switch (role) {
+      case 'admin': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'publicity': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'prayer': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
   };
 
   return (
@@ -402,7 +415,7 @@ export const AdminUserManager: React.FC = () => {
             </td>
             <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
             <td className="px-6 py-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${u.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getRoleBadgeStyle(u.role)}`}>
                 {u.role}
               </span>
             </td>
@@ -415,9 +428,16 @@ export const AdminUserManager: React.FC = () => {
                 >
                   <Eye size={18} />
                 </button>
-                <button onClick={() => toggleRole(u.uid, u.role)} className="text-blue-600 hover:text-blue-700 text-xs font-bold hover:underline">
-                  Switch Role
-                </button>
+                <select
+                  value={u.role}
+                  onChange={(e) => updateRole(u.uid, e.target.value)}
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-church-green cursor-pointer"
+                >
+                  <option value="member">Member</option>
+                  <option value="admin">Admin</option>
+                  <option value="publicity">Publicity</option>
+                  <option value="prayer">Prayer</option>
+                </select>
               </div>
             </td>
           </tr>
@@ -663,6 +683,7 @@ export const AdminQuizManager: React.FC = () => {
 
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [genQuestionCount, setGenQuestionCount] = useState(5);
   const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', options: ['', '', '', ''], correctIndex: 0 }]);
 
   const fetchQuizzes = async () => {
@@ -683,64 +704,50 @@ export const AdminQuizManager: React.FC = () => {
     if (mode === 'ai') {
       setGenerating(true);
       try {
-        const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
-        const prompt = `Generate a Bible quiz about "${topic || 'General Bible'}" with difficulty "${difficulty}". 
-Return EXACTLY 5 questions in a JSON array format. 
-Each object MUST have:
-- "question": string
-- "options": array of 4 strings
-- "correctIndex": integer (0 to 3)
+        const apiKey = (import.meta as any).env.VITE_HUGGINGFACE_API_KEY || (process as any).env.HUGGINGFACE_API_KEY;
+        const hf = new HfInference(apiKey);
 
-Example format:
-[
-  {
-    "question": "Who was the first man?",
-    "options": ["Noah", "Adam", "Moses", "Abraham"],
-    "correctIndex": 1
-  }
-]
-Only return the JSON array, no other text.`;
+        const prompt = `Generate a ${difficulty} difficulty Bible quiz about "${topic || 'General Bible knowledge'}" with EXACTLY ${genQuestionCount} questions.
+        Return ONLY a JSON array of objects. Each object must have:
+        - "question": string
+        - "options": array of 4 strings
+        - "correctIndex": number (0-3)
+
+        DO NOT include markdown, explanations, or any text outside the JSON array.`;
 
         const response = await hf.chatCompletion({
-          model: 'HuggingFaceH4/zephyr-7b-beta',
-          messages: [
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 1200,
+          model: 'google/gemma-2-9b-it',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 3000,
+          temperature: 0.7,
         });
 
-        const generatedText = response.choices[0].message.content || '';
-        // Extract JSON if there is extra text
-        const jsonMatch = generatedText.match(/\[\s*\{.*\}\s*\]/s);
-        const jsonText = jsonMatch ? jsonMatch[0] : generatedText;
+        let text = response.choices[0].message.content || '';
+        text = text.replace(/```json\s?|```/g, '').trim();
 
-        const quizQuestions = JSON.parse(jsonText);
+        const quizQuestions = JSON.parse(text);
 
         if (Array.isArray(quizQuestions)) {
-          const quizTopic = topic || `AI Generated: ${difficulty}`;
+          const quizTopic = topic || `AI ${difficulty}: ${new Date().toLocaleDateString()}`;
           await addDoc(collection(db, 'bible_quizzes'), {
             topic: quizTopic,
             difficulty,
             questions: quizQuestions,
             createdAt: new Date().toISOString()
           });
-          // Send notification
           await notifyNewQuiz(quizTopic, difficulty);
           setIsModalOpen(false);
           fetchQuizzes();
           setTopic('');
-        } else {
-          alert("AI response structure was invalid.");
         }
       } catch (e) {
         console.error(e);
-        alert("Failed to generate quiz with AI. Please try again or use manual mode.");
+        alert("AI generation failed. Please check your topic and try again.");
       } finally {
         setGenerating(false);
       }
     } else {
       await addDoc(collection(db, 'bible_quizzes'), { topic, difficulty, questions, createdAt: new Date().toISOString() });
-      // Send notification
       await notifyNewQuiz(topic, difficulty);
       setIsModalOpen(false); fetchQuizzes(); setTopic(''); setQuestions([{ question: '', options: ['', '', '', ''], correctIndex: 0 }]);
     }
@@ -778,24 +785,55 @@ Only return the JSON array, no other text.`;
             </div>
 
             <div className="flex gap-4 mb-6 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
-              <button onClick={() => setMode('manual')} className={`flex-1 py-3 rounded-lg font-bold transition-all ${mode === 'manual' ? 'bg-white dark:bg-gray-600 shadow-md text-church-green dark:text-white' : 'text-gray-500'}`}>Manual</button>
-              <button onClick={() => setMode('ai')} className={`flex-1 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${mode === 'ai' ? 'bg-white dark:bg-gray-600 shadow-md text-church-gold dark:text-white' : 'text-gray-500'}`}><Wand2 size={18} /> AI Generate</button>
+              <button onClick={() => setMode('manual')} className={`flex-1 py-3 rounded-lg font-bold transition-all ${mode === 'manual' ? 'bg-white dark:bg-gray-600 shadow-md text-church-green' : 'text-gray-500'}`}>Manual</button>
+              <button onClick={() => setMode('ai')} className={`flex-1 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${mode === 'ai' ? 'bg-white dark:bg-gray-600 shadow-md text-church-gold' : 'text-gray-500'}`}><Wand2 size={18} /> AI Generate</button>
             </div>
-            <div className="space-y-4">
-              <input placeholder="Quiz Topic" className="w-full p-4 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-church-gold" value={topic} onChange={e => setTopic(e.target.value)} />
-              <select className="w-full p-4 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-church-gold" value={difficulty} onChange={e => setDifficulty(e.target.value as any)}>
-                <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
-              </select>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Quiz Topic</label>
+                <input placeholder="Ex: Miracles of Jesus, Book of Romans..." className="w-full p-4 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-church-gold dark:text-white" value={topic} onChange={e => setTopic(e.target.value)} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Difficulty</label>
+                  <select className="w-full p-4 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-church-gold dark:text-white" value={difficulty} onChange={e => setDifficulty(e.target.value as any)}>
+                    <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+                  </select>
+                </div>
+                {mode === 'ai' && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Count</label>
+                      <span className="text-xs font-black text-church-green">{genQuestionCount} Questions</span>
+                    </div>
+                    <input
+                      type="range" min="1" max="10"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-church-green mt-4"
+                      value={genQuestionCount}
+                      onChange={(e) => setGenQuestionCount(parseInt(e.target.value))}
+                    />
+                  </div>
+                )}
+              </div>
+
               {mode === 'ai' && (
-                <div className="p-8 text-center bg-church-gold/10 dark:bg-church-gold/10 rounded-2xl border border-church-gold/20 dark:border-church-gold/20 border-dashed">
-                  <Wand2 size={48} className="mx-auto text-church-gold mb-4 animate-bounce" />
-                  <h4 className="font-bold text-gray-900 dark:text-white">AI Quiz Generator</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Generating questions for "{topic || 'Bible'}" ({difficulty}).</p>
+                <div className="p-8 text-center bg-church-gold/5 dark:bg-church-gold/10 rounded-2xl border border-church-gold/20 border-dashed">
+                  <Wand2 size={48} className={`mx-auto text-church-gold mb-4 ${generating ? 'animate-spin' : 'animate-bounce'}`} />
+                  <h4 className="font-bold text-gray-900 dark:text-white">AI Prophet Generator</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">I will curate some celestial questions about "{topic || 'The Holy Word'}" for you.</p>
                 </div>
               )}
 
-              <button onClick={handleCreate} disabled={generating} className="w-full bg-gradient-to-r from-church-green to-church-gold hover:from-emerald-700 hover:to-amber-500 text-white font-bold py-4 rounded-xl shadow-lg mt-6 flex items-center justify-center gap-2 transition-all active:scale-95">
-                {generating ? <Loader2 className="animate-spin" /> : (mode === 'ai' ? 'Generate with AI' : 'Save Quiz')}
+              {mode === 'manual' && (
+                <div className="p-4 text-center text-xs text-gray-400 font-bold uppercase tracking-widest">
+                  Manual entry coming soon or use the AI for instant creation!
+                </div>
+              )}
+
+              <button onClick={handleCreate} disabled={generating || (mode === 'manual' && questions[0].question === '')} className="w-full bg-gradient-to-r from-church-green to-church-gold hover:from-emerald-700 hover:to-amber-500 text-white font-bold py-4 rounded-xl shadow-lg mt-6 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                {generating ? <Loader2 className="animate-spin" /> : (mode === 'ai' ? 'Invoke AI Generator' : 'Save Manual Quiz')}
               </button>
             </div>
           </div>

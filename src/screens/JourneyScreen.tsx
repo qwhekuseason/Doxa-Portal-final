@@ -19,14 +19,14 @@ const timeAgo = (dateStr?: string) => {
 const Badge: React.FC<{ title: string; desc: string; icon: string; locked?: boolean; index: number }> = ({ title, desc, icon, locked, index }) => (
     <div
         className={`group p-6 rounded-[2rem] border-2 transition-all duration-700 animate-fade-in-up flex flex-col items-center text-center ${locked
-                ? 'bg-gray-50/50 dark:bg-white/5 border-gray-100 dark:border-white/5 opacity-40 grayscale scale-95'
-                : 'glass-card border-white/40 dark:border-white/5 shadow-premium hover:shadow-premium-lg hover:-translate-y-2'
+            ? 'bg-gray-50/50 dark:bg-white/5 border-gray-100 dark:border-white/5 opacity-40 grayscale scale-95'
+            : 'glass-card border-white/40 dark:border-white/5 shadow-premium hover:shadow-premium-lg hover:-translate-y-2'
             }`}
         style={{ animationDelay: `${index * 0.1}s` }}
     >
         <div className={`w-20 h-20 rounded-[2rem] mb-6 flex items-center justify-center text-4xl shadow-2xl transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12 ${locked
-                ? 'bg-gray-200 dark:bg-white/10 text-gray-400'
-                : 'bg-gradient-to-br from-church-gold to-amber-600 text-white shadow-church-gold/30'
+            ? 'bg-gray-200 dark:bg-white/10 text-gray-400'
+            : 'bg-gradient-to-br from-church-gold to-amber-600 text-white shadow-church-gold/30'
             }`}>
             {icon}
         </div>
@@ -126,16 +126,20 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">Divine Echoes</span>
                                 </div>
                                 <div className="space-y-3">
-                                    {[
-                                        { text: "Absorbed 'Faith over Fear' sermon", time: "2h ago" },
-                                        { text: "Earned Wisdom Badge in NT Trivia", time: "Yesterday" },
-                                        { text: "Interceded for Brother John's health", time: "2d ago" }
-                                    ].map((act, i) => (
-                                        <div key={i} className="flex justify-between items-center group/item cursor-pointer">
-                                            <p className="text-[10px] font-bold text-gray-800 dark:text-gray-200 group-hover/item:text-church-green transition-colors leading-tight">{act.text}</p>
-                                            <span className="text-[8px] font-black text-gray-400 uppercase min-w-[40px] text-right">{act.time}</span>
+                                    {badges.filter(b => !b.locked).length > 0 ? (
+                                        badges.filter(b => !b.locked).slice(0, 3).map((badge, i) => (
+                                            <div key={i} className="flex justify-between items-center group/item cursor-pointer">
+                                                <p className="text-[10px] font-bold text-gray-800 dark:text-gray-200 group-hover/item:text-church-green transition-colors leading-tight">
+                                                    Unlocked "{badge.title}"
+                                                </p>
+                                                <span className="text-[8px] font-black text-gray-400 uppercase min-w-[40px] text-right">Earned</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-4">
+                                            <p className="text-[10px] font-medium text-gray-400">Your journey has just begun.</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                                 <button className="w-full mt-6 text-[9px] font-black uppercase tracking-widest text-church-green flex items-center justify-center gap-2 group">
                                     View Hall of Fame <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />

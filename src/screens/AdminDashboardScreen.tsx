@@ -84,6 +84,7 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ActionButton label="Review Prayers" icon={<Heart size={20} />} color="bg-rose-500" onClick={() => navigateTo('admin-prayers')} />
               <ActionButton label="Manage Events" icon={<Zap size={20} />} color="bg-amber-500" onClick={() => navigateTo('admin-events')} />
+              <ActionButton label="Generate Bible Quiz" icon={<Shield size={20} />} color="bg-church-gold" onClick={() => navigateTo('quizzes')} />
               <ActionButton label="Upload Sermon" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
               <ActionButton label="Approve Testimonies" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
             </div>

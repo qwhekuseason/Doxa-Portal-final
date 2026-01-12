@@ -3,7 +3,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
-  role: 'member' | 'admin';
+  role: 'member' | 'admin' | 'publicity' | 'prayer';
   phoneNumber?: string;
   hostelName?: string;
   dateOfBirth?: string;
@@ -20,6 +20,7 @@ export interface UserProfile {
     bookmarked?: boolean;
     lastRead?: string;
   }>;
+  createdAt?: string;
 }
 
 export interface AuthState {
@@ -122,10 +123,16 @@ export interface SiteSettings {
     accountNumber: string;
     branch: string;
   };
+  givingCategories?: string[];
+  givingAmounts?: string[];
 }
 
 export interface GivingStats {
   weeklyGoal: number;
   currentProgress: number;
   lastResetDate: string;
+  impactBreakdown?: {
+    label: string;
+    percent: number;
+  }[];
 }

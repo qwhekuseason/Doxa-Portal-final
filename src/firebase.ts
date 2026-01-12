@@ -1,9 +1,10 @@
 
 import * as firebaseApp from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getMessaging } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,14 +22,12 @@ const app = firebaseApp.initializeApp(firebaseConfig);
 // Initialize Services
 export const auth = getAuth(app);
 
-// Initialize Firestore with modern persistence settings
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
+// Initialize Firestore with standard settings to ensure stability
+// Switching from persistentMultipleTabManager to default to resolve 'Unexpected state' assertions
+export const db = getFirestore(app);
 
 export const storage = getStorage(app);
+export const messaging = getMessaging(app);
 
 // Initialize Firebase Functions
 export const functions = getFunctions(app);

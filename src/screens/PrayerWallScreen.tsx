@@ -6,17 +6,18 @@ import { UserProfile, PrayerRequest } from '../types';
 import { Heart, Clock, Loader2, AlertTriangle, Send, Shield, User, Info } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
+// Define query outside to ensure stability
+const requestQ = query(
+  collection(db, 'prayer_requests'),
+  where('approved', '==', true),
+  where('isPrivate', '==', false),
+  orderBy('createdAt', 'desc')
+);
+
 const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
   const [newRequest, setNewRequest] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const requestQ = useMemo(() => query(
-    collection(db, 'prayer_requests'),
-    where('approved', '==', true),
-    where('isPrivate', '==', false),
-    orderBy('createdAt', 'desc')
-  ), []);
 
   const { data: requests, loading, error } = useFirestoreQuery<PrayerRequest>(requestQ);
 
@@ -59,8 +60,8 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Spiritual Fellowship</span>
             </div>
 
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tighter">
-              A Community <br className="hidden md:block" /> Built on <span className="text-church-gold">Faith.</span>
+            <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tighter leading-tight">
+              A Community <br className="hidden md:block" /> Built on <span className="text-gradient-gold">Faith.</span>
             </h2>
 
             <p className="text-base text-white/80 mb-8 font-medium leading-relaxed italic">
@@ -129,22 +130,22 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
           {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} height="h-48" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
           {requests.map((req, index) => (
             <div
               key={req.id}
-              className="group glass-card p-6 rounded-3xl hover:-translate-y-2 transition-all duration-500 flex flex-col animate-fade-in-up"
+              className="group glass-card p-8 rounded-[2.5rem] shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 flex flex-col animate-fade-in-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-church-green/10 text-church-green flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm border border-church-green/5">
-                  <Heart size={20} className="fill-current" />
+                <div className="w-14 h-14 rounded-2xl bg-church-green/10 text-church-green flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm border border-church-green/5 animate-float">
+                  <Heart size={24} className="fill-current" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-church-green transition-colors">Intercession</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <User size={12} className="text-church-gold" />
-                    <span className="text-[10px] font-black uppercase tracking-widest dark:text-gray-300">{req.authorName}</span>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 group-hover:text-church-green transition-colors mb-1">Intercession</h4>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">{req.authorName}</span>
                   </div>
                 </div>
               </div>

@@ -11,22 +11,17 @@ export interface Notification {
     type: 'info' | 'success' | 'warning' | 'error';
 }
 
+// Define query outside to ensure stability
+const notifsRef = collection(db, 'notifications');
+const notificationsQuery = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
+
 export const useNotifications = (userId?: string) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        // If no user, maybe fetch public notifications or none
-        const notifsRef = collection(db, 'notifications');
-
-        // Simple query: get all recent notifications. 
-        // In a real app, you might filter by userId or 'all' target.
-        // For now, let's assume global notifications or user-specific ones if we had a field.
-        // We will just fetch the latest 20.
-        const q = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
             const msgs: Notification[] = [];
             let unread = 0;
 

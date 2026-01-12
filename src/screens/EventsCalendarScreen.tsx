@@ -3,20 +3,56 @@ import { collection, query, orderBy, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { UserProfile, CalendarEvent } from '../types';
-import { Plus, Clock, Video, MapPin, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Plus, Clock, Video, MapPin, Calendar as CalendarIcon, X, Bell } from 'lucide-react';
+import { getToken } from 'firebase/messaging';
+import { messaging } from '../firebase';
+import { updateDoc, arrayUnion, doc } from 'firebase/firestore';
 import { SkeletonCard, SectionHeader, LoadingSpinner } from '../components/UIComponents';
+
+// Define query outside for stability
+const eventQ = query(collection(db, 'events'), orderBy('date', 'asc'));
 
 const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: string) => void }> = ({ user, onJoinLive }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState<Partial<CalendarEvent>>({ title: '', date: '', type: 'service', description: '', meetingLink: '' });
 
-  const eventQ = useMemo(() => query(collection(db, 'events'), orderBy('date', 'asc')), []);
   const { data: events, loading } = useFirestoreQuery<CalendarEvent>(eventQ);
 
   const handleCreate = async () => {
     if (!newEvent.title || !newEvent.date) return;
     await addDoc(collection(db, 'events'), { ...newEvent, createdBy: user.uid });
     setIsModalOpen(false);
+  };
+
+  const handleRemind = async (event: CalendarEvent) => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notification');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const token = await getToken(messaging, {
+          vapidKey: 'YOUR_VAPID_KEY_HERE_REPLACE_WITH_ACTUAL_KEY_FROM_FIREBASE_CONSOLE',
+          serviceWorkerRegistration: registration
+        });
+
+        if (token) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            fcmTokens: arrayUnion(token),
+            [`reminders.${event.id}`]: true
+          });
+          alert(`Reminder set for "${event.title}"! You'll be notified.`);
+        }
+      } else {
+        alert('Permission denied. We cannot enable reminders.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to enable reminders. Check console.');
+    }
   };
 
   return (
@@ -48,72 +84,87 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
           <p className="text-gray-400 mt-2">Check back later for new fellowships.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
           {events.map((ev, index) => {
             const date = new Date(ev.date);
             const isLive = ev.meetingLink && ev.meetingLink.length > 0;
             return (
               <div
                 key={ev.id}
-                className="group glass-card rounded-[2.5rem] overflow-hidden hover:-translate-y-2 transition-all duration-500 animate-fade-in-up"
+                className="group glass-card rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 animate-fade-in-up flex flex-col h-full"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Visual Header */}
-                <div className={`h-3 w-full ${ev.type === 'service' ? 'bg-church-green' : ev.type === 'youth' ? 'bg-church-gold' : 'bg-emerald-500'}`}></div>
+                {/* Visual Header Gradient */}
+                <div className={`h-2.5 w-full ${ev.type === 'service' ? 'bg-church-green' : ev.type === 'youth' ? 'bg-church-gold' : 'bg-blue-500'}`}></div>
 
-                <div className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-gray-100 dark:bg-white/5 rounded-2xl p-3 text-center min-w-[64px] border border-gray-100 dark:border-white/5 group-hover:scale-110 transition-transform duration-500">
-                        <div className="text-[10px] font-black text-church-green dark:text-church-gold uppercase tracking-tighter mb-0.5">
+                <div className="p-8 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="flex items-center gap-5">
+                      <div className="bg-gray-100 dark:bg-white/5 rounded-2xl p-4 text-center min-w-[70px] border border-gray-100 dark:border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-700 shadow-sm">
+                        <div className="text-[10px] font-black text-church-green dark:text-church-gold uppercase tracking-[0.2em] mb-1">
                           {date.toLocaleString('default', { month: 'short' })}
                         </div>
-                        <div className="text-2xl font-black dark:text-white leading-none tracking-tighter">
+                        <div className="text-3xl font-black dark:text-white leading-none tracking-tighter">
                           {date.getDate()}
                         </div>
                       </div>
                       <div>
-                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] border ${ev.type === 'service'
-                            ? 'bg-church-green/10 text-church-green border-church-green/20'
-                            : 'bg-church-gold/10 text-church-gold border-church-gold/20'
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border ${ev.type === 'service'
+                          ? 'bg-church-green/10 text-church-green border-church-green/20'
+                          : ev.type === 'youth'
+                            ? 'bg-church-gold/10 text-church-gold border-church-gold/20'
+                            : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                           }`}>
-                          {ev.type}
+                          {ev.type} Gathering
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-black dark:text-white mb-3 tracking-tight group-hover:text-church-green transition-colors line-clamp-1">
+                  <h3 className="text-2xl font-black dark:text-white mb-3 tracking-tighter group-hover:text-church-green transition-colors line-clamp-2 leading-tight">
                     {ev.title}
                   </h3>
 
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-6 line-clamp-2 leading-relaxed">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-8 flex-1 line-clamp-3 leading-relaxed">
                     {ev.description}
                   </p>
 
-                  <div className="space-y-3 mb-8">
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                      <Clock size={16} className="text-church-green" />
+                  <div className="space-y-4 mb-10 pt-6 border-t border-gray-100 dark:border-white/5">
+                    <div className="flex items-center gap-3 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-church-green">
+                        <Clock size={16} />
+                      </div>
                       <span>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     {isLive && (
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                        <Video size={16} className="text-red-500" />
-                        <span>Interactive Room: {ev.meetingLink}</span>
+                      <div className="flex items-center gap-3 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 animate-pulse">
+                          <Video size={16} />
+                        </div>
+                        <span className="truncate">Digital Room: {ev.meetingLink}</span>
                       </div>
                     )}
+                    <button
+                      onClick={() => handleRemind(ev)}
+                      className="flex items-center gap-3 text-[11px] font-black text-gray-400 hover:text-church-gold transition-colors uppercase tracking-widest"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+                        <Bell size={16} />
+                      </div>
+                      <span>Sync Reminder</span>
+                    </button>
                   </div>
 
                   {isLive && (
                     <button
                       onClick={() => onJoinLive && onJoinLive(ev.meetingLink!)}
-                      className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-lg shadow-red-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group/btn"
+                      className="w-full py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-lg shadow-red-500/30 transition-all hover:scale-[1.03] active:scale-[0.97]"
                     >
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                       </span>
-                      Join Live Session
+                      Join Session Now
                     </button>
                   )}
                 </div>

@@ -6,20 +6,23 @@ import { UserProfile, Testimony } from '../types';
 import { MessageCircle, AlertTriangle, Quote, User, Clock, CheckCircle2, Send, Plus, Loader2 } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
+// Define public query outside to ensure stability
+const publicQuery = query(collection(db, 'testimonies'), where('approved', '==', true), orderBy('createdAt', 'desc'));
+
 const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<'public' | 'submit' | 'my'>('public');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const testimoniesQuery = useMemo(() => {
-    if (activeTab === 'public') return query(collection(db, 'testimonies'), where('approved', '==', true), orderBy('createdAt', 'desc'));
-    if (activeTab === 'my') return query(collection(db, 'testimonies'), where('uid', '==', user.uid), orderBy('createdAt', 'desc'));
-    return null;
-  }, [activeTab, user.uid]);
-
-  const { data: testimonies, loading, error } = useFirestoreQuery<Testimony>(
-    activeTab !== 'submit' ? testimoniesQuery : null
+  // Memoize the "My Testimonies" query since it depends on user.uid
+  const myQuery = useMemo(() =>
+    query(collection(db, 'testimonies'), where('uid', '==', user.uid), orderBy('createdAt', 'desc')),
+    [user.uid]
   );
+
+  const currentQuery = activeTab === 'public' ? publicQuery : (activeTab === 'my' ? myQuery : null);
+
+  const { data: testimonies, loading, error } = useFirestoreQuery<Testimony>(currentQuery);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;

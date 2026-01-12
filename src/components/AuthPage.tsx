@@ -355,25 +355,25 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                   <p className="text-[9px] text-church-gold font-black mt-3 uppercase tracking-widest">Identify Yourself</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative group col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative group col-span-full">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="text"
-                      placeholder="Display Name"
+                      placeholder="Full Legal Name"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
+                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
                     />
                   </div>
                   <div className="relative group">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="tel"
-                      placeholder="Phone"
+                      placeholder="Active Phone"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
+                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
                     />
                   </div>
                   <div className="relative group">
@@ -381,17 +381,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                       type="date"
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
+                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 px-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
                     />
                   </div>
-                  <div className="relative group col-span-2">
+                  <div className="relative group col-span-full">
                     <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="text"
-                      placeholder="Establishment / Hostel"
+                      placeholder="Residence / Hostel Name"
                       value={hostelName}
                       onChange={(e) => setHostelName(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
+                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
                     />
                   </div>
                 </div>
@@ -402,7 +402,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
               <input
                 type="email"
-                placeholder="Spiritual Email"
+                placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
@@ -414,7 +414,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                 <input
                   type="password"
-                  placeholder="Master Key"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
@@ -427,7 +427,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                 <input
                   type="password"
-                  placeholder="Verify Key"
+                  placeholder="Verify Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"

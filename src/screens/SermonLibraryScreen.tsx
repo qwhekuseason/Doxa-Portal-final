@@ -1,21 +1,36 @@
 import React, { useState, useMemo } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, query, orderBy, updateDoc, doc, increment } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { Sermon } from '../types';
 import { Search, PlayCircle, Clock, Calendar, Users, Download, ArrowRight } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
+// Define query outside for stability
+const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'));
+
 const SermonLibraryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const sermonQ = useMemo(() => query(collection(db, 'sermons'), orderBy('date', 'desc')), []);
   const { data: sermons, loading } = useFirestoreQuery<Sermon>(sermonQ);
 
   const filtered = sermons.filter(s =>
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.preacher.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handlePlay = async (sermon: Sermon) => {
+    if (sermon.audioUrl) {
+      window.open(sermon.audioUrl, '_blank');
+      if (auth.currentUser) {
+        try {
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+            'stats.sermonsHeard': increment(1)
+          });
+        } catch (e) { console.error(e); }
+      }
+    }
+  };
 
   return (
     <div className="space-y-10 animate-fade-in pb-20">
@@ -27,14 +42,14 @@ const SermonLibraryView: React.FC = () => {
           subtitle="Explore the sanctuary of wisdom. Listen, learn, and be transformed by the word of God."
         />
 
-        <div className="relative group w-full xl:w-96">
-          <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-            <Search className="text-gray-400 group-focus-within:text-church-green group-focus-within:scale-110 transition-all" size={20} />
+        <div className="relative group w-full xl:w-[32rem]">
+          <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+            <Search className="text-gray-400 group-focus-within:text-church-green group-focus-within:scale-125 transition-all" size={20} />
           </div>
           <input
             type="text"
-            placeholder="Search by title, series, or preacher..."
-            className="w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 pl-14 pr-6 py-3.5 rounded-2xl text-[13px] font-bold focus:outline-none focus:ring-4 focus:ring-church-green/10 focus:border-church-green/50 dark:text-white transition-all shadow-premium"
+            placeholder="Search our sanctuary of messages..."
+            className="w-full bg-white dark:bg-white/[0.03] border-2 border-transparent focus:border-church-green/20 pl-16 pr-8 py-5 rounded-[2rem] text-sm font-black uppercase tracking-wider focus:outline-none focus:ring-8 focus:ring-church-green/5 dark:text-white transition-all shadow-premium placeholder:text-gray-400 dark:placeholder:text-gray-600"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
@@ -42,12 +57,12 @@ const SermonLibraryView: React.FC = () => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-        {loading ? [1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} height="h-[420px]" />)
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-10">
+        {loading ? [1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} height="h-[450px]" />)
           : filtered.length > 0 ? filtered.map((sermon, idx) => (
             <div
               key={sermon.id}
-              className="group glass-card border-white/40 dark:border-white/5 rounded-3xl overflow-hidden hover:shadow-premium hover:-translate-y-2 transition-all duration-700 flex flex-col h-full animate-fade-in-up"
+              className="group glass-card border-white/40 dark:border-white/5 rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 flex flex-col h-full animate-fade-in-up"
               style={{ animationDelay: `${idx * 0.05}s` }}
             >
               {/* Cover Image Section */}
@@ -61,7 +76,10 @@ const SermonLibraryView: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
 
                 {/* Play Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100">
+                <div
+                  onClick={() => handlePlay(sermon)}
+                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100 cursor-pointer"
+                >
                   <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center shadow-2xl border border-white/40 group/play hover:scale-110 transition-transform">
                     <PlayCircle size={32} className="text-white" fill="currentColor" />
                   </div>
@@ -85,7 +103,7 @@ const SermonLibraryView: React.FC = () => {
                   <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{new Date(sermon.date).toLocaleDateString()}</span>
                 </div>
 
-                <h3 className="font-sans font-black text-gray-900 dark:text-white text-lg leading-tight mb-2 group-hover:text-church-green transition-colors tracking-tight line-clamp-2">
+                <h3 className="font-sans font-black text-gray-900 dark:text-white text-xl leading-tight mb-2 group-hover:text-church-green transition-colors tracking-tighter line-clamp-2">
                   {sermon.title}
                 </h3>
 

@@ -144,19 +144,19 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
               <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-1">{user.displayName}</h2>
               <p className="text-church-green font-black text-[10px] uppercase tracking-[0.3em] mb-4">{user.role}</p>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 rounded-full text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <Shield size={12} className="text-church-gold" /> Member Since 2024
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-white/5 rounded-full text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest border border-gray-200/50 dark:border-white/5">
+                <Shield size={12} className="text-church-gold" /> Member Since {user.createdAt ? new Date(user.createdAt).getFullYear() : '2024'}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-12 relative z-10 px-2">
-              <div className="text-center">
-                <p className="text-2xl font-black text-gray-900 dark:text-white">{user?.stats?.sermonsHeard || 0}</p>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Sermons</p>
+              <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
+                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.sermonsHeard || 0}</p>
+                <p className="text-[9px] font-black text-church-green uppercase tracking-[0.2em] mt-1">Sermons</p>
               </div>
-              <div className="text-center border-l border-gray-100 dark:border-white/5">
-                <p className="text-2xl font-black text-gray-900 dark:text-white">{user?.stats?.quizPoints || 0}</p>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">XP Points</p>
+              <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
+                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.quizPoints || 0}</p>
+                <p className="text-[9px] font-black text-church-gold uppercase tracking-[0.2em] mt-1">XP Points</p>
               </div>
             </div>
           </div>

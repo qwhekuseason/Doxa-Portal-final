@@ -23,7 +23,10 @@ import BibleScreen from './src/screens/BibleScreen';
 import JourneyScreen from './src/screens/JourneyScreen';
 import LiveSessionScreen from './src/screens/LiveSessionScreen';
 import GivingScreen from './src/screens/GivingScreen';
+
 import AboutScreen from './src/screens/AboutScreen';
+import BirthdaysScreen from './src/screens/BirthdaysScreen';
+import PrayerRequestsScreen from './src/screens/PrayerRequestsScreen';
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -51,7 +54,7 @@ import {
 import {
   Bell, Search, Sun, Moon, Brain, ImageIcon, Users,
   MessageCircle, Settings, Video, Headphones, Milestone, Book,
-  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu
+  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -114,14 +117,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const handleLogout = () => signOut(auth);
 
   const UserActions = () => (
-    <div className="flex items-center gap-3 md:gap-5">
-      {/* Search - Desktop Only */}
-      <div className="hidden xl:flex relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={18} />
+    <div className="flex items-center gap-3 md:gap-4 lg:gap-6">
+      {/* Global Header Search */}
+      <div className="hidden lg:flex relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-all" size={16} />
         <input
           type="text"
-          placeholder="Quick search..."
-          className="bg-gray-100 dark:bg-white/5 border border-transparent focus:border-church-green/50 pl-11 pr-5 py-2.5 rounded-2xl text-xs font-bold focus:outline-none transition-all w-48 focus:w-64 dark:text-white"
+          placeholder="Search everything..."
+          className="bg-gray-100 dark:bg-white/5 border border-transparent focus:border-church-green/20 focus:bg-white dark:focus:bg-white/10 pl-11 pr-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider focus:outline-none transition-all w-48 xl:w-72 shadow-inner dark:text-white"
         />
       </div>
 
@@ -141,7 +144,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       <div className="relative" ref={settingsRef}>
         <button
           onClick={() => setSettingsOpen(!settingsOpen)}
-          className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-300' : 'bg-green-50/50 border-green-100 text-church-green'}`}
+          className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-400' : 'bg-green-50/50 border-green-100 text-church-green shadow-sm'}`}
         >
           <Settings size={20} />
         </button>
@@ -207,6 +210,8 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
           <span className="font-sans font-black text-xl tracking-tighter dark:text-white uppercase group-hover:text-church-green transition-colors">Doxa<span className="text-church-green group-hover:text-white transition-colors">Portal</span></span>
         </div>
 
+
+
         {/* Sidebar Navigation */}
         <div className="flex-1 overflow-y-auto px-6 space-y-1 hide-scrollbar">
           <div className="px-5 py-3 text-[10px] font-black uppercase text-gray-400 tracking-widest opacity-60">Fellowship</div>
@@ -216,9 +221,33 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               icon={item.icon}
               label={item.label}
               active={activeTab === item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
             />
           ))}
+
+          {user.role === 'publicity' && (
+            <>
+              <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 opacity-60">Publicity</div>
+              <SidebarItem
+                icon={<Cake size={20} />}
+                label="Birthdays"
+                active={activeTab === 'birthdays'}
+                onClick={() => { setActiveTab('birthdays'); setSidebarOpen(false); }}
+              />
+            </>
+          )}
+
+          {user.role === 'prayer' && (
+            <>
+              <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-church-gold opacity-60">Prayer Ministry</div>
+              <SidebarItem
+                icon={<Heart size={20} />}
+                label="Prayer Requests"
+                active={activeTab === 'prayer-requests'}
+                onClick={() => { setActiveTab('prayer-requests'); setSidebarOpen(false); }}
+              />
+            </>
+          )}
 
           {user.role === 'admin' && (
             <>
@@ -237,23 +266,26 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
         </div>
 
         {/* Sidebar Bottom / Profile */}
-        <div className="p-5 border-t border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.02]">
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/5 cursor-pointer group hover:border-church-green/50 transition-all" onClick={() => setActiveTab('profile')}>
-            <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-9 h-9 rounded-xl object-cover" alt="" />
+        <div className="p-6 border-t border-gray-100 dark:border-white/5">
+          <div className="flex items-center gap-4 p-4 rounded-3xl bg-gray-50/50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 cursor-pointer group hover:border-church-green/30 transition-all hover:bg-white dark:hover:bg-white/5 shadow-sm" onClick={() => setActiveTab('profile')}>
+            <div className="relative">
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-10 h-10 rounded-2xl object-cover border-2 border-transparent group-hover:border-church-green transition-all" alt="" />
+              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-church-green border-2 border-white dark:border-black rounded-full"></div>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-black truncate dark:text-white uppercase tracking-tight">{user.displayName}</p>
-              <p className="text-[9px] font-bold text-church-green uppercase tracking-widest mt-0.2">{user.role}</p>
+              <p className="text-[9px] font-bold text-church-green uppercase tracking-widest mt-0.5">{user.role}</p>
             </div>
-            <Settings size={12} className="text-gray-400 group-hover:rotate-90 transition-transform" />
+            <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
           </div>
 
-          <div className="mt-5 flex items-center justify-between px-1 gap-2">
-            <button onClick={handleLogout} className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm flex-1 flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest">
-              <LogOut size={16} /> Logout
+          <div className="mt-6">
+            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 bg-red-500/5 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-[0.2em] border border-red-500/10 shadow-sm">
+              <LogOut size={16} /> Secure Logout
             </button>
           </div>
         </div>
-      </aside>
+      </aside >
 
 
       {/* --- Mobile Sidebar (Drawer) --- */}
@@ -291,6 +323,32 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
               />
             ))}
+
+
+
+            {user.role === 'publicity' && (
+              <>
+                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 opacity-60">Publicity</div>
+                <SidebarItem
+                  icon={<Cake size={20} />}
+                  label="Birthdays"
+                  active={activeTab === 'birthdays'}
+                  onClick={() => { setActiveTab('birthdays'); setSidebarOpen(false); }}
+                />
+              </>
+            )}
+
+            {user.role === 'prayer' && (
+              <>
+                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-church-gold opacity-60">Prayer Ministry</div>
+                <SidebarItem
+                  icon={<Heart size={20} />}
+                  label="Prayer Requests"
+                  active={activeTab === 'prayer-requests'}
+                  onClick={() => { setActiveTab('prayer-requests'); setSidebarOpen(false); }}
+                />
+              </>
+            )}
 
             {user.role === 'admin' && (
               <>
@@ -330,10 +388,10 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
           </div>
 
           <UserActions />
-        </header>
+        </header >
 
         {/* Content Scroll Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-8 scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent">
+        < div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-8 scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent" >
           <div className="max-w-7xl mx-auto animate-fade-in-up">
             {/* Notification Prompt Widget */}
             {showNotifPrompt && (
@@ -370,6 +428,8 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               {activeTab === 'journey' && <JourneyScreen user={user} />}
               {activeTab === 'gallery' && <GalleryScreen />}
               {activeTab === 'giving' && <GivingScreen />}
+              {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
+              {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
               {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
               {activeTab === 'profile' && <ProfileScreen user={user} refreshUser={refreshUser} />}
 
@@ -385,14 +445,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               {activeTab === 'admin-settings' && <AdminSettingsManager />}
             </div>
           </div>
-        </div>
+        </div >
 
-      </main>
+      </main >
 
       {/* Audio Player Overlay */}
-      <GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
+      < GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
 
-    </div>
+    </div >
   );
 };
 
@@ -428,6 +488,7 @@ const App: React.FC = () => {
               phoneNumber: userData.phoneNumber,
               hostelName: userData.hostelName,
               dateOfBirth: userData.dateOfBirth,
+              createdAt: userData.createdAt,
               stats: userData.stats || {}
             });
           } else {

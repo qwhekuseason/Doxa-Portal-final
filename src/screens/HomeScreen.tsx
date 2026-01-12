@@ -67,17 +67,43 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
   );
 };
 
+const MiniEventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const eventDate = parseDateSafe(event?.date);
+      if (!eventDate) return;
+      const difference = +eventDate - +new Date();
+      if (difference > 0) {
+        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const h = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((difference / 1000 / 60) % 60);
+        setTimeLeft(`${d}d ${h}h ${m}m`);
+      } else {
+        setTimeLeft('Now');
+      }
+    };
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 60000);
+    return () => clearInterval(timer);
+  }, [event?.date]);
+
+  return <span className="text-[10px] font-black font-mono tracking-tight text-church-green">{timeLeft || 'Loading...'}</span>;
+};
+
 interface HomeScreenProps {
   user?: UserProfile;
   onNavigate: (tab: string) => void;
 }
 
+// Define queries outside (stable refs)
+const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'), limit(3));
+// Note: time is fixed at module load, which is acceptable for stability
+const eventQ = query(collection(db, 'events'), where('date', '>=', new Date().toISOString()), orderBy('date', 'asc'), limit(4));
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
   const { theme } = useTheme();
-
-  // Queries
-  const sermonQ = useMemo(() => query(collection(db, 'sermons'), orderBy('date', 'desc'), limit(3)), []);
-  const eventQ = useMemo(() => query(collection(db, 'events'), where('date', '>=', new Date().toISOString()), orderBy('date', 'asc'), limit(1)), []);
 
   const { data: recentSermons, loading: sermonsLoading } = useFirestoreQuery<Sermon>(sermonQ);
   const { data: upcomingEvents, loading: eventsLoading } = useFirestoreQuery<CalendarEvent>(eventQ);
@@ -105,8 +131,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
         {/* Dynamic Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-church-green to-emerald-900 group-hover:scale-105 transition-transform duration-[2000ms]"></div>
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-church-gold/20 rounded-full blur-[80px] animate-pulse-slow"></div>
-        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-[80px]"></div>
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-church-gold/20 rounded-full blur-[80px] animate-float"></div>
+        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-[80px] animate-pulse-slow"></div>
 
         <div className="relative z-10 p-6 md:p-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -115,9 +141,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                 <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Divine Dashboard</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-sans font-black text-white tracking-tighter leading-tight">
                 {greeting},<br />
-                <span className="text-church-gold">{user?.displayName?.split(' ')[0] || 'Beloved'}</span>
+                <span className="text-gradient-gold drop-shadow-sm">{user?.displayName?.split(' ')[0] || 'Beloved'}</span>
               </h1>
               <p className="text-white/70 font-medium text-sm md:text-base max-w-xl leading-relaxed">
                 Your spiritual journey continues here. Explore the Word, join the community, and grow in grace.
@@ -218,20 +244,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                         <span className="bg-church-green/10 text-church-green text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border border-church-green/10">{sermon.series || 'SUNDAY SERIES'}</span>
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Calendar size={12} /> {parseDateSafe(sermon.date)?.toLocaleDateString()}</span>
                       </div>
-                      <h3 className="text-xl font-black text-gray-900 dark:text-white group-hover:text-church-green transition-colors leading-tight mb-1 tracking-tighter">
+                      <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white group-hover:text-church-green transition-colors leading-tight mb-1 tracking-tighter line-clamp-2">
                         {sermon.title}
                       </h3>
-                      <p className="text-xs text-gray-400 font-medium mb-3 line-clamp-1">By {sermon.preacher}</p>
+                      <p className="text-[10px] md:text-xs text-gray-400 font-medium mb-3 line-clamp-1 italic">By {sermon.preacher}</p>
 
                       <div className="flex items-center gap-6 pt-2 border-t border-gray-100 dark:border-white/5 opacity-60">
                         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight text-gray-500">
                           <Clock size={12} className="text-church-green" />
                           <span>{sermon.duration || '45 MIN'}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight text-gray-500">
-                          <Users size={12} className="text-church-gold" />
-                          <span>3.4k Views</span>
-                        </div>
+                        {/* Views removed as we do not track them yet */}
                       </div>
                     </div>
                   </div>
@@ -265,6 +288,42 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
             </div>
           </div>
 
+          {/* Upcoming Gatherings List */}
+          {upcomingEvents.length > 1 && (
+            <div className="space-y-6">
+              <SectionHeader title="Coming Up" />
+              <div className="space-y-4">
+                {upcomingEvents.slice(1).map(event => {
+                  const eventDate = parseDateSafe(event.date);
+                  const isToday = eventDate && eventDate.getDate() === new Date().getDate();
+                  const timeDiff = eventDate ? +eventDate - +new Date() : 0;
+                  const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+                  return (
+                    <div key={event.id} className="glass-card p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onNavigate('events')}>
+                      <div className="bg-gray-100 dark:bg-white/5 rounded-xl p-2.5 text-center min-w-[50px] border border-gray-100 dark:border-white/5">
+                        <div className="text-[9px] font-black text-church-green uppercase tracking-tighter mb-0.5">
+                          {eventDate?.toLocaleString('default', { month: 'short' })}
+                        </div>
+                        <div className="text-xl font-black dark:text-white leading-none">
+                          {eventDate?.getDate()}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-black dark:text-white truncate group-hover:text-church-green transition-colors">{event.title}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <MiniEventCountdown event={event} />
+                          <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase">{event.type}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="space-y-6">
             <SectionHeader title="Actions" />
@@ -294,7 +353,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
       </div>
 
       <FloatingSocialMenu />
-    </div>
+    </div >
   );
 };
 

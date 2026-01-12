@@ -1,10 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, increment, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { Quiz, QuizQuestion, UserProfile } from '../types';
-import { Brain, Trophy, ChevronLeft, Clock, Zap, Star, Flame, Target, ArrowRight, Share2, RefreshCcw, X } from 'lucide-react';
+import { Brain, Trophy, ChevronLeft, Clock, Zap, Star, Flame, Target, ArrowRight, Share2, RefreshCcw, X, Plus, Sparkles } from 'lucide-react';
 import { LoadingSpinner, SkeletonCard, SectionHeader, StatCard } from '../components/UIComponents';
+import { HfInference } from '@huggingface/inference';
+
+// Define query outside for stability
+const quizQ = query(collection(db, 'bible_quizzes'), orderBy('createdAt', 'desc'));
 
 const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
@@ -14,7 +18,99 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
 
-  const quizQ = useMemo(() => query(collection(db, 'bible_quizzes'), orderBy('createdAt', 'desc')), []);
+  // Admin Generator State
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [genTopic, setGenTopic] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genDifficulty, setGenDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [genQuestionCount, setGenQuestionCount] = useState(5);
+
+  const handleGenerateQuiz = async () => {
+    if (!genTopic) return;
+    setIsGenerating(true);
+    try {
+      // @ts-ignore
+      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_KEY;
+
+      if (!apiKey) {
+        throw new Error("Missing HuggingFace API Key");
+      }
+
+      const hf = new HfInference(apiKey);
+
+      const response = await hf.chatCompletion({
+        model: 'google/gemma-2-9b-it',
+        messages: [
+          {
+            role: 'user',
+            content: `You are a Bible Quiz generator. Create a valid JSON object for a quiz about "${genTopic}" with difficulty "${genDifficulty}".
+
+Format strictly as:
+{
+  "topic": "${genTopic}",
+  "difficulty": "${genDifficulty}",
+  "questions": [
+    {
+      "question": "Question text here",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0
+    }
+  ]
+}
+
+Requirements:
+- Generate exactly ${genQuestionCount} questions.
+- Ensure valid JSON.
+- Do not include any markdown formatting or explanations (no \`\`\`json blocks).
+- Just return the JSON object.`
+          }
+        ],
+        max_tokens: 3000,
+        temperature: 0.7,
+      });
+
+      let text = response.choices[0].message.content;
+
+      if (text) {
+        console.log("Raw AI Response:", text);
+        // Clean potential markdown or extra text
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        // Sometimes models add intro text, find the first { and last }
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          text = text.substring(firstBrace, lastBrace + 1);
+        }
+
+        const quizData = JSON.parse(text);
+
+        // Basic validation
+        if (!quizData.questions || !Array.isArray(quizData.questions)) {
+          throw new Error("Invalid JSON structure returned");
+        }
+
+        await addDoc(collection(db, 'bible_quizzes'), {
+          ...quizData,
+          createdAt: new Date().toISOString(),
+          createdBy: user.uid
+        });
+
+        setIsGeneratorOpen(false);
+        setGenTopic('');
+        alert("Divinely Generated! Quiz added to the library.");
+      } else {
+        throw new Error("No data returned from Oracle.");
+      }
+
+    } catch (e) {
+      console.error("Generator Error:", e);
+      alert(`Failed to generate quiz: ${(e as Error).message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const { data: quizzes, loading } = useFirestoreQuery<Quiz>(quizQ);
 
   const handleAnswer = (optionIdx: number) => {
@@ -28,7 +124,7 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!activeQuiz) return;
 
     if (currentQuestionIdx < activeQuiz.questions.length - 1) {
@@ -37,6 +133,17 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
       setAnswered(false);
     } else {
       setQuizFinished(true);
+      // Update User Stats
+      try {
+        const percentage = Math.round((score / activeQuiz.questions.length) * 100);
+        const xp = percentage * 10;
+        await updateDoc(doc(db, 'users', user.uid), {
+          'stats.quizzesTaken': increment(1),
+          'stats.quizPoints': increment(xp)
+        });
+      } catch (e) {
+        console.error("Failed to update stats:", e);
+      }
     }
   };
 
@@ -270,9 +377,15 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
   // --- 3. Quiz Selection Screen ---
   return (
     <div className="space-y-12 animate-fade-in pb-20">
+
       <SectionHeader
         title="Temple of Wisdom"
         subtitle="Embark on quests to deepen your understanding of the Divine Word. Earn XP and master the scriptures."
+        action={user.role === 'admin' && (
+          <button onClick={() => setIsGeneratorOpen(true)} className="bg-church-gold hover:bg-yellow-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-premium flex items-center gap-2 transition-all active:scale-95">
+            <Sparkles size={16} /> Create Quest
+          </button>
+        )}
       />
 
       {/* Profile Header Widget */}
@@ -366,6 +479,79 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
           </div>
         ))}
       </div>
+
+
+      {/* Generator Modal */}
+      {
+        isGeneratorOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div className="glass-card rounded-[3rem] w-full max-w-lg p-10 shadow-premium relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[80px] -mr-16 -mt-16"></div>
+
+              <h3 className="text-3xl font-black text-white mb-2 relative z-10">Divine Inspiration</h3>
+              <p className="text-gray-400 font-medium mb-8 relative z-10">Enter a topic or scripture, and the AI will craft a challenge.</p>
+
+              <div className="space-y-6 relative z-10">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-church-gold uppercase tracking-widest ml-2">Topic / Scripture</label>
+                  <input
+                    value={genTopic}
+                    onChange={(e) => setGenTopic(e.target.value)}
+                    placeholder="e.g. The Life of David, Psalm 23, Faith"
+                    className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:border-church-gold outline-none transition-colors font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-church-gold uppercase tracking-widest ml-2">Difficulty</label>
+                  <div className="flex bg-white/5 p-1 rounded-2xl">
+                    {(['easy', 'medium', 'hard'] as const).map(d => (
+                      <button
+                        key={d}
+                        onClick={() => setGenDifficulty(d)}
+                        className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${genDifficulty === d ? 'bg-church-gold text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center ml-2">
+                    <label className="text-[10px] font-black text-church-gold uppercase tracking-widest">Question Count</label>
+                    <span className="text-xl font-black text-white">{genQuestionCount}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={genQuestionCount}
+                    onChange={(e) => setGenQuestionCount(parseInt(e.target.value))}
+                    className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-church-gold"
+                  />
+                  <div className="flex justify-between text-[8px] font-black text-gray-600 uppercase tracking-widest px-1">
+                    <span>Quick Quest</span>
+                    <span>Epic Journey</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleGenerateQuiz}
+                  disabled={isGenerating || !genTopic}
+                  className="w-full bg-gradient-to-r from-church-gold to-yellow-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3"
+                >
+                  {isGenerating ? <LoadingSpinner size={20} color="border-white" /> : <><Sparkles size={18} /> Generate Quiz</>}
+                </button>
+
+                <button onClick={() => setIsGeneratorOpen(false)} className="w-full py-3 text-gray-500 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
     </div>
   );
 };
