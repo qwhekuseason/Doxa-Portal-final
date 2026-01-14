@@ -11,31 +11,34 @@ export interface Notification {
     type: 'info' | 'success' | 'warning' | 'error';
 }
 
-// Define query outside to ensure stability
+// Define ref outside
 const notifsRef = collection(db, 'notifications');
-const notificationsQuery = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
 
-export const useNotifications = (userId?: string) => {
+export const useNotifications = (userId?: string, isAdminUser: boolean = false) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
+        if (!userId && !isAdminUser) {
+            setLoading(false);
+            return;
+        }
+
+        // Only filter by UID if not an admin. Admins can see all, but for UI, we might still want to filter.
+        // For now, let's follow the rule: normal users must filter by their UID.
+        let q = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
+
+        if (!isAdminUser && userId) {
+            q = query(notifsRef, where('uid', '==', userId), orderBy('timestamp', 'desc'), limit(20));
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs: Notification[] = [];
             let unread = 0;
 
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                // Check if read by this user? 
-                // Since we don't have a structured "readBy" array in the prompt description,
-                // we will assume a local field 'read' for personal notifications, 
-                // OR we store 'read' status in local storage for global notifications?
-                // Let's implement a simple "read" field on the document for now, assuming 1:1 notifications.
-                // If it's a broadcast system, we would need a separate collection 'user_notifications'.
-                // For this task, "marking notification" implies some persistence.
-                // I will assume the notification document has a 'read' boolean for simplicity as requested "make functionality work".
-
                 const notif = { id: doc.id, ...data } as Notification;
                 msgs.push(notif);
                 if (!notif.read) unread++;
@@ -43,6 +46,9 @@ export const useNotifications = (userId?: string) => {
 
             setNotifications(msgs);
             setUnreadCount(unread);
+            setLoading(false);
+        }, (error) => {
+            console.error("Notifications listener error:", error);
             setLoading(false);
         });
 

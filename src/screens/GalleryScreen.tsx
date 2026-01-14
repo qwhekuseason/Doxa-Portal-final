@@ -44,10 +44,14 @@ const GalleryView: React.FC = () => {
     }
   };
 
-  // Masonry effect using columns
-  const column1 = images.filter((_, i) => i % 3 === 0);
-  const column2 = images.filter((_, i) => i % 3 === 1);
-  const column3 = images.filter((_, i) => i % 3 === 2);
+  // Pre-calculate global indices and split into columns efficiently
+  const columns = useMemo(() => {
+    const cols: { item: GalleryImage; index: number }[][] = [[], [], []];
+    images.forEach((img, i) => {
+      cols[i % 3].push({ item: img, index: i });
+    });
+    return cols;
+  }, [images]);
 
   return (
     <div className="space-y-12 animate-fade-in pb-20">
@@ -62,26 +66,23 @@ const GalleryView: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col md:flex-row gap-6">
-          {[column1, column2, column3].map((column, colIdx) => (
+          {columns.map((column, colIdx) => (
             <div key={colIdx} className="flex-1 flex flex-col gap-6">
-              {column.map((img, imgIdx) => {
-                const globalIndex = images.findIndex(i => i.id === img.id);
-                return (
-                  <GalleryCard
-                    key={img.id}
-                    img={img}
-                    index={globalIndex}
-                    onClick={() => {
-                      const isExternal = img.externalLink || img.url.includes('pixieset.com') || img.url.includes('gallery.');
-                      if (isExternal) {
-                        window.open(img.externalLink || img.url, '_blank');
-                      } else {
-                        openLightbox(img, globalIndex);
-                      }
-                    }}
-                  />
-                );
-              })}
+              {column.map(({ item: img, index: globalIndex }) => (
+                <GalleryCard
+                  key={img.id}
+                  img={img}
+                  index={globalIndex}
+                  onClick={() => {
+                    const isExternal = img.externalLink || img.url.includes('pixieset.com') || img.url.includes('gallery.');
+                    if (isExternal) {
+                      window.open(img.externalLink || img.url, '_blank');
+                    } else {
+                      openLightbox(img, globalIndex);
+                    }
+                  }}
+                />
+              ))}
             </div>
           ))}
         </div>

@@ -109,7 +109,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">A World of Fellowship Awaits</span>
                         </div>
 
-                        <h1 className="text-7xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter text-gray-900 dark:text-white animate-fade-in-up">
+                        <h1 className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter text-gray-900 dark:text-white animate-fade-in-up">
                             Experience <br className="hidden md:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-church-green via-emerald-500 to-church-gold">Divine Presence.</span>
                         </h1>
@@ -143,6 +143,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                 src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=2000"
                                 alt="Worship"
                                 className="w-full h-full object-cover transition-transform duration-[3000ms] group-hover:scale-110 brightness-50"
+                                loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-center text-center p-10">
                                 <div className="p-8 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 text-white hover:scale-110 transition-all cursor-pointer shadow-2xl mb-8 group/play">
@@ -165,7 +166,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                         <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
                             <div className="max-w-2xl">
                                 <h4 className="text-church-green text-xs font-black uppercase tracking-[0.4em] mb-4">Divine Ecosystem</h4>
-                                <h2 className="text-5xl md:text-7xl font-black dark:text-white tracking-tighter leading-none">Complete Tools for <br className="hidden md:block" /> your <span className="text-church-gold">Soul's Growth.</span></h2>
+                                <h2 className="text-4xl md:text-6xl font-black dark:text-white tracking-tighter leading-none">Complete Tools for <br className="hidden md:block" /> your <span className="text-church-gold">Soul's Growth.</span></h2>
                             </div>
                             <p className="max-w-xs text-gray-500 font-medium text-lg leading-relaxed mb-4">
                                 Curated experiences designed to nurture your spirit and connect the community.
@@ -244,7 +245,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
                         <div className="p-12 md:p-24 relative z-10 flex flex-col md:flex-row items-center gap-16">
                             <div className="flex-1 text-center md:text-left">
-                                <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none mb-8">Built for the <br /><span className="text-church-gold">Modern Believer.</span></h2>
+                                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-8">Built for the <br /><span className="text-church-gold">Modern Believer.</span></h2>
                                 <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed">
                                     Doxa Portal combines state-of-the-art technology with time-honored spiritual values. It's safe, secure, and purely professional.
                                 </p>
@@ -277,7 +278,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             { label: "Live Sessions", value: "24/7" }
                         ].map((stat, i) => (
                             <div key={i}>
-                                <div className="text-6xl md:text-8xl font-black text-gray-900 dark:text-white tracking-tighter mb-2">{stat.value}</div>
+                                <div className="text-5xl md:text-7xl font-black text-gray-900 dark:text-white tracking-tighter mb-2">{stat.value}</div>
                                 <div className="text-[10px] font-black uppercase tracking-[0.4em] text-church-green">{stat.label}</div>
                             </div>
                         ))}
@@ -312,7 +313,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     <div className="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-black/10 rounded-full blur-[100px] -ml-20 -mb-20"></div>
 
                     <div className="max-w-4xl mx-auto text-center text-white relative z-10">
-                        <h2 className="text-6xl md:text-8xl font-black mb-10 tracking-tighter leading-[0.85]">Ready to Begin <br /> Your Journey?</h2>
+                        <h2 className="text-5xl md:text-7xl font-black mb-10 tracking-tighter leading-[0.85]">Ready to Begin <br /> Your Journey?</h2>
                         <p className="text-xl md:text-2xl text-white/80 mb-16 max-w-2xl mx-auto font-medium leading-relaxed">
                             Join thousands who are maturing together in faith. Your sanctuary is just one click away.
                         </p>

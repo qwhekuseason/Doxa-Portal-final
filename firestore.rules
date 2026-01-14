@@ -8,9 +8,8 @@ service cloud.firestore {
      */
     function isAdmin() {
       return request.auth != null && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-         request.auth.token.email == 'admin@gmail.com'
+        request.auth.token.email == 'admin@gmail.com' || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
 
@@ -18,13 +17,13 @@ service cloud.firestore {
      * @Security - ROLE CHECKS
      */
     function isPublicity() {
-      return request.auth != null && 
+      return isVerified() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'publicity';
     }
 
     function isPrayer() {
-      return request.auth != null && 
+      return isVerified() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'prayer';
     }
@@ -36,16 +35,20 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    function isVerified() {
+      return request.auth != null && (request.auth.token.email_verified == true || request.auth.token.email == 'admin@gmail.com');
+    }
+
     /**
      * @Collection - User Profiles
      * Owners can read/write their own profiles. Admins can manage all.
      * Publicity role can read all profiles (for birthdays).
      */
     match /users/{userId} {
-      allow create: if isOwner(userId);
-      allow get: if isOwner(userId) || isAdmin() || isPublicity();
-      allow list: if isAdmin() || isPublicity();
-      allow update: if isOwner(userId) || isAdmin();
+      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
 

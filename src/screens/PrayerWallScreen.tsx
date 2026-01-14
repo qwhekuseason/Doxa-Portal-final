@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { collection, query, where, orderBy, addDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, addDoc, doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { UserProfile, PrayerRequest } from '../types';
@@ -37,6 +37,21 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
       setNewRequest('');
       setIsPrivate(false);
     } catch (e) { console.error(e); } finally { setSubmitting(false); }
+  };
+
+  const handlePray = async (request: PrayerRequest) => {
+    if (!user) return;
+    const hasPrayed = request.prayedBy?.includes(user.uid);
+    const requestRef = doc(db, 'prayer_requests', request.id);
+
+    try {
+      await updateDoc(requestRef, {
+        prayedBy: hasPrayed ? arrayRemove(user.uid) : arrayUnion(user.uid),
+        prayedCount: hasPrayed ? increment(-1) : increment(1)
+      });
+    } catch (e) {
+      console.error("Error updating prayer count:", e);
+    }
   };
 
   return (
@@ -158,9 +173,23 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
               </div>
 
               <div className="mt-8 pt-5 border-t border-gray-100 dark:border-white/5 flex items-center justify-between opacity-60">
-                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter">
-                  <Clock size={10} />
-                  {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter">
+                    <Clock size={10} />
+                    {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <button
+                    onClick={() => handlePray(req)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${req.prayedBy?.includes(user.uid)
+                      ? 'bg-church-green text-white shadow-lg shadow-church-green/20 scale-105'
+                      : 'bg-church-green/5 text-church-green hover:bg-church-green/10'
+                      }`}
+                  >
+                    <Heart size={12} className={req.prayedBy?.includes(user.uid) ? 'fill-current' : ''} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {req.prayedBy?.includes(user.uid) ? 'Prayed' : 'Pray'} {req.prayedCount || 0}
+                    </span>
+                  </button>
                 </div>
                 <div className="flex items-center gap-1 px-2.5 py-0.5 bg-church-green/10 text-church-green rounded-full">
                   <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>

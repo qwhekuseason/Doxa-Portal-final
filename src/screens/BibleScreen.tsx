@@ -278,12 +278,7 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                         >
                             {isGenInsight ? <RefreshCcw size={18} className="animate-spin" /> : <Sparkles size={18} />}
                         </button>
-                        <button
-                            onClick={() => setSettingsOpen(!settingsOpen)}
-                            className={`p-2.5 rounded-xl bg-white/5 transition-all ${settingsOpen ? 'text-church-green ring-2 ring-church-green/30' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <Settings size={18} />
-                        </button>
+
                         <button
                             onClick={() => setIsImmersive(!isImmersive)}
                             className="p-2.5 rounded-xl bg-white/5 text-gray-400 hover:text-white transition-all hidden md:flex"
@@ -469,41 +464,29 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                 </div>
             </div>
 
-            {/* Footer Pagination */}
+            {/* Floating Pagination Arrows */}
             {!isImmersive && (
-                <nav className="fixed bottom-10 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-48px)] max-w-lg">
-                    <div className="glass-card p-2 rounded-[2.5rem] shadow-premium flex items-center justify-between border-white/10">
+                <>
+                    {chapter > 1 && (
                         <button
-                            onClick={() => setChapter(Math.max(1, chapter - 1))}
-                            disabled={chapter <= 1}
-                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${chapter <= 1 ? 'opacity-0 scale-50' : 'bg-white/5 hover:bg-church-green text-white shadow-lg shadow-black/20'}`}
+                            onClick={() => setChapter(prev => Math.max(1, prev - 1))}
+                            className="fixed left-6 lg:left-[calc(16rem+24px)] xl:left-[calc(18rem+24px)] top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-church-green hover:scale-110 active:scale-95 transition-all border border-white/20 shadow-2xl group"
+                            title="Previous Chapter"
                         >
-                            <ChevronLeft size={24} />
+                            <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
                         </button>
+                    )}
 
-                        <div className="flex-1 px-8 text-center">
-                            <div className="text-[9px] font-black text-church-gold uppercase tracking-[0.3em] mb-1.5">Divine Journey</div>
-                            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-2">
-                                <div
-                                    className="h-full bg-gradient-to-r from-church-green to-emerald-400 transition-all duration-1000 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-                                    style={{ width: `${(chapter / (BIBLE_METADATA[book] || 1)) * 100}%` }}
-                                />
-                            </div>
-                            <div className="flex justify-between items-center text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                                <span>Ch. {chapter}</span>
-                                <span className="text-church-green">{BIBLE_METADATA[book]} Chapters</span>
-                            </div>
-                        </div>
-
+                    {chapter < BIBLE_METADATA[book] && (
                         <button
-                            onClick={() => setChapter(chapter + 1)}
-                            disabled={chapter >= BIBLE_METADATA[book]}
-                            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${chapter >= BIBLE_METADATA[book] ? 'opacity-0 scale-50' : 'bg-white/5 hover:bg-church-green text-white shadow-lg shadow-black/20'}`}
+                            onClick={() => setChapter(prev => prev + 1)}
+                            className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-church-green hover:scale-110 active:scale-95 transition-all border border-white/20 shadow-2xl group"
+                            title="Next Chapter"
                         >
-                            <ChevronRight size={24} />
+                            <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
                         </button>
-                    </div>
-                </nav>
+                    )}
+                </>
             )}
 
             {/* Selection Picker (Re-using some old logic but updated styling) */}
@@ -517,11 +500,11 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                                     <BookOpen size={36} />
                                 </div>
                                 <div className="hidden sm:block">
-                                    <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Scripture Library</h2>
+                                    <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Scripture Library</h2>
                                     <p className="text-[10px] md:text-sm font-black text-church-gold uppercase tracking-[0.4em] mt-1">{pickerStep === 'books' ? 'Selecting Book' : `Chapters for ${book}`}</p>
                                 </div>
                                 <div className="sm:hidden">
-                                    <h2 className="text-2xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Library</h2>
+                                    <h2 className="text-xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Library</h2>
                                     <p className="text-[10px] font-black text-church-gold uppercase tracking-[0.2em] mt-1">{pickerStep === 'books' ? 'Books' : 'Chapters'}</p>
                                 </div>
                             </div>

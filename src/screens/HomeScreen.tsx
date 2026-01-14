@@ -141,7 +141,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                 <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Divine Dashboard</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-sans font-black text-white tracking-tighter leading-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
                 {greeting},<br />
                 <span className="text-gradient-gold drop-shadow-sm">{user?.displayName?.split(' ')[0] || 'Beloved'}</span>
               </h1>
@@ -229,6 +229,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                         src={sermon.coverUrl}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                         alt=""
+                        loading="lazy"
                         onError={(e) => (e.currentTarget.src = 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=1000')}
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>

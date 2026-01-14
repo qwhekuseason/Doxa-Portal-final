@@ -10,14 +10,17 @@ import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'));
 
 const SermonLibraryView: React.FC = () => {
+  const { data: sermons, loading } = useFirestoreQuery<Sermon>(sermonQ);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: sermons, loading } = useFirestoreQuery<Sermon>(sermonQ);
-
-  const filtered = sermons.filter(s =>
-    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.preacher.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    if (!searchTerm.trim()) return sermons;
+    const lowerSearch = searchTerm.toLowerCase();
+    return sermons.filter(s =>
+      s.title.toLowerCase().includes(lowerSearch) ||
+      s.preacher.toLowerCase().includes(lowerSearch)
+    );
+  }, [sermons, searchTerm]);
 
   const handlePlay = async (sermon: Sermon) => {
     if (sermon.audioUrl) {
@@ -71,6 +74,7 @@ const SermonLibraryView: React.FC = () => {
                   src={sermon.coverUrl}
                   alt={sermon.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1500ms]"
+                  loading="lazy"
                   onError={(e) => (e.currentTarget.src = 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=1000')}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>

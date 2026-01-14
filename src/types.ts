@@ -21,6 +21,7 @@ export interface UserProfile {
     lastRead?: string;
   }>;
   createdAt?: string;
+  isVerified?: boolean;
 }
 
 export interface AuthState {
@@ -51,6 +52,8 @@ export interface PrayerRequest {
   isPrivate: boolean;
   approved: boolean;
   createdAt: string;
+  prayedBy?: string[];
+  prayedCount?: number;
 }
 
 export interface CalendarEvent {

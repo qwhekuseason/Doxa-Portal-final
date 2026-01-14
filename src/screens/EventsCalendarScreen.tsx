@@ -109,7 +109,7 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
                         </div>
                       </div>
                       <div>
-                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border ${ev.type === 'service'
+                        <span className={`inline-flex items-center whitespace-nowrap px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border ${ev.type === 'service'
                           ? 'bg-church-green/10 text-church-green border-church-green/20'
                           : ev.type === 'youth'
                             ? 'bg-church-gold/10 text-church-gold border-church-gold/20'

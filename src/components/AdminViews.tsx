@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { HfInference } from "@huggingface/inference";
-import { db, storage } from '../firebase';
+import { db, storage, auth } from '../firebase';
 import { notifyTestimonyApproved, notifyNewSermon, notifyNewGalleryImage, notifyNewQuiz } from '../utils/notificationService';
 import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification, SiteSettings, GivingStats } from '../types';
 import { getGoogleDriveDirectLink } from '../utils/galleryUtils';
@@ -42,6 +42,7 @@ import {
   Building2,
   Calendar,
   ExternalLink,
+  AlertTriangle,
   Settings
 } from 'lucide-react';
 
@@ -373,25 +374,59 @@ export const AdminSermonManager: React.FC = () => {
 // --- User Manager ---
 export const AdminUserManager: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [updatingUid, setUpdatingUid] = useState<string | null>(null);
 
   const fetchUsers = async () => {
-    const q = query(collection(db, 'users'));
-    const snapshot = await getDocs(q);
-    setUsers(snapshot.docs.map(doc => ({ ...(doc.data() as any) } as UserProfile)));
+    setLoading(true);
+    setError(null);
+    try {
+      const q = query(collection(db, 'users'));
+      const snapshot = await getDocs(q);
+      setUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...(doc.data() as any) } as UserProfile)));
+    } catch (e: any) {
+      console.error("Error fetching users:", e);
+      setError(e.message || "Failed to fetch users. Check console for details.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const updateRole = async (uid: string, newRole: string) => {
-    if (!confirm(`Change role to ${newRole}?`)) return;
-    try {
-      await updateDoc(doc(db, 'users', uid), { role: newRole });
-      fetchUsers();
-    } catch (e) {
-      console.error("Error updating role:", e);
-      alert("Failed to update role in database.");
+  const updateRole = async (targetUid: string, newRole: string) => {
+    if (targetUid === auth.currentUser?.uid && newRole !== 'admin') {
+      if (!confirm("Caution: You are changing your OWN role. If you proceed, you will lose admin privileges and will be logged out of this dashboard immediately. Continue?")) return;
     }
+
+    setUpdatingUid(targetUid);
+    try {
+      const userRef = doc(db, 'users', targetUid);
+      console.log(`Attempting to update user ${targetUid} to role ${newRole}`);
+
+      await updateDoc(userRef, {
+        role: newRole,
+        updatedAt: new Date().toISOString()
+      });
+
+      alert(`Success! Account role updated to ${newRole.toUpperCase()}. The change has been committed to Firestore.`);
+      await fetchUsers();
+    } catch (e: any) {
+      console.error("Critical Error updating role:", e);
+      alert(`Update Failed!\n\nReason: ${e.message}\n\nPlease check if you are logged in with the correct Admin account.`);
+    } finally {
+      setUpdatingUid(null);
+    }
+  };
+
+  const deleteUserRecord = async (uid: string, displayName: string) => {
+    if (!confirm(`Are you sure you want to PERMANENTLY delete the account for ${displayName}? This action cannot be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      fetchUsers();
+    } catch (e) { console.error(e); }
   };
 
   const getRoleBadgeStyle = (role?: string) => {
@@ -406,43 +441,68 @@ export const AdminUserManager: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <h3 className="text-xl font-bold dark:text-white font-serif">User Management</h3>
-      <AdminTable headers={['User', 'Email', 'Role', 'Actions']}>
-        {users.map(u => (
-          <tr key={u.uid} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
-            <td className="px-6 py-4 flex items-center gap-3">
-              <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-700 shadow-sm" alt="" />
-              <span className="font-bold text-gray-900 dark:text-white">{u.displayName}</span>
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
-            <td className="px-6 py-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getRoleBadgeStyle(u.role)}`}>
-                {u.role}
-              </span>
-            </td>
-            <td className="px-6 py-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedUser(u)}
-                  className="p-2 text-church-green hover:bg-church-green/10 rounded-lg transition-colors"
-                  title="View Details"
-                >
-                  <Eye size={18} />
-                </button>
-                <select
-                  value={u.role}
-                  onChange={(e) => updateRole(u.uid, e.target.value)}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-church-green cursor-pointer"
-                >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
-                  <option value="publicity">Publicity</option>
-                  <option value="prayer">Prayer</option>
-                </select>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </AdminTable>
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl flex items-center gap-3 text-red-600 dark:text-red-400">
+          <AlertTriangle size={20} />
+          <span className="font-bold text-sm">{error}</span>
+          <button onClick={fetchUsers} className="ml-auto text-xs underline">Retry</button>
+        </div>
+      )}
+      {loading ? (
+        <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-church-green" size={40} /></div>
+      ) : users.length === 0 ? (
+        <div className="p-20 text-center bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] border border-dashed border-gray-200 dark:border-gray-800">
+          <p className="text-gray-400 font-bold">No users detected in the congregation.</p>
+        </div>
+      ) : (
+        <AdminTable headers={['User', 'Email', 'Role', 'Actions']}>
+          {users.map(u => (
+            <tr key={u.uid} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
+              <td className="px-6 py-4 flex items-center gap-3">
+                <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-700 shadow-sm" alt="" />
+                <span className="font-bold text-gray-900 dark:text-white">{u.displayName}</span>
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
+              <td className="px-6 py-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${getRoleBadgeStyle(u.role)}`}>
+                  {u.role}
+                </span>
+                {updatingUid === u.uid && <Loader2 size={12} className="inline animate-spin ml-2 text-church-green" />}
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedUser(u)}
+                    className="p-2 text-church-green hover:bg-church-green/10 rounded-lg transition-colors"
+                    title="View Details"
+                  >
+                    <Eye size={18} />
+                  </button>
+                  <select
+                    value={u.role}
+                    disabled={updatingUid === u.uid}
+                    onChange={(e) => updateRole(u.uid, e.target.value)}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-church-green cursor-pointer mr-2 disabled:opacity-50"
+                  >
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                    <option value="publicity">Publicity</option>
+                    <option value="prayer">Prayer</option>
+                  </select>
+                  <button
+                    onClick={() => deleteUserRecord(u.uid, u.displayName)}
+                    disabled={updatingUid === u.uid}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                    title="Remove User Record"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </AdminTable>
+      )}
 
       {/* User Detail Modal */}
       {selectedUser && (
@@ -519,6 +579,14 @@ export const AdminUserManager: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="mt-12 flex justify-end">
+                  <button
+                    onClick={() => deleteUserRecord(selectedUser.uid, selectedUser.displayName)}
+                    className="flex items-center gap-2 px-6 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                  >
+                    <Trash2 size={16} /> Remove User Record
+                  </button>
                 </div>
               </div>
             </div>
@@ -708,12 +776,12 @@ export const AdminQuizManager: React.FC = () => {
         const hf = new HfInference(apiKey);
 
         const prompt = `Generate a ${difficulty} difficulty Bible quiz about "${topic || 'General Bible knowledge'}" with EXACTLY ${genQuestionCount} questions.
-        Return ONLY a JSON array of objects. Each object must have:
-        - "question": string
-        - "options": array of 4 strings
-        - "correctIndex": number (0-3)
+      Return ONLY a JSON array of objects. Each object must have:
+      - "question": string
+      - "options": array of 4 strings
+      - "correctIndex": number (0-3)
 
-        DO NOT include markdown, explanations, or any text outside the JSON array.`;
+      DO NOT include markdown, explanations, or any text outside the JSON array.`;
 
         const response = await hf.chatCompletion({
           model: 'google/gemma-2-9b-it',

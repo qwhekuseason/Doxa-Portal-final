@@ -8,25 +8,32 @@ import AuthPage from './src/components/AuthPage';
 import { ThemeProvider, useTheme } from './src/components/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
-// Import Screen Components
-import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
-import QuizScreen from './src/screens/QuizScreen';
-import PrayerWallScreen from './src/screens/PrayerWallScreen';
-import EventsCalendarScreen from './src/screens/EventsCalendarScreen';
-import TestimoniesScreen from './src/screens/TestimoniesScreen';
-import SermonLibraryScreen from './src/screens/SermonLibraryScreen';
-import GalleryScreen from './src/screens/GalleryScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import LandingPage from './src/screens/LandingPage';
-import ProfileScreen from './src/screens/ProfileScreen';
-import BibleScreen from './src/screens/BibleScreen';
-import JourneyScreen from './src/screens/JourneyScreen';
-import LiveSessionScreen from './src/screens/LiveSessionScreen';
-import GivingScreen from './src/screens/GivingScreen';
+import {
+  GlobalAudioPlayer,
+  NotificationPopover,
+  SidebarItem,
+  LoadingSpinner,
+  useClickOutside
+} from './src/components/UIComponents';
 
-import AboutScreen from './src/screens/AboutScreen';
-import BirthdaysScreen from './src/screens/BirthdaysScreen';
-import PrayerRequestsScreen from './src/screens/PrayerRequestsScreen';
+// Lazy load Screen Components
+const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen'));
+const QuizScreen = React.lazy(() => import('./src/screens/QuizScreen'));
+const PrayerWallScreen = React.lazy(() => import('./src/screens/PrayerWallScreen'));
+const EventsCalendarScreen = React.lazy(() => import('./src/screens/EventsCalendarScreen'));
+const TestimoniesScreen = React.lazy(() => import('./src/screens/TestimoniesScreen'));
+const SermonLibraryScreen = React.lazy(() => import('./src/screens/SermonLibraryScreen'));
+const GalleryScreen = React.lazy(() => import('./src/screens/GalleryScreen'));
+const HomeScreen = React.lazy(() => import('./src/screens/HomeScreen'));
+const LandingPage = React.lazy(() => import('./src/screens/LandingPage'));
+const ProfileScreen = React.lazy(() => import('./src/screens/ProfileScreen'));
+const BibleScreen = React.lazy(() => import('./src/screens/BibleScreen'));
+const JourneyScreen = React.lazy(() => import('./src/screens/JourneyScreen'));
+const LiveSessionScreen = React.lazy(() => import('./src/screens/LiveSessionScreen'));
+const GivingScreen = React.lazy(() => import('./src/screens/GivingScreen'));
+const AboutScreen = React.lazy(() => import('./src/screens/AboutScreen'));
+const BirthdaysScreen = React.lazy(() => import('./src/screens/BirthdaysScreen'));
+const PrayerRequestsScreen = React.lazy(() => import('./src/screens/PrayerRequestsScreen'));
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -41,14 +48,7 @@ import {
   AdminSettingsManager
 } from './src/components/AdminViews';
 
-// Import Components
-import {
-  GlobalAudioPlayer,
-  NotificationPopover,
-  SidebarItem,
-  LoadingSpinner,
-  useClickOutside
-} from './src/components/UIComponents';
+
 
 // Icons
 import {
@@ -100,7 +100,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const adminMenuRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(settingsRef, () => setSettingsOpen(false));
-  if (user.role === 'admin') useClickOutside(adminMenuRef, () => setAdminMenuOpen(false));
+  useClickOutside(adminMenuRef, () => setAdminMenuOpen(false));
 
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -137,7 +137,12 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
           <Bell size={20} />
           <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full border-2 animate-bounce ${theme === 'dark' ? 'bg-church-gold border-black' : 'bg-church-green border-white'}`}></span>
         </button>
-        <NotificationPopover isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+        <NotificationPopover
+          isOpen={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+          userId={user.uid}
+          isAdmin={user.role === 'admin'}
+        />
       </div>
 
       {/* Settings Menu */}
@@ -417,32 +422,38 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
             {/* Screen Rendering */}
             <div className="min-h-[calc(100vh-200px)]">
-              {activeTab === 'home' && <HomeScreen user={user} onNavigate={(tab) => { setActiveTab(tab); }} />}
-              {activeTab === 'sermons' && <SermonLibraryScreen />}
-              {activeTab === 'events' && <EventsCalendarScreen user={user} onJoinLive={(room) => { setLiveRoom(room); setActiveTab('live'); }} />}
-              {activeTab === 'live' && <LiveSessionScreen initialRoom={liveRoom} user={user} />}
-              {activeTab === 'testimonies' && <TestimoniesScreen user={user} />}
-              {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
-              {activeTab === 'quiz' && <QuizScreen user={user} />}
-              {activeTab === 'bible' && <BibleScreen user={user} />}
-              {activeTab === 'journey' && <JourneyScreen user={user} />}
-              {activeTab === 'gallery' && <GalleryScreen />}
-              {activeTab === 'giving' && <GivingScreen />}
-              {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
-              {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
-              {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
-              {activeTab === 'profile' && <ProfileScreen user={user} refreshUser={refreshUser} />}
+              <React.Suspense fallback={
+                <div className="flex items-center justify-center p-20">
+                  <LoadingSpinner />
+                </div>
+              }>
+                {activeTab === 'home' && <HomeScreen user={user} onNavigate={(tab) => { setActiveTab(tab); }} />}
+                {activeTab === 'sermons' && <SermonLibraryScreen />}
+                {activeTab === 'events' && <EventsCalendarScreen user={user} onJoinLive={(room) => { setLiveRoom(room); setActiveTab('live'); }} />}
+                {activeTab === 'live' && <LiveSessionScreen initialRoom={liveRoom} user={user} />}
+                {activeTab === 'testimonies' && <TestimoniesScreen user={user} />}
+                {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
+                {activeTab === 'quiz' && <QuizScreen user={user} />}
+                {activeTab === 'bible' && <BibleScreen user={user} />}
+                {activeTab === 'journey' && <JourneyScreen user={user} />}
+                {activeTab === 'gallery' && <GalleryScreen />}
+                {activeTab === 'giving' && <GivingScreen />}
+                {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
+                {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
+                {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
+                {activeTab === 'profile' && <ProfileScreen user={user} refreshUser={refreshUser} />}
 
-              {/* Admin Sub-Screens */}
-              {activeTab === 'admin-prayers' && <div className="max-w-4xl mx-auto"><PrayerModeration /></div>}
-              {activeTab === 'admin-events' && <div className="max-w-5xl mx-auto"><EventManager /></div>}
-              {activeTab === 'admin-live-rooms' && <div className="max-w-6xl mx-auto"><LiveRoomManager /></div>}
-              {activeTab === 'admin-sermons' && <AdminSermonManager />}
-              {activeTab === 'admin-testimonies' && <AdminTestimonyManager />}
-              {activeTab === 'admin-users' && <AdminUserManager />}
-              {activeTab === 'admin-quizzes' && <AdminQuizManager />}
-              {activeTab === 'admin-gallery' && <AdminGalleryManager />}
-              {activeTab === 'admin-settings' && <AdminSettingsManager />}
+                {/* Admin Sub-Screens */}
+                {activeTab === 'admin-prayers' && <div className="max-w-4xl mx-auto"><PrayerModeration /></div>}
+                {activeTab === 'admin-events' && <div className="max-w-5xl mx-auto"><EventManager /></div>}
+                {activeTab === 'admin-live-rooms' && <div className="max-w-6xl mx-auto"><LiveRoomManager /></div>}
+                {activeTab === 'admin-sermons' && <AdminSermonManager />}
+                {activeTab === 'admin-testimonies' && <AdminTestimonyManager />}
+                {activeTab === 'admin-users' && <AdminUserManager />}
+                {activeTab === 'admin-quizzes' && <AdminQuizManager />}
+                {activeTab === 'admin-gallery' && <AdminGalleryManager />}
+                {activeTab === 'admin-settings' && <AdminSettingsManager />}
+              </React.Suspense>
             </div>
           </div>
         </div >
@@ -450,7 +461,9 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       </main >
 
       {/* Audio Player Overlay */}
-      < GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
+      <React.Suspense fallback={null}>
+        < GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
+      </React.Suspense>
 
     </div >
   );
@@ -489,6 +502,7 @@ const App: React.FC = () => {
               hostelName: userData.hostelName,
               dateOfBirth: userData.dateOfBirth,
               createdAt: userData.createdAt,
+              isVerified: firebaseUser.emailVerified || firebaseUser.email === 'admin@gmail.com',
               stats: userData.stats || {}
             });
           } else {
@@ -498,10 +512,24 @@ const App: React.FC = () => {
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'User',
               photoURL: firebaseUser.photoURL,
-              role: 'member',
+              role: firebaseUser.email === 'admin@gmail.com' ? 'admin' : 'member',
+              isVerified: firebaseUser.emailVerified || firebaseUser.email === 'admin@gmail.com',
               stats: {}
             });
           }
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore User Profile Error:", error);
+          // Still create a basic user object so the app can load
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'User',
+            photoURL: firebaseUser.photoURL,
+            role: firebaseUser.email === 'admin@gmail.com' ? 'admin' : 'member',
+            isVerified: firebaseUser.emailVerified || firebaseUser.email === 'admin@gmail.com',
+            stats: {}
+          });
           setLoading(false);
         });
       } else {
@@ -530,7 +558,9 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <ThemeProvider>
         {user ? (
-          mode === 'live_window' ? (
+          (user.isVerified === false && user.email !== 'admin@gmail.com') ? (
+            <AuthPage initialMode="verify" />
+          ) : mode === 'live_window' ? (
             <LiveSessionScreen initialRoom={initialRoom} user={user} autoJoin={true} />
           ) : (
             <Dashboard user={user} refreshUser={() => { /* Real-time listener handles updates */ }} />

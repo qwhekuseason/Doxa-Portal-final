@@ -164,8 +164,8 @@ export const SidebarItem: React.FC<{
 
 import { useNotifications } from '../hooks/useNotifications';
 
-export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { notifications, markAsRead, loading } = useNotifications();
+export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => void; userId?: string; isAdmin?: boolean }> = ({ isOpen, onClose, userId, isAdmin }) => {
+  const { notifications, markAsRead, markAllAsRead, loading } = useNotifications(userId, isAdmin);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(popoverRef, onClose);
@@ -219,7 +219,12 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
         )}
       </div>
       <div className="p-4 border-t border-gray-100 dark:border-white/5 text-center bg-gray-50/30 dark:bg-white/5">
-        <button className="text-[10px] font-black uppercase tracking-[0.2em] text-church-green hover:text-emerald-600 transition-colors">Clear All Notifications</button>
+        <button
+          onClick={markAllAsRead}
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-church-green hover:text-emerald-600 transition-colors"
+        >
+          Clear All Notifications
+        </button>
       </div>
     </div>
   );

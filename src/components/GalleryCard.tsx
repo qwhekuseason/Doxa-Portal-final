@@ -37,6 +37,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ img, index, onClick, i
                     src={getSrc()}
                     className="w-full h-full object-cover"
                     alt={img.caption}
+                    loading="lazy"
                     onError={() => setHasError(true)}
                 />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4 text-center">
@@ -65,6 +66,7 @@ export const GalleryCard: React.FC<GalleryCardProps> = ({ img, index, onClick, i
                 src={getSrc()}
                 className="w-full h-auto object-cover transition-transform duration-[2000ms] group-hover:scale-110"
                 alt={img.caption}
+                loading="lazy"
                 onError={() => setHasError(true)}
             />
 

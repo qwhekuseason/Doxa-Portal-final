@@ -7,9 +7,11 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  reload
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useTheme } from './ThemeContext';
 import {
@@ -32,16 +34,18 @@ import {
 } from 'lucide-react';
 
 interface AuthPageProps {
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'verify' | 'forgot';
   onBack?: () => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) => {
   const { theme, toggleTheme } = useTheme();
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot' | 'verify'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [verificationInput, setVerificationInput] = useState('');
+  const [pendingUser, setPendingUser] = useState<any>(null);
 
   // Form State
   const [email, setEmail] = useState('');
@@ -148,7 +152,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
 
     try {
       if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        if (!user.emailVerified && email !== 'admin@gmail.com') {
+          await sendEmailVerification(user);
+          setPendingUser(user);
+          setAuthMode('verify');
+          setLoading(false);
+          setSuccessMsg(`A verification link has been sent to ${email}. Please check your inbox.`);
+          return;
+        }
       } else if (authMode === 'register') {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -156,6 +170,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
 
         if (user) {
           await updateProfile(user, { displayName });
+          if (email !== 'admin@gmail.com') {
+            await sendEmailVerification(user);
+          }
+
           try {
             await setDoc(doc(db, "users", user.uid), {
               uid: user.uid,
@@ -166,9 +184,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               hostelName,
               role: assignedRole,
               createdAt: new Date().toISOString(),
-
               photoURL: photoPreview || user.photoURL || null
             });
+
+            if (email !== 'admin@gmail.com') {
+              setPendingUser(user);
+              setAuthMode('verify');
+              setSuccessMsg(`A verification link was sent to ${email} (Check your inbox)`);
+            }
+
           } catch (dbError: any) {
             console.error("Firestore Error:", dbError);
             if (dbError.code === 'permission-denied') throw dbError;
@@ -187,6 +211,37 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
     }
   };
 
+  const handleCheckVerification = async () => {
+    if (!auth.currentUser) return;
+    setLoading(true);
+    try {
+      await reload(auth.currentUser);
+      if (auth.currentUser.emailVerified) {
+        setSuccessMsg("Email verified! Welcome to the sanctuary.");
+        // App.tsx listener will take care of the rest
+      } else {
+        setError("Email not yet verified. Please check your inbox and click the link.");
+      }
+    } catch (err: any) {
+      setError(getFriendlyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!auth.currentUser) return;
+    setLoading(true);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setSuccessMsg("A new verification link has been sent.");
+    } catch (err: any) {
+      setError(getFriendlyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -196,14 +251,28 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
       const user = result.user;
 
       try {
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-          role: user.email === 'admin@gmail.com' ? 'admin' : 'member',
-          photoURL: user.photoURL,
-          lastLogin: new Date().toISOString()
-        }, { merge: true });
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+
+        if (!userDoc.exists()) {
+          // New User via Google - Initialize Profile
+          await setDoc(userRef, {
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            role: user.email === 'admin@gmail.com' ? 'admin' : 'member',
+            photoURL: user.photoURL,
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+          });
+        } else {
+          // Existing User - Only update metadata to avoid overwriting roles/info
+          await setDoc(userRef, {
+            lastLogin: new Date().toISOString(),
+            photoURL: user.photoURL || userDoc.data()?.photoURL, // Keep newest photo if available
+            displayName: userDoc.data()?.displayName || user.displayName // Prefer DB name
+          }, { merge: true });
+        }
       } catch (dbError: any) {
         console.error("Firestore Error on Google Sign In:", dbError);
       }
@@ -293,16 +362,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               {authMode === 'login' && "Welcome Back"}
               {authMode === 'register' && "Create Sanctuary"}
               {authMode === 'forgot' && "Reset Passage"}
+              {authMode === 'verify' && "Verify Spirit"}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
               {authMode === 'login' && "Continue your spiritual growth."}
               {authMode === 'register' && "Begin your journey with the community."}
               {authMode === 'forgot' && "We'll send you a divine reset link."}
+              {authMode === 'verify' && "Enter the 6-digit code sent to your email."}
             </p>
           </div>
 
           {/* Mode Switcher Tabs */}
-          {authMode !== 'forgot' && (
+          {(authMode !== 'forgot' && authMode !== 'verify') && (
             <div className="flex gap-4 mb-8">
               <button
                 onClick={() => { setAuthMode('login'); setError(null); }}
@@ -323,6 +394,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                 Register
               </button>
             </div>
+          )}
+
+          {authMode === 'verify' && (
+            <button
+              onClick={() => { setAuthMode('register'); setError(null); setSuccessMsg(null); }}
+              className="mb-8 flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-church-green transition-colors"
+            >
+              <ArrowLeft size={16} /> Return to Register
+            </button>
           )}
 
           {authMode === 'forgot' && (
@@ -435,6 +515,41 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
+            {authMode === 'verify' && (
+              <div className="space-y-6 animate-fade-in text-center">
+                <div className="p-8 bg-church-green/5 dark:bg-church-green/10 rounded-3xl border border-church-green/20">
+                  <div className="w-16 h-16 bg-church-green/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Mail className="text-church-green" size={32} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2">Check your email</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                    We've sent a divine verification link to <span className="text-church-green font-bold">{email}</span>. Click the link in that email to activate your sanctuary access.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleCheckVerification}
+                    disabled={loading}
+                    className="w-full h-[64px] bg-church-green hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="font-black text-xs uppercase tracking-[0.3em] relative z-10">I've verified my email</span>}
+                    <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={loading}
+                    className="w-full py-4 text-[10px] font-black text-gray-400 hover:text-church-gold uppercase tracking-widest transition-colors"
+                  >
+                    Didn't receive code? Resend link
+                  </button>
+                </div>
+              </div>
+            )}
+
             {authMode === 'login' && (
               <div className="flex justify-end pt-1">
                 <button
@@ -461,25 +576,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-[54px] bg-church-green hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden relative group"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={20} />
-              ) : (
-                <>
-                  <span className="font-black text-xs uppercase tracking-[0.3em] relative z-10">
-                    {authMode === 'login' && "Access Portal"}
-                    {authMode === 'register' && "Establish Sanctuary"}
-                    {authMode === 'forgot' && "Send Reset Link"}
-                  </span>
-                  <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-            </button>
+            {authMode !== 'verify' && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-[54px] bg-church-green hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden relative group"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <>
+                    <span className="font-black text-xs uppercase tracking-[0.3em] relative z-10">
+                      {authMode === 'login' && "Access Portal"}
+                      {authMode === 'register' && "Establish Sanctuary"}
+                      {authMode === 'forgot' && "Send Reset Link"}
+                    </span>
+                    <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+              </button>
+            )}
           </form>
 
           <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5">

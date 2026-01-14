@@ -110,3 +110,18 @@ export const generateAgoraToken = functions.https.onRequest(async (req, res) => 
         });
     }
 });
+
+/**
+ * Cleanup trigger: Delete Auth user when Firestore profile is deleted
+ */
+export const onUserDeleted = functions.firestore
+    .document('users/{uid}')
+    .onDelete(async (snap, context) => {
+        const uid = context.params.uid;
+        try {
+            await admin.auth().deleteUser(uid);
+            console.log(`Successfully deleted auth user with uid: ${uid}`);
+        } catch (error) {
+            console.error(`Error deleting auth user with uid: ${uid}`, error);
+        }
+    });
