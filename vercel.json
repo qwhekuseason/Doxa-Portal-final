@@ -1,8 +1,15 @@
 {
-    "env": {
-        "AGORA_APP_ID": "@agora_app_id",
-        "AGORA_APP_CERTIFICATE": "@agora_app_certificate"
-    },
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/api/generateToken",
+            "destination": "/api/generateToken.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
     "functions": {
         "api/generateToken.js": {
             "memory": 1024,

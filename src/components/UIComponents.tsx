@@ -124,7 +124,7 @@ export const StatCard: React.FC<{
         </div>
         <div>
           <div className="flex items-baseline gap-2 mb-1.5">
-            <h3 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter truncate leading-none">{value}</h3>
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tighter truncate leading-none">{value}</h3>
             <div className="w-2 h-2 rounded-full bg-church-green animate-pulse"></div>
           </div>
           <p className="text-[10px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] truncate">{title}</p>

@@ -1,8 +1,9 @@
 import './src/index.css';
 import React, { useEffect, useState, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './src/firebase';
+import { doc, getDoc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getToken } from 'firebase/messaging';
+import { auth, db, messaging } from './src/firebase';
 import { UserProfile } from './src/types';
 import AuthPage from './src/components/AuthPage';
 import { ThemeProvider, useTheme } from './src/components/ThemeContext';
@@ -110,8 +111,26 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
   const enableNotifications = async () => {
     if (!('Notification' in window)) return;
-    await Notification.requestPermission();
-    setShowNotifPrompt(false);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted' && user?.uid) {
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const token = await getToken(messaging, {
+          vapidKey: 'BdP-XwFvKz0M1S2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6', // This should be replaced with actual VAPID key in settings
+          serviceWorkerRegistration: registration
+        });
+
+        if (token) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            fcmTokens: arrayUnion(token)
+          });
+        }
+      }
+    } catch (err) {
+      console.error("FCM Registration error:", err);
+    } finally {
+      setShowNotifPrompt(false);
+    }
   };
 
   const handleLogout = () => signOut(auth);
