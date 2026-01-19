@@ -44,7 +44,7 @@ You **MUST** configure the Hugging Face API key in Vercel:
 2. Navigate to **Settings** → **Environment Variables**
 3. Add a new environment variable:
    - **Name**: `HUGGINGFACE_API_KEY`
-   - **Value**: `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`
+   - **Value**: `YOUR_HUGGINGFACE_API_KEY`
    - **Environments**: Check all (Production, Preview, Development)
 4. Click **Save**
 

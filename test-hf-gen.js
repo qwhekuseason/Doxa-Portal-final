@@ -1,7 +1,26 @@
 
 import { HfInference } from '@huggingface/inference';
+import fs from 'fs';
+import path from 'path';
 
-const API_KEY = "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"; // The key provided
+const loadEnv = () => {
+  if (process.env.HUGGINGFACE_API_KEY) return process.env.HUGGINGFACE_API_KEY;
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const data = fs.readFileSync(envPath, 'utf8');
+      const match = data.match(/HUGGINGFACE_API_KEY=(hf_[a-zA-Z0-9]+)/);
+      if (match) return match[1];
+    }
+  } catch (e) { }
+  return null;
+};
+
+const API_KEY = loadEnv();
+if (!API_KEY) {
+  console.error("Error: HUGGINGFACE_API_KEY not found in .env.local or environment variables");
+  process.exit(1);
+}
 
 async function testGen() {
   console.log("Testing Hugging Face API with key...");
