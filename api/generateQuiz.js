@@ -63,6 +63,9 @@ module.exports = async (req, res) => {
             });
         }
 
+        // Debug API Key (securely)
+        console.log(`🔑 API Key Configured: ${apiKey.startsWith('hf_')} (Length: ${apiKey.length})`);
+
         console.log(`🤖 Generating quiz: topic="${topic}", difficulty="${difficulty}", questions=${questionCount}`);
 
         // Initialize Hugging Face client
@@ -70,7 +73,7 @@ module.exports = async (req, res) => {
 
         // Call Hugging Face API
         const response = await hf.chatCompletion({
-            model: 'google/gemma-2-9b-it',
+            model: 'meta-llama/Llama-3.1-8B-Instruct',
             messages: [
                 {
                     role: 'user',
