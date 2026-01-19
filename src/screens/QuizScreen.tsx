@@ -5,7 +5,6 @@ import { useFirestoreQuery } from '../hooks';
 import { Quiz, QuizQuestion, UserProfile } from '../types';
 import { Brain, Trophy, ChevronLeft, Clock, Zap, Star, Flame, Target, ArrowRight, Share2, RefreshCcw, X, Plus, Sparkles } from 'lucide-react';
 import { LoadingSpinner, SkeletonCard, SectionHeader, StatCard } from '../components/UIComponents';
-import { HfInference } from '@huggingface/inference';
 
 // Define query outside for stability
 const quizQ = query(collection(db, 'bible_quizzes'), orderBy('createdAt', 'desc'));
@@ -29,79 +28,42 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     if (!genTopic) return;
     setIsGenerating(true);
     try {
-      // @ts-ignore
-      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_KEY;
-
-      if (!apiKey) {
-        throw new Error("Missing HuggingFace API Key");
-      }
-
-      const hf = new HfInference(apiKey);
-
-      const response = await hf.chatCompletion({
-        model: 'google/gemma-2-9b-it',
-        messages: [
-          {
-            role: 'user',
-            content: `You are a Bible Quiz generator. Create a valid JSON object for a quiz about "${genTopic}" with difficulty "${genDifficulty}".
-
-Format strictly as:
-{
-  "topic": "${genTopic}",
-  "difficulty": "${genDifficulty}",
-  "questions": [
-    {
-      "question": "Question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctIndex": 0
-    }
-  ]
-}
-
-Requirements:
-- Generate exactly ${genQuestionCount} questions.
-- Ensure valid JSON.
-- Do not include any markdown formatting or explanations (no \`\`\`json blocks).
-- Just return the JSON object.`
-          }
-        ],
-        max_tokens: 3000,
-        temperature: 0.7,
+      // Call the serverless API endpoint instead of calling Hugging Face directly
+      const response = await fetch('/api/generateQuiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: genTopic,
+          difficulty: genDifficulty,
+          questionCount: genQuestionCount,
+        }),
       });
 
-      let text = response.choices[0].message.content;
-
-      if (text) {
-        console.log("Raw AI Response:", text);
-        // Clean potential markdown or extra text
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        // Sometimes models add intro text, find the first { and last }
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1) {
-          text = text.substring(firstBrace, lastBrace + 1);
-        }
-
-        const quizData = JSON.parse(text);
-
-        // Basic validation
-        if (!quizData.questions || !Array.isArray(quizData.questions)) {
-          throw new Error("Invalid JSON structure returned");
-        }
-
-        await addDoc(collection(db, 'bible_quizzes'), {
-          ...quizData,
-          createdAt: new Date().toISOString(),
-          createdBy: user.uid
-        });
-
-        setIsGeneratorOpen(false);
-        setGenTopic('');
-        alert("Divinely Generated! Quiz added to the library.");
-      } else {
-        throw new Error("No data returned from Oracle.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'AI generation failed. Please check your topic and try again.');
       }
+
+      const data = await response.json();
+
+      if (!data.success || !data.quiz) {
+        throw new Error('Invalid response from server');
+      }
+
+      const quizData = data.quiz;
+
+      // Save to Firestore
+      await addDoc(collection(db, 'bible_quizzes'), {
+        ...quizData,
+        createdAt: new Date().toISOString(),
+        createdBy: user.uid
+      });
+
+      setIsGeneratorOpen(false);
+      setGenTopic('');
+      alert("Divinely Generated! Quiz added to the library.");
 
     } catch (e) {
       console.error("Generator Error:", e);

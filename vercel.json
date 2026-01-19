@@ -6,6 +6,10 @@
             "destination": "/api/generateToken.js"
         },
         {
+            "source": "/api/generateQuiz",
+            "destination": "/api/generateQuiz.js"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
@@ -14,6 +18,10 @@
         "api/generateToken.js": {
             "memory": 1024,
             "maxDuration": 10
+        },
+        "api/generateQuiz.js": {
+            "memory": 1024,
+            "maxDuration": 30
         }
     }
 }

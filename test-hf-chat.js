@@ -1,7 +1,7 @@
 
 import { HfInference } from '@huggingface/inference';
 
-const API_KEY = "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";
+const API_KEY = "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";
 
 async function testGen() {
   console.log("Testing Hugging Face API (Chat Completion)...");

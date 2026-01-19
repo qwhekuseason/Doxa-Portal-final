@@ -1,10 +1,11 @@
 {
-    "name": "agora-token-api",
+    "name": "doxa-portal-api",
     "version": "1.0.0",
-    "description": "Vercel serverless function for Agora token generation",
+    "description": "Vercel serverless functions for Doxa Portal",
     "type": "commonjs",
     "main": "generateToken.js",
     "dependencies": {
-        "agora-token": "^2.0.3"
+        "agora-token": "^2.0.3",
+        "@huggingface/inference": "^2.8.1"
     }
 }

@@ -46,7 +46,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
+      allow list: if isAdmin() || isPublicity();
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
