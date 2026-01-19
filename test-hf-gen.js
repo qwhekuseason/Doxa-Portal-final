@@ -24,7 +24,7 @@ if (!API_KEY) {
 
 async function testGen() {
   console.log("Testing Hugging Face API with key...");
-  const hf = new HfInference(API_KEY);
+  const hf = new HfInference(API_KEY, { endpointUrl: 'https://router.huggingface.co' });
 
   const genTopic = "David and Goliath";
   const genDifficulty = "easy";
@@ -52,23 +52,22 @@ async function testGen() {
       [/INST]`;
 
   try {
-    const response = await hf.textGeneration({
-      model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 1500,
-        temperature: 0.7,
-        return_full_text: false
-      }
+    const response = await hf.chatCompletion({
+      model: 'google/gemma-2-9b-it',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 1500,
+      temperature: 0.7
     });
 
     console.log("Response received!");
     console.log("--------------------------------");
-    console.log(response.generated_text);
+    console.log(response.choices[0].message.content);
     console.log("--------------------------------");
 
     // Parse test
-    let text = response.generated_text;
+    let text = response.choices[0].message.content;
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');

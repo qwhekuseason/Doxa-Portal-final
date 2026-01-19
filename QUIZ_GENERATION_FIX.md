@@ -33,7 +33,8 @@ We've implemented a **serverless API endpoint** that handles quiz generation ser
 
 ### 4. Updated API Dependencies
 **File**: `api/package.json`
-- Added `@huggingface/inference` dependency for server-side use
+- Added `@huggingface/inference` dependency (updated to latest version to support new router endpoint)
+- **Updated API Endpoint**: Using `router.huggingface.co` which is required by newer library versions and API changes
 
 ## Deployment Steps
 

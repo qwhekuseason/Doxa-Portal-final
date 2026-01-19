@@ -5,7 +5,7 @@
     "type": "commonjs",
     "main": "generateToken.js",
     "dependencies": {
-        "agora-token": "^2.0.3",
-        "@huggingface/inference": "^2.8.1"
+        "@huggingface/inference": "^4.13.9",
+        "agora-token": "^2.0.3"
     }
 }
