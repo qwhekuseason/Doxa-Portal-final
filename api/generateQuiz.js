@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
         console.log(`🤖 Generating quiz: topic="${topic}", difficulty="${difficulty}", questions=${questionCount}`);
 
         // Initialize Hugging Face client
-        const hf = new HfInference(apiKey, { endpointUrl: 'https://router.huggingface.co' });
+        const hf = new HfInference(apiKey);
 
         // Call Hugging Face API
         const response = await hf.chatCompletion({

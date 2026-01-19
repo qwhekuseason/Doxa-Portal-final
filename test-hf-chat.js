@@ -24,7 +24,7 @@ if (!API_KEY) {
 
 async function testGen() {
   console.log("Testing Hugging Face API (Chat Completion)...");
-  const hf = new HfInference(API_KEY, { endpointUrl: 'https://router.huggingface.co' });
+  const hf = new HfInference(API_KEY);
 
   const genTopic = "Noah's Ark";
   const genDifficulty = "easy";
