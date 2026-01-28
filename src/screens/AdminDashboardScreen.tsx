@@ -72,21 +72,21 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
 
           {/* Stats Row - High Contrast Pop */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <StatCard title="Total Congregation" value={users.length} icon={<Users />} color="bg-blue-600" trend="+12%" loading={l1} />
-            <StatCard title="Sermon Library" value={sermons.length} icon={<BookOpen />} color="bg-church-green" loading={l2} />
-            <StatCard title="Pending Testimonies" value={testimonies.length} icon={<MessageCircle />} color="bg-purple-600" loading={l3} />
-            <StatCard title="Prayer Requests" value={prayers.length} icon={<Heart />} color="bg-rose-500" trend={`${prayers.length} pending`} loading={l4} />
+            <StatCard title="Total Users" value={users.length} icon={<Users />} color="bg-blue-600" trend="+12%" loading={l1} />
+            <StatCard title="Content Library" value={sermons.length} icon={<BookOpen />} color="bg-church-green" loading={l2} />
+            <StatCard title="Pending Stories" value={testimonies.length} icon={<MessageCircle />} color="bg-purple-600" loading={l3} />
+            <StatCard title="Support Requests" value={prayers.length} icon={<Heart />} color="bg-rose-500" trend={`${prayers.length} pending`} loading={l4} />
           </div>
 
           {/* Quick Actions - "Pop" Buttons */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><Zap size={14} /> Quick Management</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ActionButton label="Review Prayers" icon={<Heart size={20} />} color="bg-rose-500" onClick={() => navigateTo('admin-prayers')} />
+              <ActionButton label="Review Support" icon={<Heart size={20} />} color="bg-rose-500" onClick={() => navigateTo('admin-prayers')} />
               <ActionButton label="Manage Events" icon={<Zap size={20} />} color="bg-amber-500" onClick={() => navigateTo('admin-events')} />
-              <ActionButton label="Generate Bible Quiz" icon={<Shield size={20} />} color="bg-church-gold" onClick={() => navigateTo('quizzes')} />
-              <ActionButton label="Upload Sermon" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
-              <ActionButton label="Approve Testimonies" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
+              <ActionButton label="Generate Content Quiz" icon={<Shield size={20} />} color="bg-church-gold" onClick={() => navigateTo('quizzes')} />
+              <ActionButton label="Upload Content" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
+              <ActionButton label="Approve Stories" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
             </div>
           </div>
 

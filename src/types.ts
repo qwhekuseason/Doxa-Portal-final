@@ -54,6 +54,7 @@ export interface PrayerRequest {
   createdAt: string;
   prayedBy?: string[];
   prayedCount?: number;
+  completed?: boolean;
 }
 
 export interface CalendarEvent {
@@ -86,7 +87,7 @@ export interface Sermon {
   id: string;
   title: string;
   description: string;
-  preacher: string;
+  speaker: string;
   series: string;
   date: string;
   duration: string;
@@ -139,3 +140,32 @@ export interface GivingStats {
     percent: number;
   }[];
 }
+
+export interface StudyPlan {
+  id: string;
+  title: string;
+  description: string;
+  coverUrl?: string;
+  duration: number; // in days
+  days: {
+    dayNumber: number;
+    title: string;
+    passage: string;
+    content: string;
+  }[];
+  createdAt: string;
+  category: 'weekly' | 'monthly' | 'topical';
+}
+
+export interface StudyNote {
+  id: string;
+  uid: string;
+  planId?: string;
+  dayNumber?: number;
+  title: string;
+  content: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+

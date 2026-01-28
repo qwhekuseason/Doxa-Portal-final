@@ -193,7 +193,7 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                 messages: [
                     {
                         role: 'user',
-                        content: `You are a theologian. Provide a brief, inspiring 3-sentence devotional insight for ${book} chapter ${chapter}.
+                        content: `You are a researcher. Provide a brief, professional 3-sentence summary insight for ${book} chapter ${chapter}.
                         Content: ${chapterText.substring(0, 1500)}...`
                     }
                 ],
@@ -201,10 +201,10 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                 temperature: 0.7
             });
 
-            setAiInsight(response.choices[0].message.content || "Divine wisdom is unfolding.");
+            setAiInsight(response.choices[0].message.content || "Theological insight unfolding.");
         } catch (e) {
             console.error("AI Insight error:", e);
-            setAiInsight("Deep reflection reveals the Lord's truth.");
+            setAiInsight("Deep reflection reveals key insights.");
         } finally {
             setIsGenInsight(false);
         }
@@ -375,7 +375,7 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                         <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase dark:text-white leading-none">{book}</h1>
                         <div className="flex items-center justify-center gap-4">
                             <span className="h-px w-12 bg-white/10"></span>
-                            <span className="text-sm font-black text-gray-400 uppercase tracking-[0.4em]">Section {chapter}</span>
+                            <span className="text-sm font-black text-gray-400 uppercase tracking-[0.4em]">Chapter {chapter}</span>
                             <span className="h-px w-12 bg-white/10"></span>
                         </div>
                     </div>
@@ -501,7 +501,7 @@ const BibleScreen: React.FC<BibleScreenProps> = ({ user }) => {
                                 </div>
                                 <div className="hidden sm:block">
                                     <h2 className="text-2xl md:text-3xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Scripture Library</h2>
-                                    <p className="text-[10px] md:text-sm font-black text-church-gold uppercase tracking-[0.4em] mt-1">{pickerStep === 'books' ? 'Selecting Book' : `Chapters for ${book}`}</p>
+                                    <p className="text-[10px] md:text-sm font-black text-church-gold uppercase tracking-[0.4em] mt-1">{pickerStep === 'books' ? 'Selecting Book' : `Book: ${book}`}</p>
                                 </div>
                                 <div className="sm:hidden">
                                     <h2 className="text-xl font-black tracking-tighter uppercase text-gray-900 dark:text-white leading-none">Library</h2>

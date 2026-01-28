@@ -16,7 +16,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { HfInference } from "@huggingface/inference";
 import { db, storage, auth } from '../firebase';
 import { notifyTestimonyApproved, notifyNewSermon, notifyNewGalleryImage, notifyNewQuiz } from '../utils/notificationService';
-import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification, SiteSettings, GivingStats } from '../types';
+import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification, SiteSettings, GivingStats, StudyPlan } from '../types';
 import { getGoogleDriveDirectLink } from '../utils/galleryUtils';
 import { GalleryCard } from './GalleryCard';
 import {
@@ -129,7 +129,7 @@ export const AdminTestimonyManager: React.FC = () => {
   const fetchTestimonies = async () => {
     setLoading(true);
     try {
-      // Fetch ONLY pending testimonies for moderation
+      // Fetch ONLY pending stories for moderation
       const q = query(collection(db, 'testimonies'), where('approved', '==', false), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       setTestimonies(snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Testimony)));
@@ -199,22 +199,22 @@ export const AdminTestimonyManager: React.FC = () => {
 
 
 
-// --- Sermon Manager ---
+// --- Content Manager ---
 export const AdminSermonManager: React.FC = () => {
-  const [sermons, setSermons] = useState<Sermon[]>([]);
+  const [contents, setContents] = useState<Sermon[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<Sermon> & { originalAudioLink: string, originalCoverLink: string, duration: string }>({
-    title: '', preacher: '', series: '', description: '', originalAudioLink: '', originalCoverLink: '', duration: ''
+    title: '', speaker: '', series: '', description: '', originalAudioLink: '', originalCoverLink: '', duration: ''
   });
 
-  const fetchSermons = async () => {
+  const fetchContents = async () => {
     const q = query(collection(db, 'sermons'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    setSermons(snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Sermon)));
+    setContents(snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Sermon)));
   };
 
-  useEffect(() => { fetchSermons(); }, []);
+  useEffect(() => { fetchContents(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +226,7 @@ export const AdminSermonManager: React.FC = () => {
 
       await addDoc(collection(db, 'sermons'), {
         title: formData.title,
-        preacher: formData.preacher,
+        speaker: formData.speaker,
         series: formData.series,
         description: formData.description,
         audioUrl,
@@ -237,10 +237,10 @@ export const AdminSermonManager: React.FC = () => {
         createdAt: new Date().toISOString()
       });
       // Send notification
-      await notifyNewSermon(formData.title || 'New Sermon');
+      await notifyNewSermon(formData.title || 'New Content');
       setIsModalOpen(false);
-      fetchSermons();
-      setFormData({ title: '', preacher: '', series: '', description: '', originalAudioLink: '', originalCoverLink: '', duration: '' });
+      fetchContents();
+      setFormData({ title: '', speaker: '', series: '', description: '', originalAudioLink: '', originalCoverLink: '', duration: '' });
     } catch (error) {
       console.error(error);
       alert("Error saving sermon");
@@ -252,23 +252,23 @@ export const AdminSermonManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this sermon?")) return;
     await deleteDoc(doc(db, 'sermons', id));
-    fetchSermons();
+    fetchContents();
   };
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold dark:text-white font-serif">Manage Sermons</h3>
+        <h3 className="text-xl font-bold dark:text-white font-serif">Manage Content</h3>
         <button onClick={() => setIsModalOpen(true)} className="bg-church-green hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-church-green/30 hover:shadow-church-green/50 transition-all active:scale-95">
-          <Plus size={18} /> Add Sermon
+          <Plus size={18} /> Add Content
         </button>
       </div>
 
-      <AdminTable headers={['Title', 'Preacher', 'Series', 'Date', 'Actions']}>
-        {sermons.map(s => (
+      <AdminTable headers={['Title', 'Speaker', 'Series', 'Date', 'Actions']}>
+        {contents.map(s => (
           <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
             <td className="px-6 py-4 font-bold text-gray-800 dark:text-gray-100">{s.title}</td>
-            <td className="px-6 py-4">{s.preacher}</td>
+            <td className="px-6 py-4">{s.speaker}</td>
             <td className="px-6 py-4"><span className="bg-church-muted text-church-green dark:bg-church-green/20 dark:text-church-gold text-xs px-2.5 py-1 rounded-full font-bold">{s.series}</span></td>
             <td className="px-6 py-4 text-xs font-mono text-gray-500">{new Date(s.date).toLocaleDateString()}</td>
             <td className="px-6 py-4">
@@ -282,7 +282,7 @@ export const AdminSermonManager: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold dark:text-white font-serif">Add New Sermon</h3>
+              <h3 className="text-2xl font-bold dark:text-white font-serif">Add New Content</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><X className="text-gray-500" /></button>
             </div>
 
@@ -303,10 +303,10 @@ export const AdminSermonManager: React.FC = () => {
               />
               <div className="grid grid-cols-2 gap-4">
                 <input
-                  placeholder="Preacher"
+                  placeholder="Speaker"
                   className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-church-green/50 transition-all"
-                  value={formData.preacher}
-                  onChange={e => setFormData({ ...formData, preacher: e.target.value })}
+                  value={formData.speaker}
+                  onChange={e => setFormData({ ...formData, speaker: e.target.value })}
                   required
                 />
                 <input
@@ -361,7 +361,7 @@ export const AdminSermonManager: React.FC = () => {
 
               <button disabled={loading} className="w-full bg-church-green hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg mt-4 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed">
                 {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Save Sermon
+                Save Content
               </button>
             </form>
           </div>
@@ -452,7 +452,7 @@ export const AdminUserManager: React.FC = () => {
         <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-church-green" size={40} /></div>
       ) : users.length === 0 ? (
         <div className="p-20 text-center bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] border border-dashed border-gray-200 dark:border-gray-800">
-          <p className="text-gray-400 font-bold">No users detected in the congregation.</p>
+          <p className="text-gray-400 font-bold">No active user sessions detected.</p>
         </div>
       ) : (
         <AdminTable headers={['User', 'Email', 'Role', 'Actions']}>
@@ -559,11 +559,11 @@ export const AdminUserManager: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-gray-800 pb-2">Spiritual Stats</h4>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-gray-800 pb-2">Platform Activity</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
-                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.sermonsHeard || 0}</p>
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Sermons</p>
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.sessionsViewed || 0}</p>
+                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Sessions</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
                         <p className="text-lg font-black text-gray-900 dark:text-white">{selectedUser.stats?.quizzesTaken || 0}</p>
@@ -1137,3 +1137,161 @@ export const AdminSettingsManager: React.FC = () => {
     </div>
   );
 };
+
+// --- Study Plan Manager ---
+export const AdminStudyPlanManager: React.FC = () => {
+  const [plans, setPlans] = useState<StudyPlan[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<Partial<StudyPlan>>({
+    title: '',
+    description: '',
+    coverUrl: '',
+    duration: 7,
+    category: 'weekly',
+    days: []
+  });
+
+  const fetchPlans = async () => {
+    const q = query(collection(db, 'study_plans'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    setPlans(snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as StudyPlan)));
+  };
+
+  useEffect(() => { fetchPlans(); }, []);
+
+  const handleAddDay = () => {
+    const newDay = {
+      dayNumber: (formData.days?.length || 0) + 1,
+      title: '',
+      passage: '',
+      content: ''
+    };
+    setFormData({ ...formData, days: [...(formData.days || []), newDay] });
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const finalCoverUrl = getGoogleDriveDirectLink(formData.coverUrl || '');
+      await addDoc(collection(db, 'study_plans'), {
+        ...formData,
+        coverUrl: finalCoverUrl,
+        duration: formData.days?.length || 0,
+        createdAt: new Date().toISOString()
+      });
+      setIsModalOpen(false);
+      fetchPlans();
+      setFormData({ title: '', description: '', coverUrl: '', duration: 7, category: 'weekly', days: [] });
+    } catch (e) {
+      console.error(e);
+      alert("Error saving study plan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this plan?")) return;
+    await deleteDoc(doc(db, 'study_plans', id));
+    fetchPlans();
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xl font-bold dark:text-white font-serif">Study Plans</h3>
+        <button onClick={() => setIsModalOpen(true)} className="bg-church-green hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-church-green/30 transition-all active:scale-95">
+          <Plus size={18} /> Add Plan
+        </button>
+      </div>
+
+      <AdminTable headers={['Title', 'Duration', 'Category', 'Actions']}>
+        {plans.map(p => (
+          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+            <td className="px-6 py-4 font-bold text-gray-800 dark:text-gray-100">{p.title}</td>
+            <td className="px-6 py-4">{p.duration} Days</td>
+            <td className="px-6 py-4 capitalize">{p.category}</td>
+            <td className="px-6 py-4">
+              <button onClick={() => handleDelete(p.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors"><Trash2 size={16} /></button>
+            </td>
+          </tr>
+        ))}
+      </AdminTable>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm shadow-2xl overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700 my-10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold dark:text-white font-serif">Create Bible Study Plan</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"><X className="text-gray-500" /></button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input placeholder="Plan Title" className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-church-green/50" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required />
+                <select className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-church-green/50" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value as any })}>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="topical">Topical</option>
+                </select>
+              </div>
+              <input
+                placeholder="Cover Image URL (Unsplash or Drive Direct Link)"
+                className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-church-green/50"
+                value={formData.coverUrl}
+                onChange={e => setFormData({ ...formData, coverUrl: e.target.value })}
+              />
+              <textarea placeholder="Description" className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 dark:text-white h-24 outline-none resize-none" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required />
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold dark:text-white">Days & Content</h4>
+                  <button type="button" onClick={handleAddDay} className="text-xs font-black text-church-green uppercase tracking-widest flex items-center gap-1"><Plus size={14} /> Add Day</button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto space-y-4 pr-2">
+                  {(formData.days || []).map((day, idx) => (
+                    <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-xs font-black text-church-green">DAY {day.dayNumber}</span>
+                        <button type="button" onClick={() => {
+                          const newDays = [...(formData.days || [])];
+                          newDays.splice(idx, 1);
+                          setFormData({ ...formData, days: newDays });
+                        }} className="text-red-500"><X size={14} /></button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input placeholder="Day Title" className="p-2 border-b bg-transparent outline-none dark:text-white text-sm" value={day.title} onChange={e => {
+                          const newDays = [...(formData.days || [])];
+                          newDays[idx].title = e.target.value;
+                          setFormData({ ...formData, days: newDays });
+                        }} />
+                        <input placeholder="Passage (John 3:16)" className="p-2 border-b bg-transparent outline-none dark:text-white text-sm" value={day.passage} onChange={e => {
+                          const newDays = [...(formData.days || [])];
+                          newDays[idx].passage = e.target.value;
+                          setFormData({ ...formData, days: newDays });
+                        }} />
+                      </div>
+                      <textarea placeholder="Reflection / Content" className="w-full p-2 bg-transparent border-b outline-none dark:text-white text-sm resize-none" rows={2} value={day.content} onChange={e => {
+                        const newDays = [...(formData.days || [])];
+                        newDays[idx].content = e.target.value;
+                        setFormData({ ...formData, days: newDays });
+                      }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button disabled={loading} className="w-full bg-church-green hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70">
+                {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                Save Study Plan
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+

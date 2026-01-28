@@ -44,7 +44,7 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
     <div className="space-y-12 animate-fade-in pb-10">
       <SectionHeader
         title="Glorious Stories"
-        subtitle="Witness the mighty works of God in our community through shared testimonies."
+        subtitle="Explore the latest miracles and success stories shared by our members."
       />
 
       {/* Modern Navigation */}
@@ -57,7 +57,7 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
             }`}
         >
           <Quote size={14} />
-          Community Stories
+          Miraculous Stories
         </button>
         <button
           onClick={() => setActiveTab('submit')}
@@ -67,7 +67,7 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
             }`}
         >
           <Plus size={14} />
-          Share Your Story
+          Tell Your Miracle
         </button>
         <button
           onClick={() => setActiveTab('my')}
@@ -98,7 +98,7 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
             <div className="relative z-10">
               <div className="mb-8">
                 <h3 className="text-2xl font-black dark:text-white mb-1 tracking-tighter">Tell Your Miracle</h3>
-                <p className="text-gray-500 text-sm font-medium">Your story can inspire and strengthen the faith of others.</p>
+                <p className="text-gray-500 text-sm font-medium">Your miracle can inspire and strengthen others' faith.</p>
               </div>
 
               <div className="space-y-6">

@@ -6,6 +6,7 @@
   html {
     /* Fluid typography base */
     font-size: 13px;
+    scroll-behavior: smooth;
 
     @screen md {
       font-size: 14.5px;
@@ -13,7 +14,20 @@
   }
 
   body {
-    @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-black;
+    @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-black overflow-x-hidden;
+  }
+
+  /* Custom Global Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-200 dark:bg-white/10 rounded-full hover:bg-gray-300 dark:hover:bg-white/20 transition-all;
   }
 }
 
@@ -68,6 +82,48 @@
     }
   }
 
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0.3);
+      opacity: 0;
+    }
+
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+
+    70% {
+      transform: scale(0.9);
+      opacity: 0.9;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -75,18 +131,6 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
   }
 }
 

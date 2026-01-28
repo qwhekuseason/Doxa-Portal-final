@@ -7,19 +7,20 @@ import { Heart, Clock, Loader2, AlertTriangle, Send, Shield, User, Info } from '
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
 // Define query outside to ensure stability
-const requestQ = query(
-  collection(db, 'prayer_requests'),
-  where('approved', '==', true),
-  where('isPrivate', '==', false),
-  orderBy('createdAt', 'desc')
-);
+// Query will be defined inside component via useMemo to filter by user.uid
 
 const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
   const [newRequest, setNewRequest] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: requests, loading, error } = useFirestoreQuery<PrayerRequest>(requestQ);
+  const { data: requests, loading, error } = useFirestoreQuery<PrayerRequest>(
+    useMemo(() => query(
+      collection(db, 'prayer_requests'),
+      where('uid', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    ), [user.uid])
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +58,8 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
   return (
     <div className="space-y-12 animate-fade-in pb-10">
       <SectionHeader
-        title="Prayer Wall"
-        subtitle="Submit your requests and join others in a community of intercession and faith."
+        title="Prayer Portal"
+        subtitle="Submit your prayer requests directly to our intercessory team. Your requests are kept strictly confidential."
       />
 
       {/* Hero Submission Section */}
@@ -72,7 +73,7 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
               <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-church-gold">
                 <Heart size={20} className="fill-current" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Spiritual Fellowship</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Community Interaction</span>
             </div>
 
             <h2 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tighter leading-tight">
@@ -80,7 +81,7 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
             </h2>
 
             <p className="text-base text-white/80 mb-8 font-medium leading-relaxed italic">
-              "For where two or three gather in my name, there am I with them." <br className="md:inline hidden" /> — Matthew 18:20
+              "For where two or three are gathered in my name, there am I among them." <br className="md:inline hidden" /> — Matthew 18:20
             </p>
 
             <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-2xl">
@@ -89,7 +90,7 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
                   <input
                     value={newRequest}
                     onChange={e => setNewRequest(e.target.value)}
-                    placeholder="Shared your prayer request..."
+                    placeholder="Share your prayer request..."
                     className="w-full bg-transparent border-none text-white placeholder-white/50 px-5 py-3 focus:ring-0 outline-none font-bold text-base"
                   />
                 </div>
@@ -140,64 +141,68 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
         </div>
       )}
 
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">My Requests</h3>
+        <div className="px-4 py-2 bg-church-green/10 text-church-green rounded-full text-[10px] font-black uppercase tracking-widest">
+          {requests.length} Total Requests
+        </div>
+      </div>
+
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} height="h-48" />)}
+          {[1, 2, 3].map(i => <SkeletonCard key={i} height="h-48" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
           {requests.map((req, index) => (
             <div
               key={req.id}
-              className="group glass-card p-8 rounded-[2.5rem] shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 flex flex-col animate-fade-in-up"
+              className={`group glass-card p-8 rounded-[2.5rem] shadow-premium transition-all duration-700 flex flex-col animate-fade-in-up ${!req.approved ? 'border-dashed border-gray-300 dark:border-white/10 opacity-80' : 'border-white/40 dark:border-white/5'}`}
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-church-green/10 text-church-green flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm border border-church-green/5 animate-float">
-                  <Heart size={24} className="fill-current" />
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 shadow-sm border ${req.approved ? 'bg-church-green/10 text-church-green border-church-green/5' : 'bg-church-gold/10 text-church-gold border-church-gold/5'}`}>
+                  <Heart size={24} className={req.approved ? 'fill-current' : ''} />
                 </div>
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 group-hover:text-church-green transition-colors mb-1">Intercession</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-1">
+                    {req.approved ? 'Received & Active' : 'Sent - Under Review'}
+                  </h4>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></div>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">{req.authorName}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${req.approved ? 'bg-church-green' : 'bg-church-gold animate-pulse'}`}></div>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
+                      {req.isPrivate ? 'Confidential' : 'Standard'} Request
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="flex-1 relative">
-                <div className="absolute -top-3 -left-1 text-5xl text-church-green/5 font-serif pointer-events-none">"</div>
                 <p className="font-serif text-lg text-gray-800 dark:text-gray-100 italic leading-relaxed relative z-10">
                   {req.content}
                 </p>
               </div>
 
               <div className="mt-8 pt-5 border-t border-gray-100 dark:border-white/5 flex items-center justify-between opacity-60">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter">
-                    <Clock size={10} />
-                    {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter">
+                  <Clock size={10} />
+                  {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
+
+                {req.completed && (
+                  <div className="flex items-center gap-1.5 text-[9px] font-black text-church-green uppercase tracking-widest">
+                    <CheckCircle size={10} /> Review Complete
                   </div>
-                  <button
-                    onClick={() => handlePray(req)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${req.prayedBy?.includes(user.uid)
-                      ? 'bg-church-green text-white shadow-lg shadow-church-green/20 scale-105'
-                      : 'bg-church-green/5 text-church-green hover:bg-church-green/10'
-                      }`}
-                  >
-                    <Heart size={12} className={req.prayedBy?.includes(user.uid) ? 'fill-current' : ''} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">
-                      {req.prayedBy?.includes(user.uid) ? 'Prayed' : 'Pray'} {req.prayedCount || 0}
-                    </span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-1 px-2.5 py-0.5 bg-church-green/10 text-church-green rounded-full">
-                  <span className="w-1 h-1 rounded-full bg-current animate-pulse"></span>
-                  <span className="text-[8px] font-black uppercase tracking-[0.1em]">Public</span>
-                </div>
+                )}
               </div>
             </div>
           ))}
+          {requests.length === 0 && (
+            <div className="col-span-full py-20 text-center glass-card rounded-[3rem] border-dashed border-2">
+              <Info size={40} className="text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No submission history found</p>
+            </div>
+          )}
         </div>
       )}
     </div>

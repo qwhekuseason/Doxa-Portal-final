@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { collection, query, orderBy, updateDoc, doc, increment, addDoc } from 'firebase/firestore';
+import { collection, query, orderBy, updateDoc, doc, increment, addDoc, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { Quiz, QuizQuestion, UserProfile } from '../types';
@@ -9,13 +9,14 @@ import { LoadingSpinner, SkeletonCard, SectionHeader, StatCard } from '../compon
 // Define query outside for stability
 const quizQ = query(collection(db, 'bible_quizzes'), orderBy('createdAt', 'desc'));
 
-const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
+const QuizScreen: React.FC<{ user: UserProfile; onNavigate?: (tab: string) => void }> = ({ user, onNavigate }) => {
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [view, setView] = useState<'quizzes' | 'leaderboard'>('quizzes');
 
   // Admin Generator State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -63,7 +64,7 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
 
       setIsGeneratorOpen(false);
       setGenTopic('');
-      alert("Divinely Generated! Quiz added to the library.");
+      alert("AI Generated! Quiz added to the library.");
 
     } catch (e) {
       console.error("Generator Error:", e);
@@ -126,6 +127,7 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     setCurrentQuestionIdx(0);
     setSelectedAnswer(null);
     setAnswered(false);
+    setView('quizzes');
   };
 
   let question: QuizQuestion | undefined;
@@ -141,13 +143,13 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     let resultIcon = <Trophy size={48} />;
 
     if (percentage === 100) {
-      resultMessage = 'Perfect Score! You are a Bible Master!';
+      resultMessage = 'Perfect Score! You are a Bible Scholar!';
       resultColor = 'from-church-gold to-yellow-600';
     } else if (percentage >= 80) {
       resultMessage = 'Excellent! You know your scriptures well!';
       resultColor = 'from-church-green to-emerald-600';
     } else if (percentage >= 60) {
-      resultMessage = 'Good Job! Keep studying and growing!';
+      resultMessage = 'Good Job! Keep learning and growing!';
       resultColor = 'from-blue-500 to-indigo-600';
       resultIcon = <Star size={48} />;
     } else {
@@ -160,6 +162,10 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
       <div className="animate-fade-in max-w-2xl mx-auto py-12">
         <div className="glass-card rounded-[3rem] p-12 shadow-premium text-center border-white/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+          <button onClick={resetQuiz} className="absolute top-6 right-6 p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white">
+            <X size={24} />
+          </button>
 
           <div className={`w-32 h-32 mx-auto rounded-[2.5rem] bg-gradient-to-br ${resultColor} flex items-center justify-center shadow-2xl shadow-black/20 mb-10 transform scale-110`}>
             <div className="text-white animate-float">{resultIcon}</div>
@@ -207,12 +213,20 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
             >
               <RefreshCcw size={20} /> Retake Another
             </button>
-            <button
-              onClick={() => { }}
-              className="w-full glass-card border-none px-8 py-5 rounded-3xl font-black uppercase tracking-widest text-gray-500 hover:text-church-green transition-all flex items-center justify-center gap-3"
-            >
-              <Share2 size={20} /> Share Achievement
-            </button>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => { }}
+                className="w-full glass-card border-none px-4 py-5 rounded-3xl font-black uppercase tracking-widest text-gray-500 hover:text-church-green transition-all flex items-center justify-center gap-2 text-[10px]"
+              >
+                <Share2 size={18} /> Share
+              </button>
+              <button
+                onClick={() => onNavigate && onNavigate('giving')}
+                className="w-full glass-card border-none px-4 py-5 rounded-3xl font-black uppercase tracking-widest text-gray-500 hover:text-church-gold transition-all flex items-center justify-center gap-2 text-[10px]"
+              >
+                <Target size={18} /> Give
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -230,12 +244,12 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
             onClick={resetQuiz}
             className="flex items-center gap-3 p-3 glass-card border-none rounded-2xl text-gray-500 hover:text-red-500 transition-all font-black text-[10px] uppercase tracking-widest"
           >
-            <X size={18} /> Abort Mission
+            <X size={18} /> Exit Quiz
           </button>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Spirit Score</p>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Score</p>
               <p className="text-2xl font-black text-church-green tracking-tighter leading-none">{score * 100}</p>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-church-green/10 flex items-center justify-center text-church-green shadow-inner">
@@ -247,7 +261,7 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
         {/* Progress Header */}
         <div className="mb-12 space-y-4">
           <div className="flex justify-between items-end px-2">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Quest Progress</h3>
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em]">Quiz Progress</h3>
             <span className="text-xl font-black text-church-gold tracking-tighter">{currentQuestionIdx + 1} / {activeQuiz.questions.length}</span>
           </div>
           <div className="h-4 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden p-1 shadow-inner border border-gray-100 dark:border-white/5">
@@ -319,7 +333,7 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Result Feedback</p>
-                  <p className="font-black tracking-tight">{selectedAnswer === question.correctIndex ? 'Radiant! Your spirit is sharp.' : `Almost! The truth is: ${question.options[question.correctIndex]}`}</p>
+                  <p className="font-black tracking-tight">{selectedAnswer === question.correctIndex ? 'Excellent! Your insight is sharp.' : `Almost! The fact is: ${question.options[question.correctIndex]}`}</p>
                 </div>
               </div>
 
@@ -341,106 +355,120 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     <div className="space-y-12 animate-fade-in pb-20">
 
       <SectionHeader
-        title="Temple of Wisdom"
-        subtitle="Embark on quests to deepen your understanding of the Divine Word. Earn XP and master the scriptures."
-        action={user.role === 'admin' && (
-          <button onClick={() => setIsGeneratorOpen(true)} className="bg-church-gold hover:bg-yellow-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-premium flex items-center gap-2 transition-all active:scale-95">
-            <Sparkles size={16} /> Create Quest
-          </button>
-        )}
+        title="Scripture Quiz"
+        subtitle="Embark on quizzes to deepen your understanding of the scriptures. Earn XP and master the word."
+        action={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setView(view === 'quizzes' ? 'leaderboard' : 'quizzes')}
+              className={`px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-premium flex items-center gap-2 transition-all active:scale-95 ${view === 'leaderboard' ? 'bg-church-green text-white' : 'glass-card text-gray-400 border-none'}`}
+            >
+              {view === 'leaderboard' ? <><Brain size={16} /> Quizzes</> : <><Trophy size={16} /> Leaderboard</>}
+            </button>
+            {user.role === 'admin' && (
+              <button onClick={() => setIsGeneratorOpen(true)} className="bg-church-gold hover:bg-yellow-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-premium flex items-center gap-2 transition-all active:scale-95">
+                <Sparkles size={16} /> Create Quiz
+              </button>
+            )}
+          </div>
+        }
       />
 
-      {/* Profile Header Widget */}
-      <section className="relative rounded-[2.5rem] overflow-hidden shadow-premium group bg-gradient-to-br from-indigo-900 to-slate-900">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
-        <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
-          <div className="w-32 h-32 rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 flex items-center justify-center text-church-gold shadow-2xl">
-            <Trophy size={64} className="animate-float" />
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
-              <span className="px-3 py-1 bg-church-gold/20 text-church-gold text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-church-gold/20">Elite Scholar</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse"></span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase mb-4 leading-none">Your Progress</h2>
-            <div className="flex flex-wrap justify-center md:justify-start gap-8">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-black text-white">{quizzes.length}</span>
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quests<br />Available</span>
+      {view === 'leaderboard' ? <LeaderboardView /> : (
+        <>
+          {/* Profile Header Widget */}
+          <section className="relative rounded-[2.5rem] overflow-hidden shadow-premium group bg-gradient-to-br from-indigo-900 to-slate-900">
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
+            <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
+              <div className="w-32 h-32 rounded-[2.5rem] bg-white/10 backdrop-blur-xl border border-white/20 p-6 flex items-center justify-center text-church-gold shadow-2xl">
+                <Trophy size={64} className="animate-float" />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-black text-church-green">{((user?.stats?.quizPoints || 0) / 1000).toFixed(1)}k</span>
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Total<br />Experience</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-black text-church-gold">{user?.stats?.quizzesTaken || 0}</span>
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quizzes<br />Completed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quizzes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {loading ? [1, 2, 3, 4, 5, 6].map((i) => (
-          <SkeletonCard key={i} height="h-80" />
-        )) : quizzes.length === 0 ? (
-          <div className="col-span-full py-20 text-center flex flex-col items-center glass-card rounded-[3rem] border-none">
-            <Brain size={64} className="text-gray-200 mb-6" />
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">No Quests Found</h3>
-            <p className="text-gray-400 font-medium">Check back soon for new divine challenges!</p>
-          </div>
-        ) : quizzes.map((quiz: Quiz, idx: number) => (
-          <div
-            key={quiz.id}
-            className="group glass-card border-white/40 dark:border-white/5 rounded-[2.5rem] p-8 hover:shadow-premium hover:-translate-y-2 transition-all duration-700 relative overflow-hidden flex flex-col h-full animate-fade-in-up"
-            style={{ animationDelay: `${idx * 0.1}s` }}
-          >
-            <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:scale-150 ${quiz.difficulty === 'easy' ? 'bg-green-500' :
-              quiz.difficulty === 'medium' ? 'bg-church-gold' : 'bg-red-500'
-              }`}></div>
-
-            <div className="flex items-center justify-between mb-8">
-              <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${quiz.difficulty === 'easy' ? 'bg-green-500 text-white' :
-                quiz.difficulty === 'medium' ? 'bg-church-gold text-white' : 'bg-red-500 text-white'
-                }`}>
-                {quiz.difficulty} Level
-              </div>
-              <div className="flex items-center gap-1.5 text-gray-400">
-                <Clock size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{quiz.questions.length * 2} MIN</span>
-              </div>
-            </div>
-
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-church-green transition-colors tracking-tighter leading-tight line-clamp-2">
-              {quiz.topic}
-            </h3>
-
-            <div className="flex items-center gap-6 mb-10">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-church-green">
-                  <Target size={16} />
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                  <span className="px-3 py-1 bg-church-gold/20 text-church-gold text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-church-gold/20">Top Contributor</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse"></span>
                 </div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{quiz.questions.length} Questions</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-church-gold">
-                  <Star size={16} />
+                <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase mb-4 leading-none">Your Progress</h2>
+                <div className="flex flex-wrap justify-center md:justify-start gap-8">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-black text-white">{quizzes.length}</span>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quizzes<br />Available</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-black text-church-green">{((user?.stats?.quizPoints || 0) / 1000).toFixed(1)}k</span>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Total<br />Experience</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-black text-church-gold">{user?.stats?.quizzesTaken || 0}</span>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quizzes<br />Completed</span>
+                  </div>
                 </div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">+{quiz.questions.length * 10} XP</span>
               </div>
             </div>
+          </section>
 
-            <button
-              onClick={() => startQuiz(quiz)}
-              className="mt-auto w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 group-hover:bg-church-green group-hover:text-white group-hover:border-church-green py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-sm group-hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3"
-            >
-              Begin Quest <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+          {/* Quizzes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {loading ? [1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonCard key={i} height="h-80" />
+            )) : quizzes.length === 0 ? (
+              <div className="col-span-full py-20 text-center flex flex-col items-center glass-card rounded-[3rem] border-none">
+                <Brain size={64} className="text-gray-200 mb-6" />
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-2">No Quizzes Found</h3>
+                <p className="text-gray-400 font-medium">Check back soon for new challenges!</p>
+              </div>
+            ) : quizzes.map((quiz: Quiz, idx: number) => (
+              <div
+                key={quiz.id}
+                className="group glass-card border-white/40 dark:border-white/5 rounded-[2.5rem] p-8 hover:shadow-premium hover:-translate-y-2 transition-all duration-700 relative overflow-hidden flex flex-col h-full animate-fade-in-up"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:scale-150 ${quiz.difficulty === 'easy' ? 'bg-green-500' :
+                  quiz.difficulty === 'medium' ? 'bg-church-gold' : 'bg-red-500'
+                  }`}></div>
+
+                <div className="flex items-center justify-between mb-8">
+                  <div className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${quiz.difficulty === 'easy' ? 'bg-green-500 text-white' :
+                    quiz.difficulty === 'medium' ? 'bg-church-gold text-white' : 'bg-red-500 text-white'
+                    }`}>
+                    {quiz.difficulty} Level
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400">
+                    <Clock size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{quiz.questions.length * 2} MIN</span>
+                  </div>
+                </div>
+
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-church-green transition-colors tracking-tighter leading-tight line-clamp-2">
+                  {quiz.topic}
+                </h3>
+
+                <div className="flex items-center gap-6 mb-10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-church-green">
+                      <Target size={16} />
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{quiz.questions.length} Questions</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-church-gold">
+                      <Star size={16} />
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">+{quiz.questions.length * 10} XP</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => startQuiz(quiz)}
+                  className="mt-auto w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 group-hover:bg-church-green group-hover:text-white group-hover:border-church-green py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-sm group-hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3"
+                >
+                  Begin Quiz <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
 
       {/* Generator Modal */}
@@ -450,16 +478,16 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
             <div className="glass-card rounded-[3rem] w-full max-w-lg p-10 shadow-premium relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[80px] -mr-16 -mt-16"></div>
 
-              <h3 className="text-3xl font-black text-white mb-2 relative z-10">Divine Inspiration</h3>
+              <h3 className="text-3xl font-black text-white mb-2 relative z-10">AI Bible Quiz Generator</h3>
               <p className="text-gray-400 font-medium mb-8 relative z-10">Enter a topic or scripture, and the AI will craft a challenge.</p>
 
               <div className="space-y-6 relative z-10">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-church-gold uppercase tracking-widest ml-2">Topic / Scripture</label>
+                  <label className="text-[10px] font-black text-church-gold uppercase tracking-widest ml-2">Topic / Resource</label>
                   <input
                     value={genTopic}
                     onChange={(e) => setGenTopic(e.target.value)}
-                    placeholder="e.g. The Life of David, Psalm 23, Faith"
+                    placeholder="e.g. David, New Testament, Grace"
                     className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:border-church-gold outline-none transition-colors font-bold"
                   />
                 </div>
@@ -493,8 +521,8 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                     className="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-church-gold"
                   />
                   <div className="flex justify-between text-[8px] font-black text-gray-600 uppercase tracking-widest px-1">
-                    <span>Quick Quest</span>
-                    <span>Epic Journey</span>
+                    <span>Quick Quiz</span>
+                    <span>Epic Bible Study</span>
                   </div>
                 </div>
 
@@ -514,6 +542,74 @@ const QuizScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
           </div>
         )
       }
+    </div>
+  );
+};
+
+const LeaderboardView: React.FC = () => {
+  const leaderQ = useMemo(() => query(
+    collection(db, 'users'),
+    orderBy('stats.quizPoints', 'desc'),
+    limit(10)
+  ), []);
+
+  const { data: leaders, loading } = useFirestoreQuery<UserProfile>(leaderQ);
+
+  if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <SkeletonCard key={i} height="h-20" />)}</div>;
+
+  const topThree = leaders.slice(0, 3);
+  const rest = leaders.slice(3);
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-4 animate-fade-in pt-6">
+      {leaders.map((player, idx) => {
+        const isTop3 = idx < 3;
+        const rankColor = idx === 0 ? 'text-church-gold' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-orange-500' : 'text-gray-400';
+        const borderColor = idx === 0 ? 'border-church-gold/30' : idx === 1 ? 'border-slate-300/30' : idx === 2 ? 'border-orange-400/30' : 'border-transparent';
+        const bgColor = idx === 0 ? 'bg-church-gold/5' : idx === 1 ? 'bg-slate-500/5' : idx === 2 ? 'bg-orange-500/5' : 'bg-white/5';
+
+        return (
+          <div
+            key={player.uid}
+            className={`glass-card flex items-center gap-6 p-6 rounded-3xl hover:-translate-x-2 transition-all duration-500 group animate-fade-in-up border-2 ${borderColor} ${bgColor}`}
+            style={{ animationDelay: `${idx * 0.05}s` }}
+          >
+            {/* Rank Number */}
+            <div className={`w-12 text-center font-black italic text-3xl ${rankColor}`}>
+              #{idx + 1}
+            </div>
+
+            {/* User Avatar */}
+            <div className="relative">
+              <img
+                src={player.photoURL || `https://ui-avatars.com/api/?name=${player.displayName}&background=random`}
+                className={`w-16 h-16 rounded-2xl object-cover shadow-lg border-2 ${idx < 3 ? 'border-white/20' : 'border-transparent'}`}
+              />
+              {idx === 0 && (
+                <div className="absolute -top-3 -right-3 text-church-gold animate-bounce">
+                  <Trophy size={20} fill="currentColor" />
+                </div>
+              )}
+            </div>
+
+            {/* User Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-black text-lg dark:text-white uppercase tracking-tighter">{player.displayName}</p>
+                {isTop3 && <Star size={14} className={rankColor} fill="currentColor" />}
+              </div>
+            </div>
+
+            {/* Score */}
+            <div className="text-right">
+              <p className={`text-3xl font-black tracking-tighter leading-none ${idx === 0 ? 'text-church-gold' : 'text-church-green'}`}>
+                {(player.stats?.quizPoints || 0).toLocaleString()}
+              </p>
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1">XP Points</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

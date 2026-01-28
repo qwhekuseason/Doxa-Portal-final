@@ -14,8 +14,12 @@ import {
   NotificationPopover,
   SidebarItem,
   LoadingSpinner,
-  useClickOutside
+  useClickOutside,
+  ToastContainer,
+  useToast,
+  BackToTop
 } from './src/components/UIComponents';
+import { ReminderSystem } from './src/components/ReminderSystem';
 
 // Lazy load Screen Components
 const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen'));
@@ -35,6 +39,7 @@ const GivingScreen = React.lazy(() => import('./src/screens/GivingScreen'));
 const AboutScreen = React.lazy(() => import('./src/screens/AboutScreen'));
 const BirthdaysScreen = React.lazy(() => import('./src/screens/BirthdaysScreen'));
 const PrayerRequestsScreen = React.lazy(() => import('./src/screens/PrayerRequestsScreen'));
+const BibleStudyScreen = React.lazy(() => import('./src/screens/BibleStudyScreen'));
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -46,7 +51,8 @@ import {
   AdminTestimonyManager,
   AdminQuizManager,
   AdminGalleryManager,
-  AdminSettingsManager
+  AdminSettingsManager,
+  AdminStudyPlanManager
 } from './src/components/AdminViews';
 
 
@@ -55,18 +61,19 @@ import {
 import {
   Bell, Search, Sun, Moon, Brain, ImageIcon, Users,
   MessageCircle, Settings, Video, Headphones, Milestone, Book,
-  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight
+  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, PenTool, Activity
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'home', icon: <Home size={20} />, label: 'Dashboard' },
+  { id: 'home', icon: <Home size={20} />, label: 'Home' },
+  { id: 'bible', icon: <Book size={20} />, label: 'Bible' },
+  { id: 'bible-study', icon: <PenTool size={20} />, label: 'Study' },
   { id: 'sermons', icon: <Headphones size={20} />, label: 'Sermons' },
   { id: 'live', icon: <Video size={20} />, label: 'Live' },
   { id: 'prayer', icon: <Heart size={20} />, label: 'Prayer' },
-  { id: 'testimonies', icon: <MessageCircle size={20} />, label: 'Testimony' },
+  { id: 'testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
   { id: 'quiz', icon: <Brain size={20} />, label: 'Quiz' },
   { id: 'journey', icon: <Milestone size={20} />, label: 'Journey' },
-  { id: 'bible', icon: <Book size={20} />, label: 'Bible' },
   { id: 'events', icon: <CalendarIcon size={20} />, label: 'Events' },
   { id: 'giving', icon: <Heart size={20} />, label: 'Giving' },
   { id: 'gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
@@ -79,6 +86,7 @@ const ADMIN_NAV_ITEMS = [
   { id: 'admin-live-rooms', icon: <Video size={20} />, label: 'Live Rooms' },
   { id: 'admin-sermons', icon: <BookOpen size={20} />, label: 'Sermons' },
   { id: 'admin-quizzes', icon: <Brain size={20} />, label: 'Quizzes' },
+  { id: 'admin-study-plans', icon: <PenTool size={20} />, label: 'Study Plans' },
   { id: 'admin-users', icon: <Users size={20} />, label: 'Users' },
   { id: 'admin-gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
   { id: 'admin-testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
@@ -87,6 +95,7 @@ const ADMIN_NAV_ITEMS = [
 
 const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ user, refreshUser }) => {
   const { theme, toggleTheme } = useTheme();
+  const { toasts, addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [currentSermon, setCurrentSermon] = useState(null);
@@ -96,9 +105,28 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      addToast("Back Online", "success");
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      addToast("You are offline", "error");
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addToast]);
 
   useClickOutside(settingsRef, () => setSettingsOpen(false));
   useClickOutside(adminMenuRef, () => setAdminMenuOpen(false));
@@ -115,8 +143,15 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       const permission = await Notification.requestPermission();
       if (permission === 'granted' && user?.uid) {
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const vapidKey = (import.meta as any).env.VITE_FIREBASE_VAPID_KEY;
+
+        if (!vapidKey || vapidKey.length < 20) {
+          console.warn('VAPID key not configured for standard notifications.');
+          return;
+        }
+
         const token = await getToken(messaging, {
-          vapidKey: 'BdP-XwFvKz0M1S2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6', // This should be replaced with actual VAPID key in settings
+          vapidKey,
           serviceWorkerRegistration: registration
         });
 
@@ -148,20 +183,28 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       </div>
 
       {/* Notifications */}
-      <div className="relative">
-        <button
-          onClick={(e) => { e.stopPropagation(); setNotificationsOpen(!notificationsOpen); }}
-          className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-300' : 'bg-green-50/50 border-green-100 text-church-green'}`}
-        >
-          <Bell size={20} />
-          <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full border-2 animate-bounce ${theme === 'dark' ? 'bg-church-gold border-black' : 'bg-church-green border-white'}`}></span>
-        </button>
-        <NotificationPopover
-          isOpen={notificationsOpen}
-          onClose={() => setNotificationsOpen(false)}
-          userId={user.uid}
-          isAdmin={user.role === 'admin'}
-        />
+      <div className="relative flex items-center gap-2">
+        {!isOnline && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-500 rounded-full border border-red-500/20 animate-pulse">
+            <Activity size={12} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Offline</span>
+          </div>
+        )}
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setNotificationsOpen(!notificationsOpen); }}
+            className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-300' : 'bg-green-50/50 border-green-100 text-church-green'}`}
+          >
+            <Bell size={20} />
+            <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full border-2 animate-bounce ${theme === 'dark' ? 'bg-church-gold border-black' : 'bg-church-green border-white'}`}></span>
+          </button>
+          <NotificationPopover
+            isOpen={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            userId={user.uid}
+            isAdmin={user.role === 'admin'}
+          />
+        </div>
       </div>
 
       {/* Settings Menu */}
@@ -238,7 +281,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
         {/* Sidebar Navigation */}
         <div className="flex-1 overflow-y-auto px-6 space-y-1 hide-scrollbar">
-          <div className="px-5 py-3 text-[10px] font-black uppercase text-gray-400 tracking-widest opacity-60">Fellowship</div>
+          <div className="px-5 py-3 text-[10px] font-black uppercase text-gray-400 tracking-widest opacity-60">Community</div>
           {NAV_ITEMS.map(item => (
             <SidebarItem
               key={item.id}
@@ -367,7 +410,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-church-gold opacity-60">Prayer Ministry</div>
                 <SidebarItem
                   icon={<Heart size={20} />}
-                  label="Prayer Requests"
+                  label="Requests"
                   active={activeTab === 'prayer-requests'}
                   onClick={() => { setActiveTab('prayer-requests'); setSidebarOpen(false); }}
                 />
@@ -391,7 +434,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
           </div>
 
           <div className="p-6 border-t border-gray-100 dark:border-white/5 text-center bg-gray-50/50 dark:bg-black/20">
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-loose">Holy Ghost Powered<br />© 2025 Doxa Portal v2.0</p>
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-loose">Securely Developed<br />© 2026 Doxa Portal v2.0</p>
           </div>
         </aside>
       </div>
@@ -427,8 +470,8 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                     <Bell className="animate-bounce" size={24} />
                   </div>
                   <div>
-                    <p className="font-black text-sm uppercase tracking-wider">Enable Divine Updates</p>
-                    <p className="text-xs opacity-80 mt-1">Get real-time alerts for live sessions and new sermons.</p>
+                    <p className="font-black text-sm uppercase tracking-wider">Enable Real-time Updates</p>
+                    <p className="text-xs opacity-80 mt-1">Get instant alerts for live services and new content.</p>
                   </div>
                 </div>
 
@@ -452,11 +495,12 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'live' && <LiveSessionScreen initialRoom={liveRoom} user={user} />}
                 {activeTab === 'testimonies' && <TestimoniesScreen user={user} />}
                 {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
-                {activeTab === 'quiz' && <QuizScreen user={user} />}
+                {activeTab === 'quiz' && <QuizScreen user={user} onNavigate={(tab) => setActiveTab(tab)} />}
                 {activeTab === 'bible' && <BibleScreen user={user} />}
+                {activeTab === 'bible-study' && <BibleStudyScreen user={user} />}
                 {activeTab === 'journey' && <JourneyScreen user={user} />}
                 {activeTab === 'gallery' && <GalleryScreen />}
-                {activeTab === 'giving' && <GivingScreen />}
+                {activeTab === 'giving' && <GivingScreen user={user} />}
                 {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
                 {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
                 {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
@@ -471,6 +515,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'admin-users' && <AdminUserManager />}
                 {activeTab === 'admin-quizzes' && <AdminQuizManager />}
                 {activeTab === 'admin-gallery' && <AdminGalleryManager />}
+                {activeTab === 'admin-study-plans' && <AdminStudyPlanManager />}
                 {activeTab === 'admin-settings' && <AdminSettingsManager />}
               </React.Suspense>
             </div>
@@ -481,10 +526,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
       {/* Audio Player Overlay */}
       <React.Suspense fallback={null}>
-        < GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
+        <GlobalAudioPlayer sermon={currentSermon} onClose={() => setCurrentSermon(null)} />
       </React.Suspense>
 
-    </div >
+      {/* Global Utilities */}
+      <ToastContainer toasts={toasts} />
+      <ReminderSystem userId={user.uid} />
+      <BackToTop />
+    </div>
   );
 };
 

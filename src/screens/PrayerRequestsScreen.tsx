@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import React, { useMemo, useState } from 'react';
+import { collection, query, orderBy, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { PrayerRequest, UserProfile } from '../types';
-import { Heart, Lock, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { Heart, Lock, Calendar, CheckCircle, Clock, Inbox, MailCheck } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
 interface PrayerRequestsScreenProps {
@@ -18,27 +18,36 @@ const prayersQuery = query(
 );
 
 const PrayerRequestsScreen: React.FC<PrayerRequestsScreenProps> = ({ user }) => {
-    // Fetch all approved prayer requests OR requests that are private (since prayer role can see private)
-    // Note: We'll fetch all and filter in client because Firestore logical OR with different fields is complex
-    // For production with many records, this should be split into two queries or handled differently
-
     const { data: allRequests, loading, error } = useFirestoreQuery<PrayerRequest>(prayersQuery);
+    const [tab, setTab] = useState<'pending' | 'completed'>('pending');
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
     const filteredRequests = useMemo(() => {
         if (!allRequests) return [];
-        // Prayer team can see all requests that are either approved OR private
-        // Basically they see everything except maybe rejected ones?
-        // The requirement is "can also just view only prayer requests" implies seeing what needs prayer
-        // Typically prayer team sees approved public AND approved private requests
-        // Let's assume they see everything that is "approved" regardless of privacy
-        // BUT usually prayer team also needs to see pending? For now let's show all APPROVED requests (both public and private)
-        return allRequests.filter(req => req.approved);
-    }, [allRequests]);
+        // Filter by approved AND toggle based on completed status
+        return allRequests.filter(req =>
+            req.approved && (tab === 'completed' ? req.completed === true : !req.completed)
+        );
+    }, [allRequests, tab]);
+
+    const handleMarkRead = async (id: string) => {
+        setProcessingId(id);
+        try {
+            await updateDoc(doc(db, 'prayer_requests', id), {
+                completed: true
+            });
+        } catch (err) {
+            console.error('Error marking as read:', err);
+            alert('Failed to mark as read');
+        } finally {
+            setProcessingId(null);
+        }
+    };
 
     if (loading) {
         return (
             <div className="space-y-6">
-                <SectionHeader title="Prayer Requests" />
+                <SectionHeader title="Support Requests" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
                 </div>
@@ -60,10 +69,34 @@ const PrayerRequestsScreen: React.FC<PrayerRequestsScreenProps> = ({ user }) => 
 
     return (
         <div className="space-y-8">
-            <SectionHeader
-                title="Prayer Room"
-                subtitle="Interceding for our church family"
-            />
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <SectionHeader
+                    title="Support Center"
+                    subtitle="Reviewing community support requests"
+                />
+
+                {/* Tab Switcher */}
+                <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200 dark:border-white/5">
+                    <button
+                        onClick={() => setTab('pending')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${tab === 'pending'
+                            ? 'bg-white dark:bg-white/10 text-church-green shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                            }`}
+                    >
+                        <Inbox size={14} /> Unread
+                    </button>
+                    <button
+                        onClick={() => setTab('completed')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${tab === 'completed'
+                            ? 'bg-white dark:bg-white/10 text-church-gold shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                            }`}
+                    >
+                        <MailCheck size={14} /> Read
+                    </button>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRequests.map((request) => (
@@ -109,9 +142,22 @@ const PrayerRequestsScreen: React.FC<PrayerRequestsScreenProps> = ({ user }) => 
                                 <span>{new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
 
-                            <button className="text-[10px] font-black text-church-green uppercase tracking-widest hover:text-emerald-600 transition-colors">
-                                Mark as Prayed
-                            </button>
+                            {tab === 'pending' && (
+                                <button
+                                    onClick={() => handleMarkRead(request.id)}
+                                    disabled={processingId === request.id}
+                                    className="text-[10px] font-black text-church-green uppercase tracking-widest hover:text-emerald-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {processingId === request.id ? 'Processing...' : (
+                                        <>Mark as Read <MailCheck size={14} /></>
+                                    )}
+                                </button>
+                            )}
+                            {tab === 'completed' && (
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-church-gold uppercase tracking-widest italic opacity-60">
+                                    <CheckCircle size={14} /> Completed
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -126,7 +172,7 @@ const PrayerRequestsScreen: React.FC<PrayerRequestsScreenProps> = ({ user }) => 
                         No Requests Found
                     </h3>
                     <p className="text-sm text-gray-500 max-w-md mx-auto">
-                        There are currently no active prayer requests to display.
+                        There are currently no active support requests to display.
                     </p>
                 </div>
             )}

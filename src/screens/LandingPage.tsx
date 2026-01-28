@@ -13,7 +13,11 @@ import {
     Star,
     Anchor,
     Brain,
-    ImageIcon
+    ImageIcon,
+    Youtube,
+    Instagram,
+    Facebook,
+    Twitter
 } from 'lucide-react';
 import { ThemeProvider } from '../components/ThemeContext';
 import {
@@ -342,7 +346,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                 </p>
                             </div>
                             <div>
-                                <h5 className="text-[11px] font-black uppercase tracking-[0.4em] dark:text-white mb-10 border-b border-gray-100 dark:border-white/5 pb-4">Resources</h5>
+                                <h5 className="text-[11px] font-black uppercase tracking-[0.4em] dark:text-white mb-10 border-b border-gray-100 dark:border-white/5 pb-4 font-serif italic">Resources</h5>
                                 <ul className="space-y-5 text-sm font-black text-gray-400 uppercase tracking-widest">
                                     <li><a href="#" className="hover:text-church-green transition-colors">Sermons Archive</a></li>
                                     <li><a href="#" className="hover:text-church-green transition-colors">Prayer Requests</a></li>
@@ -351,12 +355,37 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                 </ul>
                             </div>
                             <div>
-                                <h5 className="text-[11px] font-black uppercase tracking-[0.4em] dark:text-white mb-10 border-b border-gray-100 dark:border-white/5 pb-4">Contact</h5>
-                                <div className='flex flex-col gap-5 text-sm font-black text-gray-400 uppercase tracking-widest'>
-                                    <p className="flex items-center gap-3"><MessageCircle size={16} /> support@doxa.portal</p>
-                                    <p className="flex items-center gap-3"><Shield size={16} /> Data Security</p>
-                                    <div className="flex gap-4 pt-4">
-                                        {[1, 2, 3].map(i => <div key={i} className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 transition-colors hover:bg-church-green"></div>)}
+                                <h5 className="text-[11px] font-black uppercase tracking-[0.4em] dark:text-white mb-10 border-b border-gray-100 dark:border-white/5 pb-4 font-serif italic">Contact</h5>
+                                <div className='flex flex-col gap-6 text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]'>
+                                    <a href="mailto:support@doxaportal.org" className="flex items-center gap-3 hover:text-church-green transition-all group">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-church-green/10 transition-colors">
+                                            <MessageCircle size={14} className="group-hover:text-church-green" />
+                                        </div>
+                                        support@doxaportal.org
+                                    </a>
+                                    <a href="#" className="flex items-center gap-3 hover:text-church-green transition-all group">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-church-green/10 transition-colors">
+                                            <Shield size={14} className="group-hover:text-church-green" />
+                                        </div>
+                                        Data Security
+                                    </a>
+                                    <div className="flex gap-3 pt-4">
+                                        {[
+                                            { icon: <Youtube size={16} />, color: 'hover:bg-red-600', link: 'https://youtube.com/' },
+                                            { icon: <Instagram size={16} />, color: 'hover:bg-pink-600', link: 'https://instagram.com/' },
+                                            { icon: <Facebook size={16} />, color: 'hover:bg-blue-600', link: 'https://facebook.com/' },
+                                            { icon: <Twitter size={16} />, color: 'hover:bg-black', link: 'https://twitter.com/' }
+                                        ].map((social, i) => (
+                                            <a
+                                                key={i}
+                                                href={social.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center transition-all hover:text-white hover:scale-110 active:scale-95 ${social.color}`}
+                                            >
+                                                {social.icon}
+                                            </a>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -366,9 +395,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                 &copy; {new Date().getFullYear()} Doxa Portal v3.0. Purely Professional.
                             </p>
                             <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
-                                <a href="#" className="hover:text-church-green transition-colors">Security Ethics</a>
-                                <a href="#" className="hover:text-church-green transition-colors">Transparency</a>
-                                <a href="#" className="hover:text-church-green transition-colors">Terms of Sanctuary</a>
+                                <a href="#" className="hover:text-church-green transition-colors">Privacy Policy</a>
+                                <a href="#" className="hover:text-church-green transition-colors">Terms of Service</a>
+                                <a href="#" className="hover:text-church-green transition-colors">Safety Ethics</a>
                             </div>
                         </div>
                     </div>

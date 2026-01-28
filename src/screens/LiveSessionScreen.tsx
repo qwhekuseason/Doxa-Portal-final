@@ -531,7 +531,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                             </div>
                             <h1 className="text-4xl font-black dark:text-white mb-4 tracking-tighter">Connect Live</h1>
                             <p className="text-gray-500 dark:text-gray-400 font-medium max-w-sm mx-auto leading-relaxed">
-                                Join our spiritual fellowship in real-time. Enter your session code below to enter the room.
+                                Join our collective session in real-time. Enter your session code below to enter the room.
                             </p>
                         </div>
 
@@ -547,7 +547,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                                     <input
                                         value={roomName}
                                         onChange={(e) => setRoomName(e.target.value)}
-                                        placeholder="e.g. sunday-service"
+                                        placeholder="e.g. live-session"
                                         className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/50 p-5 pl-16 rounded-3xl outline-none font-black text-xl dark:text-white transition-all shadow-inner"
                                     />
                                 </div>
@@ -718,7 +718,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                                             }}
                                         />
                                         <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-white/10">
-                                            <span>{participantData[user.uid.toString()]?.displayName || 'Member'}</span>
+                                            <span>{participantData[user.uid.toString()]?.displayName || 'Participant'}</span>
                                         </div>
 
                                         {/* Pin Button Hover */}
@@ -836,7 +836,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                                     <input
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        placeholder="Type a blessing..."
+                                        placeholder="Type a message..."
                                         className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-3 pl-5 pr-12 outline-none focus:border-church-green/50 transition-all text-sm placeholder:text-white/20"
                                     />
                                     <button type="submit" disabled={!newMessage.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-church-green hover:text-white disabled:opacity-20 transition-colors">

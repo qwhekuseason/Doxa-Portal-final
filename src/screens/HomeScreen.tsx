@@ -23,11 +23,11 @@ import { parseDateSafe } from '../utils/dateUtils';
 const VERSES = [
   { text: "For I know the plans I have for you, declares the Lord, plans for welfare and not for evil, to give you a future and a hope.", reference: "Jeremiah 29:11" },
   { text: "I can do all things through him who strengthens me.", reference: "Philippians 4:13" },
-  { text: "Trust in the Lord with all your heart, and do not lean on your own understanding.", reference: "Proverbs 3:5" },
   { text: "The Lord is my shepherd; I shall not want.", reference: "Psalm 23:1" },
-  { text: "But they who wait for the Lord shall renew their strength; they shall mount up with wings like eagles.", reference: "Isaiah 40:31" },
-  { text: "And we know that for those who love God all things work together for good.", reference: "Romans 8:28" },
-  { text: "Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go.", reference: "Joshua 1:9" },
+  { text: "Trust in the Lord with all your heart, and do not lean on your own understanding.", reference: "Proverbs 3:5" },
+  { text: "But seek first the kingdom of God and his righteousness, and all these things will be added to you.", reference: "Matthew 6:33" },
+  { text: "And we know that for those who love God all things work together for good, for those who are called according to his purpose.", reference: "Romans 8:28" },
+  { text: "Let everything that has breath praise the Lord! Praise the Lord!", reference: "Psalm 150:6" },
 ];
 
 const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
@@ -60,7 +60,7 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
         <Clock size={20} />
       </div>
       <div className="relative z-10">
-        <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.2em]">Service Launch</p>
+        <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.2em]">Next Service</p>
         <p className="text-xl font-black text-white font-mono tracking-tight">{timeLeft}</p>
       </div>
     </div>
@@ -138,15 +138,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="flex-1 space-y-3">
               <div className="flex items-center gap-3 animate-fade-in-up">
-                <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Divine Dashboard</span>
+                <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Faith Dashboard</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
                 {greeting},<br />
-                <span className="text-gradient-gold drop-shadow-sm">{user?.displayName?.split(' ')[0] || 'Beloved'}</span>
+                <span className="text-gradient-gold drop-shadow-sm">{user?.displayName?.split(' ')[0] || 'Member'}</span>
               </h1>
               <p className="text-white/70 font-medium text-sm md:text-base max-w-xl leading-relaxed">
-                Your spiritual journey continues here. Explore the Word, join the community, and grow in grace.
+                Your personal growth platform. Access sermons, engage with the community, and track your spiritual progress.
               </p>
             </div>
 
@@ -170,7 +170,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
       {/* Main Stats Grid */}
       <section className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard
-          title="Lessons"
+          title="Sermons"
           value={user?.stats?.sermonsHeard || 0}
           icon={<BookOpen />}
           color="bg-church-green"
@@ -202,8 +202,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
           {/* Latest Sermons */}
           <div className="space-y-6">
             <SectionHeader
-              title="Recent Sermons"
-              subtitle="Deep dive into the latest spiritual messages from our pastors."
+              title="Latest Sermons"
+              subtitle="Access the latest insights and sermons from our library."
               action={
                 <button onClick={() => onNavigate('sermons')} className="px-5 py-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-church-green hover:text-white transition-all shadow-sm">
                   Explore All
@@ -248,7 +248,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
                       <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white group-hover:text-church-green transition-colors leading-tight mb-1 tracking-tighter line-clamp-2">
                         {sermon.title}
                       </h3>
-                      <p className="text-[10px] md:text-xs text-gray-400 font-medium mb-3 line-clamp-1 italic">By {sermon.preacher}</p>
+                      <p className="text-[10px] md:text-xs text-gray-400 font-medium mb-3 line-clamp-1 italic">By {sermon.speaker}</p>
 
                       <div className="flex items-center gap-6 pt-2 border-t border-gray-100 dark:border-white/5 opacity-60">
                         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight text-gray-500">
@@ -276,7 +276,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
               <div className="p-3 bg-church-gold/10 rounded-xl mb-4 text-church-gold">
                 <Star size={24} fill="currentColor" />
               </div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-church-gold/60 mb-4">Light for your path</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-church-gold/60 mb-4">Daily Inspiration</p>
               <blockquote className="text-base font-serif text-gray-900 dark:text-white italic leading-relaxed mb-5">
                 "{dailyVerse.text}"
               </blockquote>
@@ -284,7 +284,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— {dailyVerse.reference}</p>
 
               <button onClick={() => onNavigate('bible')} className="mt-8 px-8 py-3 bg-church-gold text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-church-gold/30 hover:scale-105 transition-all active:scale-95">
-                Open Scriptures
+                Read Bible
               </button>
             </div>
           </div>

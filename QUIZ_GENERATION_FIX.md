@@ -138,7 +138,15 @@ Content-Type: application/json
 - **Cause**: The AI model returned malformed JSON
 - **Fix**: Try again with a different topic or simpler prompt
 
-### Testing the API Directly
+### Error: "Invalid username or password"
+- **Cause**: The API key is invalid or not correctly set in Vercel environment variables.
+- **Fix**: Check `HUGGINGFACE_API_KEY` in Vercel. Ensure it starts with `hf_` and has no extra spaces/quotes.
+
+
+### Error: "HTTP error occurred when requesting the provider"
+- **Cause**: The specific AI model might be down or restricted.
+- **Fix**: We have switched to `meta-llama/Llama-3.1-8B-Instruct` which is more reliable.
+
 You can test the API endpoint using curl:
 
 ```bash

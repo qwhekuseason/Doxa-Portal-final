@@ -106,8 +106,8 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <SectionHeader
-          title="Member Profile"
-          subtitle="Manage your spiritual identity and personal preferences within the Doxa community."
+          title="User Profile"
+          subtitle="Manage your spiritual profile and personal preferences within the community."
         />
 
         <button
@@ -151,7 +151,7 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
 
             <div className="grid grid-cols-2 gap-4 mt-12 relative z-10 px-2">
               <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
-                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.sermonsHeard || 0}</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.sessionsViewed || 0}</p>
                 <p className="text-[9px] font-black text-church-green uppercase tracking-[0.2em] mt-1">Sermons</p>
               </div>
               <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
@@ -257,7 +257,7 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
               </div>
 
               <div className={`col-span-full space-y-3 transition-all ${isEditing ? 'scale-100' : 'opacity-80'}`}>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Residence Location</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Hostel / Location</label>
                 <div className="relative">
                   <Building2 size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
@@ -280,7 +280,7 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
                   className="w-full flex items-center justify-center gap-3 py-5 bg-church-green text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                  {loading ? 'Processing Changes...' : 'Synchronize Profile'}
+                  {loading ? 'Processing changes...' : 'Update Profile'}
                 </button>
               </div>
             )}
@@ -292,8 +292,8 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
               <Shield size={28} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h4 className="font-black text-gray-900 dark:text-white tracking-tight uppercase">Security Vault</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Change your password and manage active sessions to keep your divine data secure.</p>
+              <h4 className="font-black text-gray-900 dark:text-white tracking-tight uppercase">Privacy & Security</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Change your password and manage active sessions to keep your personal data secure.</p>
             </div>
             <button
               onClick={handlePasswordReset}

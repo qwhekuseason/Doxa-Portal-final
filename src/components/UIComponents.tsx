@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Loader2, ChevronRight, ArrowUpRight, Bell, Sun, Moon, Plus, Users, Calendar, Activity, TrendingUp, ChevronUp } from 'lucide-react';
+import { Loader2, ChevronRight, ArrowUpRight, Bell, Sun, Moon, Plus, Users, Calendar, Activity, TrendingUp, ChevronUp, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 
 // --- Hooks ---
 export const useClickOutside = (ref: React.RefObject<HTMLElement>, handler: () => void) => {
@@ -35,7 +35,7 @@ export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ si
         <div className={`w-full h-full border-4 ${color ? color.replace('text-', 'border-').replace('/20', '') + '/20' : 'border-church-green/20'} ${color ? color.replace('text-', 'border-') : 'border-t-church-green'} rounded-full animate-spin border-t-transparent`}></div>
         <Loader2 className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse ${color ? color.replace('border-', 'text-') : 'text-church-green'}`} size={size ? size * 0.4 : 20} />
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 animate-pulse">Loading Glory...</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 animate-pulse">Initializing Platform...</span>
     </div>
   );
 };
@@ -45,7 +45,7 @@ export const SectionHeader: React.FC<{ title: string; subtitle?: string; action?
     <div>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-6 h-1 bg-church-green rounded-full transition-all group-hover:w-10"></div>
-        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-church-green/60">Session View</span>
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-church-green/60">Module Information</span>
       </div>
       <h2 className="text-2xl font-black font-sans dark:text-white tracking-tight">{title}</h2>
       {subtitle && <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">{subtitle}</p>}
@@ -176,8 +176,8 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
     <div ref={popoverRef} className="absolute top-full right-0 mt-3 w-72 glass-card rounded-2xl shadow-premium z-50 animate-fade-in-up overflow-hidden">
       <div className="p-5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
         <div>
-          <h3 className="font-black text-xs uppercase tracking-[0.2em] text-gray-900 dark:text-white">Announcements</h3>
-          <p className="text-[10px] text-gray-400 font-bold mt-0.5">{notifications.filter(n => !n.read).length} unread updates</p>
+          <h3 className="font-black text-xs uppercase tracking-[0.2em] text-gray-900 dark:text-white">Updates</h3>
+          <p className="text-[10px] text-gray-400 font-bold mt-0.5">{notifications.filter(n => !n.read).length} new messages</p>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl transition-colors text-gray-400">
           <X className="w-4 h-4" />
@@ -187,12 +187,12 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
         {loading ? (
           <div className="p-12 text-center">
             <Loader2 className="animate-spin text-church-green mx-auto mb-2" size={24} />
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gathering Notes...</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fetching Content...</p>
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center">
             <Bell className="text-gray-200 dark:text-gray-800 mb-4" size={48} />
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Peaceful Silence</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">End of Stream</p>
           </div>
         ) : (
           notifications.map(notif => (
@@ -227,6 +227,68 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
         </button>
       </div>
     </div>
+  );
+};
+
+// --- Toast System ---
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
+
+export const useToast = () => {
+  const [toasts, setToasts] = React.useState<Toast[]>([]);
+
+  const addToast = (message: string, type: Toast['type'] = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
+
+  return { toasts, addToast };
+};
+
+export const ToastContainer: React.FC<{ toasts: Toast[] }> = ({ toasts }) => (
+  <div className="fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-xs px-4">
+    {toasts.map(toast => (
+      <div
+        key={toast.id}
+        className={`px-8 py-4 rounded-2xl shadow-premium animate-in slide-in-from-bottom-5 pointer-events-auto flex items-center gap-4 border ${toast.type === 'success' ? 'bg-church-green text-white border-white/20' :
+          toast.type === 'error' ? 'bg-red-600 text-white border-white/20' :
+            toast.type === 'warning' ? 'bg-church-gold text-black border-black/10' :
+              'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-100 dark:border-white/10'
+          }`}
+      >
+        {toast.type === 'success' && <CheckCircle2 size={20} />}
+        {toast.type === 'error' && <AlertCircle size={20} />}
+        {toast.type === 'warning' && <Sparkles size={20} />}
+        <p className="text-xs font-black uppercase tracking-widest leading-tight">{toast.message}</p>
+      </div>
+    ))}
+  </div>
+);
+
+export const BackToTop: React.FC = () => {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      className="fixed bottom-24 right-24 hidden xl:flex w-14 h-14 bg-white dark:bg-gray-800 text-church-green rounded-2xl shadow-premium border border-gray-100 dark:border-white/5 items-center justify-center hover:-translate-y-2 transition-all active:scale-95 z-[40]"
+    >
+      <ChevronUp size={24} />
+    </button>
   );
 };
 

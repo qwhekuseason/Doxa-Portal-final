@@ -318,7 +318,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-black text-white leading-none tracking-tighter mb-6">
-              Join the <span className="text-church-gold">Sanctuary.</span>
+              Connect with the <span className="text-church-gold">Community.</span>
             </h2>
             <p className="text-white/70 text-lg font-medium leading-relaxed max-w-sm">
               Access deep biblical insights, real-time fellowship, and a community of faith that grows together.
@@ -339,16 +339,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
 
         {/* Right Side: Auth Forms */}
         <div className="p-8 md:p-14 relative flex flex-col">
-          {/* Back & Theme Actions */}
-          <div className="flex items-center justify-between mb-12">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="flex items-center gap-2 text-gray-500 hover:text-church-green transition-colors font-black text-[10px] uppercase tracking-widest"
-              >
-                <ArrowLeft size={16} /> Close Portal
-              </button>
-            )}
+          {/* Theme Actions */}
+          <div className="flex items-center justify-end mb-12">
             <button
               onClick={toggleTheme}
               className="p-2.5 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-400 hover:text-church-green transition-all"
@@ -360,15 +352,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
           <div className="mb-10 text-center md:text-left">
             <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tighter mb-3 uppercase">
               {authMode === 'login' && "Welcome Back"}
-              {authMode === 'register' && "Create Sanctuary"}
-              {authMode === 'forgot' && "Reset Passage"}
-              {authMode === 'verify' && "Verify Spirit"}
+              {authMode === 'register' && "Create Account"}
+              {authMode === 'forgot' && "Reset Password"}
+              {authMode === 'verify' && "Email Verification"}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-              {authMode === 'login' && "Continue your spiritual growth."}
-              {authMode === 'register' && "Begin your journey with the community."}
-              {authMode === 'forgot' && "We'll send you a divine reset link."}
-              {authMode === 'verify' && "Enter the 6-digit code sent to your email."}
+              {authMode === 'login' && "Sign in to access your dashboard."}
+              {authMode === 'register' && "Join our global faith community."}
+              {authMode === 'forgot' && "Enter your email to receive a password reset link."}
+              {authMode === 'verify' && "Please verify your email address to continue."}
             </p>
           </div>
 
@@ -432,7 +424,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                     </label>
                   </div>
-                  <p className="text-[9px] text-church-gold font-black mt-3 uppercase tracking-widest">Identify Yourself</p>
+                  <p className="text-[9px] text-church-gold font-black mt-3 uppercase tracking-widest">Personal Details</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -440,7 +432,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="text"
-                      placeholder="Full Legal Name"
+                      placeholder="Full Name"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
@@ -450,7 +442,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="tel"
-                      placeholder="Active Phone"
+                      placeholder="Phone Number"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
@@ -523,7 +515,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                   </div>
                   <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2">Check your email</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    We've sent a divine verification link to <span className="text-church-green font-bold">{email}</span>. Click the link in that email to activate your sanctuary access.
+                    We've sent a verification link to <span className="text-church-green font-bold">{email}</span>. Please click the link in your email to activate your account.
                   </p>
                 </div>
 
@@ -557,7 +549,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                   onClick={() => setAuthMode('forgot')}
                   className="text-[10px] font-black text-gray-400 hover:text-church-gold uppercase tracking-widest transition-colors"
                 >
-                  Lost your passage?
+                  Forgot Password?
                 </button>
               </div>
             )}
@@ -587,8 +579,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                 ) : (
                   <>
                     <span className="font-black text-xs uppercase tracking-[0.3em] relative z-10">
-                      {authMode === 'login' && "Access Portal"}
-                      {authMode === 'register' && "Establish Sanctuary"}
+                      {authMode === 'login' && "Sign In"}
+                      {authMode === 'register' && "Create Account"}
                       {authMode === 'forgot' && "Send Reset Link"}
                     </span>
                     <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
@@ -620,7 +612,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-              Google Authority
+              Continue with Google
             </button>
           </div>
         </div>

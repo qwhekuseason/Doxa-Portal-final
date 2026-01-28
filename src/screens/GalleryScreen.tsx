@@ -56,8 +56,8 @@ const GalleryView: React.FC = () => {
   return (
     <div className="space-y-12 animate-fade-in pb-20">
       <SectionHeader
-        title="Spirit in Frames"
-        subtitle="Explore our divine encounters through curated albums and community moments."
+        title="Visual Experiences"
+        subtitle="Explore our community experiences through curated albums and key moments."
       />
 
       {loading ? (

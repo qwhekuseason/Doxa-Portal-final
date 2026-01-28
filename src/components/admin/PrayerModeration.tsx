@@ -31,7 +31,7 @@ export const PrayerModeration: React.FC = () => {
     };
 
     const handleReject = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this specific prayer request?')) return;
+        if (!window.confirm('Are you sure you want to delete this specific support request?')) return;
         setProcessingId(id);
         try {
             await deleteDoc(doc(db, 'prayer_requests', id));
@@ -50,8 +50,8 @@ export const PrayerModeration: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold font-serif dark:text-gray-100">Prayer Approvals</h2>
-                    <p className="text-gray-500">Review and approve prayer requests</p>
+                    <h2 className="text-2xl font-bold font-serif dark:text-gray-100">Support Moderation</h2>
+                    <p className="text-gray-500">Review and approve support requests</p>
                 </div>
                 <div className="bg-church-green/10 text-church-green px-4 py-2 rounded-full font-bold">
                     {requests.length} Pending
@@ -62,7 +62,7 @@ export const PrayerModeration: React.FC = () => {
                 {requests.length === 0 ? (
                     <div className="col-span-full text-center py-12 text-gray-400 bg-gray-50 dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
                         <Heart size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>No pending prayer requests</p>
+                        <p>No pending support requests</p>
                     </div>
                 ) : (
                     requests.map(request => (

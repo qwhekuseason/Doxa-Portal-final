@@ -99,7 +99,7 @@ const BirthdaysScreen: React.FC<BirthdaysScreenProps> = ({ user }) => {
     if (loading) {
         return (
             <div className="space-y-6">
-                <SectionHeader title="Member Birthdays" />
+                <SectionHeader title="Community Birthdays" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
                 </div>
@@ -124,8 +124,8 @@ const BirthdaysScreen: React.FC<BirthdaysScreenProps> = ({ user }) => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <SectionHeader
-                    title="Member Birthdays"
-                    subtitle="Celebrate with our church family"
+                    title="Community Birthdays"
+                    subtitle="Celebrate with our community"
                 />
                 <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-church-green/10 dark:bg-church-green/20 rounded-2xl border border-church-green/20">
                     <Users size={16} className="text-church-green" />
@@ -266,7 +266,7 @@ const BirthdaysScreen: React.FC<BirthdaysScreenProps> = ({ user }) => {
                         </div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Birthdays Yet</h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            No members have added their birthdays to their profiles yet.
+                            No users have added their birthdays to their profiles yet.
                         </p>
                     </div>
                 )}

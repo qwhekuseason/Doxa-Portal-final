@@ -44,7 +44,7 @@ export const sendBrowserNotification = (title: string, body: string) => {
 export const notifyNewSermon = async (sermonTitle: string) => {
     const notification: NotificationData = {
         title: '🎙️ New Sermon Available',
-        message: `"${sermonTitle}" has been added to the sermon library`,
+        message: `"${sermonTitle}" has been added to the library`,
         type: 'success'
     };
 
@@ -76,7 +76,7 @@ export const notifyTestimonyApproved = async (authorName: string) => {
 
 export const notifyPrayerApproved = async (authorName: string) => {
     const notification: NotificationData = {
-        title: '🙏 Prayer Request Approved',
+        title: '🤝 Prayer Request Approved',
         message: `${authorName}'s prayer request has been approved`,
         type: 'success'
     };
@@ -98,8 +98,8 @@ export const notifyNewGalleryImage = async (caption: string) => {
 
 export const notifyNewQuiz = async (topic: string, difficulty: string) => {
     const notification: NotificationData = {
-        title: '🧠 New Bible Quiz',
-        message: `Test your knowledge: ${topic} (${difficulty})`,
+        title: '🧠 New Scripture Quiz',
+        message: `Test your scripture knowledge: ${topic} (${difficulty})`,
         type: 'info'
     };
 

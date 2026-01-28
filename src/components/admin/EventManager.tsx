@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { collection, query, orderBy, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, deleteDoc, doc, Timestamp, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { notifyNewEvent } from '../../utils/notificationService';
 import { useFirestoreQuery } from '../../hooks';
@@ -7,7 +7,17 @@ import { CalendarEvent } from '../../types';
 import { Calendar, Trash2, Plus, MapPin, Loader2, Clock, Video } from 'lucide-react';
 
 export const EventManager: React.FC = () => {
-    const q = useMemo(() => query(collection(db, 'events'), orderBy('date', 'asc')), []);
+    const nowStr = useMemo(() => {
+        const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
+    }, []);
+
+    const q = useMemo(() => query(
+        collection(db, 'events'),
+        where('date', '>=', nowStr),
+        orderBy('date', 'asc')
+    ), [nowStr]);
+
     const { data: events, loading, error } = useFirestoreQuery<CalendarEvent>(q);
     const [submitting, setSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -81,7 +91,7 @@ export const EventManager: React.FC = () => {
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-church-green focus:border-transparent outline-none transition-all"
-                                placeholder="e.g., Sunday Service"
+                                placeholder="e.g., Weekly Session"
                             />
                         </div>
 
@@ -103,9 +113,9 @@ export const EventManager: React.FC = () => {
                                 onChange={e => setFormData({ ...formData, type: e.target.value as any })}
                                 className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-church-green outline-none"
                             >
-                                <option value="service">Church Service</option>
-                                <option value="youth">Youth Event</option>
-                                <option value="outreach">Outreach</option>
+                                <option value="service">Weekly Service</option>
+                                <option value="youth">Youth Meeting</option>
+                                <option value="outreach">Outreach Gathering</option>
                             </select>
                         </div>
 

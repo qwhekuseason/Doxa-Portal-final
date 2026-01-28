@@ -35,7 +35,7 @@ const Badge: React.FC<{ title: string; desc: string; icon: string; locked?: bool
 
         {locked && (
             <div className="mt-4 px-3 py-1 bg-gray-200 dark:bg-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-gray-500">
-                Locked Quest
+                Locked Achievement
             </div>
         )}
     </div>
@@ -54,14 +54,14 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     const nextLevelXP = Math.ceil((totalXP + 1) / 1000) * 1000;
     const progressPercent = Math.min(100, (totalXP % 1000) / 10);
 
-    const currentLevel = totalXP > 2000 ? "Kingdom Builder" : totalXP > 1000 ? "Faithful Steward" : "Seeker";
+    const currentLevel = totalXP > 2000 ? "General" : totalXP > 1000 ? "Warrior" : "Faithful";
 
     const badges = [
-        { title: "First Steps", desc: "Joined the Doxa community", icon: "🏠", locked: false },
-        { title: "Prayer Warrior", desc: "5 prayer requests submitted", icon: "🙏", locked: prayers < 5 },
-        { title: "Bible Scholar", desc: "Gained 500 Quiz Experience", icon: "🎓", locked: quizXP < 500 },
-        { title: "Word Devotee", desc: "10 sermons absorbed", icon: "🎧", locked: sermonsHeard < 10 },
-        { title: "Truth Seeker", desc: "5 chapters bookmarked", icon: "📖", locked: bookmarks < 5 }
+        { title: "Born Again", desc: "Joined the Doxa family", icon: "🏠", locked: false },
+        { title: "Prayer Warrior", desc: "5 prayer requests submitted", icon: "🤝", locked: prayers < 5 },
+        { title: "Word Expert", desc: "Gained 500 Quiz XP", icon: "🎓", locked: quizXP < 500 },
+        { title: "Faithful Listener", desc: "10 sermons heard", icon: "🎧", locked: sermonsHeard < 10 },
+        { title: "Scholar", desc: "5 chapters bookmarked", icon: "📖", locked: bookmarks < 5 }
     ];
 
     return (
@@ -69,22 +69,22 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
 
             <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
                 <SectionHeader
-                    title="Spiritual Journey"
-                    subtitle="Visualize your path of faith. Every sermon heard and prayer shared is a step closer to the Divine."
+                    title="Your Spiritual Journey"
+                    subtitle="Visualize your path of spiritual growth. Every sermon heard and prayer offered is a step closer to God."
                 />
 
                 <div className="flex items-center gap-3 px-6 py-3 glass-card border-none bg-church-green/5 rounded-2xl animate-pulse">
                     <div className="w-2 h-2 rounded-full bg-church-green shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
-                    <span className="text-[10px] font-black text-church-green uppercase tracking-widest">Divine Sync Active</span>
+                    <span className="text-[10px] font-black text-church-green uppercase tracking-widest">System Sync Active</span>
                 </div>
             </div>
 
             {/* Stats Dashboard */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <UIStatCard title="Sermons" value={sermonsHeard} icon={<Mic />} color="bg-blue-500" trend="Faithful Listener" />
-                <UIStatCard title="Prayers" value={prayers} icon={<Heart />} color="bg-rose-500" trend="Warrior Spirit" />
-                <UIStatCard title="Quiz XP" value={quizXP} icon={<Zap />} color="bg-church-gold" trend="Wisdom Seeker" />
-                <UIStatCard title="Bookmarks" value={bookmarks} icon={<BookOpen />} color="bg-emerald-500" trend="Verse Keeper" />
+                <UIStatCard title="Prayers" value={prayers} icon={<Heart />} color="bg-rose-500" trend="Prayer Warrior" />
+                <UIStatCard title="Activity XP" value={quizXP} icon={<Zap />} color="bg-church-gold" trend="Word Study" />
+                <UIStatCard title="Bookmarks" value={bookmarks} icon={<BookOpen />} color="bg-emerald-500" trend="Scripture Archive" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -117,13 +117,13 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                                         style={{ width: `${progressPercent}%` }}
                                     ></div>
                                 </div>
-                                <p className="text-[9px] font-black text-gray-400 text-right uppercase tracking-[0.2em]">{nextLevelXP - totalXP} XP remaining for promotion</p>
+                                <p className="text-[9px] font-black text-gray-400 text-right uppercase tracking-[0.2em]">{nextLevelXP - totalXP} XP remaining for next rank</p>
                             </div>
 
                             <div className="p-6 bg-gray-50 dark:bg-white/5 rounded-[2rem] border border-gray-100 dark:border-white/5">
                                 <div className="flex items-center gap-3 mb-4">
                                     <Bell size={14} className="text-church-gold" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">Divine Echoes</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400">Spirit Echoes</span>
                                 </div>
                                 <div className="space-y-3">
                                     {badges.filter(b => !b.locked).length > 0 ? (
@@ -153,7 +153,7 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                 <div className="lg:col-span-2 space-y-8">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase flex items-center gap-4">
-                            <Award className="text-church-gold" size={28} /> Divine Accolades
+                            <Award className="text-church-gold" size={28} /> Spiritual Accolades
                         </h2>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             {badges.filter(b => !b.locked).length} / {badges.length} Collected
@@ -174,8 +174,8 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                                 <Trophy size={40} className="animate-float" />
                             </div>
                             <div className="flex-1 text-center md:text-left">
-                                <h4 className="text-2xl font-black uppercase tracking-tighter mb-2">Grandmaster Revelation</h4>
-                                <p className="text-xs text-white/60 font-medium leading-relaxed max-w-md">Reach 5,000 Total XP to unlock the secret Grandmaster portal and exclusive community features.</p>
+                                <h4 className="text-2xl font-black uppercase tracking-tighter mb-2">Grandmaster Achievement</h4>
+                                <p className="text-xs text-white/60 font-medium leading-relaxed max-w-md">Reach 5,000 Total XP to unlock the exclusive Grandmaster portal and premium community features.</p>
                             </div>
                             <div className="px-8 py-4 bg-church-gold text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-church-gold/20">
                                 Level Up
