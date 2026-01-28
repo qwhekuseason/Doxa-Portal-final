@@ -3,7 +3,7 @@ import { collection, query, where, orderBy, addDoc, doc, updateDoc, arrayUnion, 
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { UserProfile, PrayerRequest } from '../types';
-import { Heart, Clock, Loader2, AlertTriangle, Send, Shield, User, Info } from 'lucide-react';
+import { Heart, Clock, Loader2, AlertTriangle, Send, Shield, Info, CheckCircle } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 
 // Define query outside to ensure stability
