@@ -917,7 +917,6 @@ export const AdminSettingsManager: React.FC = () => {
     momoNumber: '', momoName: '', telecelNumber: '', telecelName: '', contactEmail: '',
     bankInfo: { bankName: '', accountName: '', accountNumber: '', branch: '' }
   });
-  const [stats, setStats] = useState<GivingStats>({ weeklyGoal: 10000, currentProgress: 0, lastResetDate: new Date().toISOString() });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -926,9 +925,6 @@ export const AdminSettingsManager: React.FC = () => {
       try {
         const settingsSnap = await getDoc(doc(db, 'site_settings', 'global'));
         if (settingsSnap.exists()) setSettings(settingsSnap.data() as SiteSettings);
-
-        const statsSnap = await getDoc(doc(db, 'giving_stats', 'weekly'));
-        if (statsSnap.exists()) setStats(statsSnap.data() as GivingStats);
       } catch (e) {
         console.error("Error fetching settings:", e);
       } finally {
@@ -938,32 +934,14 @@ export const AdminSettingsManager: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleSaveSettings = async () => {
-    setSaving(true);
-    try {
-      await updateDoc(doc(db, 'site_settings', 'global'), { ...settings });
-      alert("Site settings updated!");
-    } catch (e) {
-      // If doc doesn't exist, set it
-      try {
-        await addDoc(collection(db, 'site_settings'), { ...settings, id: 'global' }); // This is wrong for setDoc but good for addDoc. Better use setDoc.
-      } catch (err) {
-        console.error(err);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Refined save using setDoc for absolute control
+  // Save settings using setDoc for absolute control
   const saveGlobalSettings = async () => {
     setSaving(true);
     try {
       // Import setDoc for this
       const { setDoc } = await import('firebase/firestore');
       await setDoc(doc(db, 'site_settings', 'global'), settings);
-      await setDoc(doc(db, 'giving_stats', 'weekly'), stats);
-      alert("All settings and stats synchronized!");
+      alert("Settings synchronized successfully!");
     } catch (e) {
       console.error(e);
       alert("Sync failed.");
@@ -976,7 +954,7 @@ export const AdminSettingsManager: React.FC = () => {
 
   return (
     <div className="space-y-12 animate-fade-in pb-20">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="max-w-4xl mx-auto">
 
         {/* Payment & Contact Settings */}
         <div className="space-y-8">
@@ -1043,6 +1021,12 @@ export const AdminSettingsManager: React.FC = () => {
                 className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-gold outline-none font-bold"
                 placeholder="Bank Name (e.g. Ecobank)"
               />
+              <input
+                value={settings.bankInfo?.accountName}
+                onChange={e => setSettings({ ...settings, bankInfo: { ...settings.bankInfo!, accountName: e.target.value } })}
+                className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl focus:border-church-gold outline-none font-bold"
+                placeholder="Account Name (e.g. Doxa Church Ghana)"
+              />
               <div className="grid grid-cols-2 gap-4">
                 <input
                   value={settings.bankInfo?.accountNumber}
@@ -1058,67 +1042,6 @@ export const AdminSettingsManager: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Giving Stats Manager */}
-        <div className="space-y-8">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-church-gold/10 text-church-gold flex items-center justify-center">
-              <Heart size={24} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase">Generosity Stats</h3>
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Real-time Goal Tracking</p>
-            </div>
-          </div>
-
-          <div className="glass-card p-8 rounded-[2.5rem] space-y-8">
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Weekly Goal (GH₵)</label>
-              <div className="relative">
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-church-gold">GH₵</span>
-                <input
-                  type="number"
-                  value={stats.weeklyGoal}
-                  onChange={e => setStats({ ...stats, weeklyGoal: Number(e.target.value) })}
-                  className="w-full pl-16 pr-6 py-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl focus:border-church-gold outline-none text-2xl font-black dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Current Progress (GH₵)</label>
-              <div className="relative">
-                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-church-green">GH₵</span>
-                <input
-                  type="number"
-                  value={stats.currentProgress}
-                  onChange={e => setStats({ ...stats, currentProgress: Number(e.target.value) })}
-                  className="w-full pl-16 pr-6 py-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl focus:border-church-green outline-none text-2xl font-black dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="p-6 bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Preview Bar</span>
-                <span className="text-[10px] font-black text-church-green uppercase tracking-widest">{Math.round((stats.currentProgress / stats.weeklyGoal) * 100)}% Reached</span>
-              </div>
-              <div className="h-4 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-church-green transition-all duration-1000"
-                  style={{ width: `${Math.min(100, (stats.currentProgress / stats.weeklyGoal) * 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setStats({ ...stats, currentProgress: 0, lastResetDate: new Date().toISOString() })}
-              className="w-full py-4 text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500/5 rounded-2xl transition-all"
-            >
-              Reset Weekly Progress
-            </button>
           </div>
         </div>
 

@@ -24,7 +24,11 @@ import {
     Hand,
     Shield,
     ChevronUp,
-    AlertCircle
+    AlertCircle,
+    Clock,
+    Info,
+    Expand,
+    Minimize2
 } from 'lucide-react';
 import { getAgoraAppId } from '../utils/agoraConfig';
 import { prepareChannelName, generateUserId, handleAgoraError, getAgoraToken } from '../utils/agoraService';
@@ -40,7 +44,8 @@ import {
     serverTimestamp,
     getDocs,
     addDoc,
-    orderBy
+    orderBy,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -105,11 +110,76 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
     const [participantData, setParticipantData] = useState<Record<string, { displayName: string; isHandRaised: boolean }>>({});
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [speakingUsers, setSpeakingUsers] = useState<Set<UID>>(new Set());
+    const [previewTrack, setPreviewTrack] = useState<ILocalVideoTrack | null>(null);
+    const [sessionJoinTime, setSessionJoinTime] = useState<Date | null>(null);
 
     // --- Refs ---
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const localVideoRef = useRef<HTMLDivElement>(null);
+    const previewRef = useRef<HTMLDivElement>(null);
     const joiningRef = useRef(false);
+    const tracksRef = useRef<{
+        video: any | null;
+        audio: any | null;
+        preview: any | null;
+        client: any | null;
+    }>({ video: null, audio: null, preview: null, client: null });
+
+    // Sync tracks to ref for unmount cleanup
+    useEffect(() => {
+        tracksRef.current = {
+            video: localVideoTrack,
+            audio: localAudioTrack,
+            preview: previewTrack,
+            client: client
+        };
+    }, [localVideoTrack, localAudioTrack, previewTrack, client]);
+
+    // Final cleanup on unmount - ensures camera light goes off
+    useEffect(() => {
+        return () => {
+            const { video, audio, preview, client: agoraClient } = tracksRef.current;
+            if (preview) { preview.stop(); preview.close(); }
+            if (video) { video.stop(); video.close(); }
+            if (audio) { audio.stop(); audio.close(); }
+            if (agoraClient) { agoraClient.leave().catch(() => {}); }
+        };
+    }, []);
+
+    // --- Effect: Timer ---
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // --- Effect: Pre-join Preview ---
+    useEffect(() => {
+        let active = true;
+        if (!inCall && !previewTrack && !loading) {
+            AgoraRTC.createCameraVideoTrack({
+                encoderConfig: { width: 640, height: 360, frameRate: 15 }
+            }).then(track => {
+                if (active) {
+                    setPreviewTrack(track);
+                } else {
+                    track.close();
+                }
+            }).catch(err => {
+                console.warn("Preview camera fail:", err);
+            });
+        }
+        return () => {
+            active = false;
+        };
+    }, [inCall, loading]);
+
+    useEffect(() => {
+        if (previewTrack && previewRef.current) {
+            previewTrack.play(previewRef.current);
+        }
+    }, [previewTrack, inCall]);
 
     // --- Effects: Sync Participants & Chat ---
     useEffect(() => {
@@ -137,8 +207,16 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         });
 
         // 2. Sync Chat
-        const qChat = query(collection(db, 'live_rooms', roomName, 'messages'), orderBy('timestamp', 'asc'));
-        const unsubChat = onSnapshot(qChat, (snapshot) => {
+        let chatQuery = query(collection(db, 'live_rooms', roomName, 'messages'), orderBy('timestamp', 'asc'));
+
+        if (sessionJoinTime) {
+            chatQuery = query(
+                collection(db, 'live_rooms', roomName, 'messages'),
+                where('timestamp', '>=', sessionJoinTime),
+                orderBy('timestamp', 'asc')
+            );
+        }
+        const unsubChat = onSnapshot(chatQuery, (snapshot) => {
             const msgs: ChatMessage[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
@@ -333,16 +411,35 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             });
 
             // Local Tracks
-            const videoTrack = await AgoraRTC.createCameraVideoTrack({
-                encoderConfig: { width: 1280, height: 720, frameRate: 30 }
-            });
+            let videoTrack: ILocalVideoTrack;
+            if (previewTrack) {
+                videoTrack = previewTrack;
+                setPreviewTrack(null);
+            } else {
+                videoTrack = await AgoraRTC.createCameraVideoTrack({
+                    encoderConfig: { width: 1280, height: 720, frameRate: 30 }
+                });
+            }
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
             await agoraClient.publish([videoTrack, audioTrack]);
 
+            // Enable volume indicator
+            agoraClient.enableAudioVolumeIndicator();
+            agoraClient.on('volume-indicator', (volumes) => {
+                const speakers = new Set<UID>();
+                volumes.forEach((volume) => {
+                    if (volume.level > 5) {
+                        speakers.add(volume.uid === 0 ? uid : volume.uid);
+                    }
+                });
+                setSpeakingUsers(speakers);
+            });
+
             setClient(agoraClient);
             setLocalVideoTrack(videoTrack);
             setLocalAudioTrack(audioTrack);
+            setSessionJoinTime(new Date());
             setInCall(true);
             setLoading(false);
             joiningRef.current = false;
@@ -386,7 +483,31 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 deleteDoc(doc(db, 'live_participants', `${roomName}_${currentUid}`)).catch(console.error);
             }
         }
+        // Cleanup messages if we are the last one leaving
+        if (remoteUsers.size === 0 && roomName) {
+            try {
+                const msgsRef = collection(db, 'live_rooms', roomName, 'messages');
+                getDocs(msgsRef).then(snap => {
+                    if (!snap.empty) {
+                        const batch = writeBatch(db);
+                        snap.forEach(d => batch.delete(d.ref));
+                        batch.commit();
+                    }
+                });
+            } catch (err) {
+                console.error("Cleanup history error:", err);
+            }
+        }
+
+        if (previewTrack) {
+            previewTrack.stop();
+            previewTrack.close();
+            setPreviewTrack(null);
+        }
+
         setInCall(false);
+        setMessages([]);
+        setSessionJoinTime(null);
         setRemoteUsers(new Map());
 
         // If in standalone mode, close the window on leave
@@ -507,86 +628,155 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
 
     // --- UI Helpers ---
     const getGridClass = (count: number) => {
-        if (count === 1) return 'grid-cols-1';
-        if (count === 2) return 'grid-cols-1 md:grid-cols-2';
-        if (count <= 4) return 'grid-cols-2';
-        return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+        if (count === 1) return 'max-w-4xl mx-auto';
+        if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto';
+        if (count <= 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-6xl mx-auto';
+        if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mx-auto';
+        return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mx-auto';
     };
 
-    // --- Render: Pre-Join Screen (Restored Thematic UI) ---
+    const ControlButton = ({
+        icon: Icon,
+        onClick,
+        isActive = false,
+        isDanger = false,
+        label,
+        badgeCount,
+        colorClass = ""
+    }: {
+        icon: any,
+        onClick: () => void,
+        isActive?: boolean,
+        isDanger?: boolean,
+        label: string,
+        badgeCount?: number,
+        colorClass?: string
+    }) => (
+        <button
+            onClick={onClick}
+            title={label}
+            className={`group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-lg ${isDanger
+                ? 'bg-red-500 hover:bg-red-600 text-white'
+                : isActive
+                    ? (colorClass || 'bg-white text-black hover:bg-gray-200')
+                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/5'
+                }`}
+        >
+            <Icon size={20} className={isActive && !isDanger ? 'scale-110' : ''} />
+            {badgeCount !== undefined && badgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#050505]">
+                    {badgeCount}
+                </span>
+            )}
+            <span className="absolute bottom-full mb-3 px-2 py-1 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {label}
+            </span>
+        </button>
+    );
+
+    // --- Render: Pre-Join Screen ---
     if (!inCall) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 animate-fade-in pb-20">
-                <div className="w-full max-w-xl group relative">
-                    {/* Background Glow */}
-                    <div className="absolute -inset-4 bg-gradient-to-r from-church-green/20 to-church-gold/20 rounded-[4rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-
-                    <div className="relative glass-card rounded-[3.5rem] p-10 md:p-14 shadow-premium border-white/10 overflow-hidden">
-                        {/* Visual Decor */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-
-                        <div className="relative z-10 text-center mb-12">
-                            <div className="w-24 h-24 mx-auto bg-gradient-to-br from-church-green to-emerald-700 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-church-green/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700">
-                                <Video size={44} className="text-white" />
-                            </div>
-                            <h1 className="text-4xl font-black dark:text-white mb-4 tracking-tighter">Connect Live</h1>
-                            <p className="text-gray-500 dark:text-gray-400 font-medium max-w-sm mx-auto leading-relaxed">
-                                Join our collective session in real-time. Enter your session code below to enter the room.
-                            </p>
-                        </div>
-
-                        <form onSubmit={handleJoin} className="space-y-8 relative z-10">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-church-green dark:text-church-gold ml-4">
-                                    Meeting Code
-                                </label>
-                                <div className="relative group/input">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/input:text-church-green transition-colors">
-                                        <Shield size={20} />
+            <div className="min-h-screen flex items-center justify-center p-6 bg-[#050505] animate-fade-in overflow-y-auto">
+                <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center pb-20">
+                    {/* Left Side: Preview */}
+                    <div className="relative group order-2 lg:order-1">
+                        <div className="absolute -inset-4 bg-gradient-to-r from-church-green/20 to-church-gold/20 rounded-[3rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-1000"></div>
+                        <div className="relative aspect-video bg-[#0a0a0a] rounded-[2.5rem] overflow-hidden border border-white/10 shadow-premium flex items-center justify-center ring-1 ring-white/5">
+                            {previewTrack ? (
+                                <div ref={previewRef} className="w-full h-full object-cover transform scale-x-[-1]" />
+                            ) : (
+                                <div className="text-center group-hover:scale-110 transition-transform duration-500">
+                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/5">
+                                        <VideoOff size={32} className="text-white/20" />
                                     </div>
-                                    <input
-                                        value={roomName}
-                                        onChange={(e) => setRoomName(e.target.value)}
-                                        placeholder="e.g. live-session"
-                                        className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/50 p-5 pl-16 rounded-3xl outline-none font-black text-xl dark:text-white transition-all shadow-inner"
-                                    />
-                                </div>
-                            </div>
-
-                            {error && (
-                                <div className="p-5 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-bold rounded-2xl flex items-center gap-4 animate-shake">
-                                    <AlertCircle size={20} className="shrink-0" />
-                                    <span>{error}</span>
+                                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Camera preparation...</p>
                                 </div>
                             )}
 
-                            <button
-                                disabled={loading || !roomName}
-                                className="w-full group/btn py-5 bg-church-green hover:bg-emerald-700 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-premium hover:shadow-church-green/40 transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50"
-                            >
-                                {loading ? (
-                                    <Loader2 className="animate-spin" size={20} />
-                                ) : (
-                                    <Phone size={20} className="group-hover:rotate-12 transition-transform" />
-                                )}
-                                <span className="relative">
-                                    {loading ? 'Engaging Connection...' : 'Open Live Session'}
-                                </span>
-                            </button>
-                        </form>
+                            {/* Overlay Controls (Decorative for preview) */}
+                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
+                                <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70">
+                                    <Mic size={20} />
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70">
+                                    <Video size={20} />
+                                </div>
+                            </div>
 
-                        <div className="mt-10 flex items-center justify-center gap-8 opacity-40">
-                            <div className="flex items-center gap-2">
-                                <Mic size={14} />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">Audio Sync</span>
+                            {/* Status Indicator */}
+                            <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                                <div className="w-2 h-2 rounded-full bg-church-green animate-pulse"></div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Video Check</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Video size={14} />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">HD Video</span>
+                        </div>
+                    </div>
+
+                    {/* Right Side: Form */}
+                    <div className="relative order-1 lg:order-2">
+                        <div className="glass-card rounded-[3.5rem] p-10 md:p-14 shadow-premium border-white/10 overflow-hidden text-center lg:text-left">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+
+                            <div className="relative z-10 mb-10">
+                                <h1 className="text-4xl md:text-5xl font-black dark:text-white mb-4 tracking-tighter">Ready to join?</h1>
+                                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed max-w-sm mx-auto lg:mx-0">
+                                    Step into the live session with your team. Enter the session code to get started.
+                                </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Users size={14} />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">Secure</span>
+
+                            <form onSubmit={handleJoin} className="space-y-6 relative z-10">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-church-green dark:text-church-gold ml-3">
+                                        Session Code
+                                    </label>
+                                    <div className="relative group/input">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/input:text-church-green transition-colors">
+                                            <Shield size={20} />
+                                        </div>
+                                        <input
+                                            value={roomName}
+                                            onChange={(e) => setRoomName(e.target.value)}
+                                            placeholder="e.g. general-session"
+                                            className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/50 p-5 pl-16 rounded-3xl outline-none font-black text-xl dark:text-white transition-all shadow-inner"
+                                        />
+                                    </div>
+                                </div>
+
+                                {error && (
+                                    <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold rounded-2xl flex items-center gap-4 animate-shake">
+                                        <AlertCircle size={18} className="shrink-0" />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
+
+                                <button
+                                    disabled={loading || !roomName}
+                                    className="w-full group/btn py-5 bg-church-green hover:bg-emerald-700 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-premium transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    {loading ? (
+                                        <Loader2 className="animate-spin" size={20} />
+                                    ) : (
+                                        <Phone size={20} className="rotate-[135deg]" />
+                                    )}
+                                    <span className="relative">
+                                        {loading ? 'Joining Room...' : 'Join Now'}
+                                    </span>
+                                </button>
+                            </form>
+
+                            <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 opacity-40">
+                                <div className="flex items-center gap-2">
+                                    <Mic size={14} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Audio</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Video size={14} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Video</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Users size={14} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Safe</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -604,7 +794,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
     return (
         <div className="fixed inset-0 bg-[#050505] flex flex-col font-sans text-white overflow-hidden animate-fade-in">
             {/* Background Ambiance */}
-            <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-church-green/10 to-transparent pointer-events-none z-0"></div>
+            <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none z-0"></div>
 
             {/* Reaction Overlay (Floating) */}
             {lastReaction && (
@@ -613,234 +803,285 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 </div>
             )}
 
-            {/* 1. Main Stage */}
-            <div className="flex-1 flex overflow-hidden relative z-10">
-                {/* Video Grid or Spotlight */}
-                <div className={`flex-1 p-4 md:p-6 overflow-y-auto w-full transition-all duration-300 ${activeSidebar !== 'none' ? 'hidden lg:flex' : 'flex'}`}>
+            {/* 1. Main Stage Section */}
+            <div className="flex-1 flex overflow-hidden relative z-10 lg:p-4 lg:gap-4">
+                {/* Video Area */}
+                <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${activeSidebar !== 'none' ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-4 custom-scrollbar flex items-center justify-center">
+                        <div className="w-full max-w-7xl">
+                            {pinnedUser ? (
+                                // --- Spotlight Layout ---
+                                <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[500px]">
+                                    {/* Main Stage */}
+                                    <div className={`flex-[3] relative bg-[#121212] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl ring-1 transition-all duration-500 ${(pinnedUser === 'local' ? speakingUsers.has(currentUid || 0) : speakingUsers.has((pinnedUser as RemoteUser).uid)) ? 'ring-church-green ring-4 shadow-church-green/20' : 'ring-white/10'}`}>
+                                        {pinnedUser === 'local' ? (
+                                            <div ref={localVideoRef} className="w-full h-full object-contain transform scale-x-[-1]" />
+                                        ) : (
+                                            <div
+                                                className="w-full h-full"
+                                                ref={(node) => {
+                                                    if (node && (pinnedUser as RemoteUser).videoTrack) (pinnedUser as RemoteUser).videoTrack!.play(node);
+                                                }}
+                                            />
+                                        )}
 
-                    {pinnedUser ? (
-                        // --- Spotlight Layout ---
-                        <div className="w-full h-full flex flex-col gap-4">
-                            {/* Main Stage (Pinned User) */}
-                            <div className="flex-1 relative glass-card border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                                {pinnedUser === 'local' ? (
-                                    <div ref={localVideoRef} className="w-full h-full object-contain transform scale-x-[-1]" />
-                                ) : (
-                                    <div
-                                        className="w-full h-full"
-                                        ref={(node) => {
-                                            if (node && (pinnedUser as RemoteUser).videoTrack) (pinnedUser as RemoteUser).videoTrack!.play(node);
-                                        }}
-                                    />
-                                )}
-
-                                {/* Info Badge */}
-                                <div className="absolute bottom-6 left-6 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl text-lg font-black uppercase tracking-wider flex items-center gap-3 border border-white/10">
-                                    <span>{pinnedUser === 'local' ? 'You (Pinned)' : (participantData[(pinnedUser as RemoteUser).uid.toString()]?.displayName || 'Speaker')}</span>
-                                    <button onClick={() => setPinnedUid(null)} className="p-1 hover:bg-white/10 rounded-full transition-colors" title="Unpin">
-                                        <Layout size={16} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Filmstrip (Others) */}
-                            <div className="h-32 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                                {/* Show Local if not pinned */}
-                                {pinnedUser !== 'local' && (
-                                    <div className="relative aspect-video min-w-[160px] glass-card rounded-xl overflow-hidden border border-white/5 cursor-pointer hover:border-church-green transition-all" onClick={() => setPinnedUid(currentUid?.toString() || null)}>
-                                        <div ref={localVideoRef} className="w-full h-full object-cover transform scale-x-[-1]" />
-                                        <div className="absolute inset-0 bg-black/20 hover:bg-transparent transition-colors"></div>
-                                    </div>
-                                )}
-
-                                {/* Show Remotes if not pinned */}
-                                {sortedRemoteUsers.filter(u => u.uid.toString() !== pinnedUid).map(user => (
-                                    <div key={user.uid} className="relative aspect-video min-w-[160px] glass-card rounded-xl overflow-hidden border border-white/5 cursor-pointer hover:border-church-green transition-all" onClick={() => setPinnedUid(user.uid.toString())}>
-                                        <div
-                                            className="w-full h-full"
-                                            ref={(node) => {
-                                                if (node && user.videoTrack) user.videoTrack.play(node);
-                                            }}
-                                        />
-                                        <div className="absolute inset-0 bg-black/20 hover:bg-transparent transition-colors"></div>
-                                        <div className="absolute bottom-2 left-2 text-[10px] font-bold">{participantData[user.uid.toString()]?.displayName}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        // --- Grid Layout (Standard) ---
-                        <div className={`grid gap-4 md:gap-6 w-full h-full content-center ${getGridClass(participantCount)} max-h-[85vh] mx-auto`}>
-                            {/* Local User */}
-                            <div className="relative glass-card border border-white/5 rounded-[2rem] overflow-hidden aspect-video shadow-2xl group ring-2 ring-church-green/20 hover:ring-church-green/50 transition-all">
-                                <div ref={localVideoRef} className="w-full h-full object-cover transform scale-x-[-1]" />
-                                <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-white/10">
-                                    <span>You</span>
-                                    {!isMicOn && <MicOff size={12} className="text-red-500" />}
-                                </div>
-
-                                {/* Pin Button Hover */}
-                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => setPinnedUid(currentUid?.toString() || null)} className="p-2 bg-black/40 hover:bg-church-green rounded-full backdrop-blur-md text-white border border-white/10 transition-colors">
-                                        <Layout size={14} />
-                                    </button>
-                                </div>
-
-                                {/* Hand Indicator */}
-                                {isHandRaised && (
-                                    <div className="absolute top-4 left-4 bg-church-gold text-black p-2 rounded-xl animate-bounce shadow-lg">
-                                        <Hand size={16} />
-                                    </div>
-                                )}
-
-                                {!isCameraOn && !isScreenSharing && (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a]">
-                                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10">
-                                            <div className="w-10 h-10 rounded-full bg-church-green/20 flex items-center justify-center text-church-green font-black text-lg">
-                                                {currentUser?.displayName?.charAt(0) || 'U'}
+                                        <div className="absolute bottom-6 left-6 flex items-center gap-3">
+                                            <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold tracking-tight">
+                                                        {pinnedUser === 'local' ? 'You' : (participantData[(pinnedUser as RemoteUser).uid.toString()]?.displayName || 'Speaker')}
+                                                    </span>
+                                                    {(pinnedUser === 'local' ? speakingUsers.has(currentUid || 0) : speakingUsers.has((pinnedUser as RemoteUser).uid)) && (
+                                                        <div className="flex gap-0.5 items-end h-3 px-1">
+                                                            <div className="w-0.5 h-1 bg-church-green animate-bounce"></div>
+                                                            <div className="w-0.5 h-2 bg-church-green animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                            <div className="w-0.5 h-1.5 bg-church-green animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button onClick={() => setPinnedUid(null)} className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white/70" title="Unpin">
+                                                    <Minimize2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Camera Off</span>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Remote Users */}
-                            {sortedRemoteUsers.map(user => {
-                                const hasVideo = !!user.videoTrack;
-                                return (
-                                    <div key={user.uid} className="relative glass-card border border-white/5 rounded-[2rem] overflow-hidden aspect-video shadow-2xl group">
-                                        <div
-                                            id={`user-video-${user.uid}`}
-                                            className="w-full h-full"
-                                            ref={(node) => {
-                                                if (node && user.videoTrack) user.videoTrack.play(node);
-                                            }}
-                                        />
-                                        <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-white/10">
-                                            <span>{participantData[user.uid.toString()]?.displayName || 'Participant'}</span>
+                                    {/* Filmstrip */}
+                                    <div className="flex-1 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto lg:max-h-[70vh] pb-2 lg:pb-0 hide-scrollbar">
+                                        {/* Local if not pinned */}
+                                        {pinnedUser !== 'local' && (
+                                            <div className={`relative aspect-video min-w-[150px] lg:min-w-0 bg-[#0a0a0a] rounded-xl overflow-hidden border transition-all group shrink-0 ring-1 ${speakingUsers.has(currentUid || 0) ? 'ring-church-green border-church-green shadow-church-green/20' : 'border-white/5 shadow-premium'}`} onClick={() => setPinnedUid(currentUid?.toString() || null)}>
+                                                <div ref={localVideoRef} className="w-full h-full object-cover transform scale-x-[-1]" />
+                                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors flex items-end p-2 md:p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold">You</span>
+                                                        {speakingUsers.has(currentUid || 0) && (
+                                                            <div className="flex gap-0.5 items-end h-2">
+                                                                <div className="w-0.5 h-1 bg-church-green animate-bounce"></div>
+                                                                <div className="w-0.5 h-2 bg-church-green animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Remotes if not pinned */}
+                                        {sortedRemoteUsers.filter(u => u.uid.toString() !== pinnedUid).map(user => (
+                                            <div key={user.uid} className={`relative aspect-video min-w-[150px] lg:min-w-0 bg-[#0a0a0a] rounded-xl overflow-hidden border transition-all group shrink-0 ring-1 ${speakingUsers.has(user.uid) ? 'ring-church-green border-church-green shadow-church-green/20' : 'border-white/5 shadow-premium'}`} onClick={() => setPinnedUid(user.uid.toString())}>
+                                                <div
+                                                    className="w-full h-full"
+                                                    ref={(node) => {
+                                                        if (node && user.videoTrack) user.videoTrack.play(node);
+                                                    }}
+                                                />
+                                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors flex items-end p-2 md:p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold">{participantData[user.uid.toString()]?.displayName}</span>
+                                                        {speakingUsers.has(user.uid) && (
+                                                            <div className="flex gap-0.5 items-end h-2">
+                                                                <div className="w-0.5 h-1 bg-church-green animate-bounce"></div>
+                                                                <div className="w-0.5 h-2 bg-church-green animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                // --- Grid Layout (Standard) ---
+                                <div className={getGridClass(participantCount)}>
+                                    <div className={`relative bg-[#121212] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden aspect-video shadow-2xl group ring-1 transition-all duration-300 ${speakingUsers.has(currentUid || 0) ? 'ring-church-green ring-4 shadow-church-green/20' : 'ring-white/10 hover:ring-church-green/30'}`}>
+                                        <div ref={localVideoRef} className="w-full h-full object-cover transform scale-x-[-1]" />
+
+                                        <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/5">
+                                            <span>You</span>
+                                            {!isMicOn && <MicOff size={12} className="text-red-500" />}
+                                            {speakingUsers.has(currentUid || 0) && (
+                                                <div className="flex gap-0.5 items-end h-3 px-1">
+                                                    <div className="w-0.5 h-1 bg-church-green animate-bounce"></div>
+                                                    <div className="w-0.5 h-2 bg-church-green animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                    <div className="w-0.5 h-1.5 bg-church-green animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Pin Button Hover */}
                                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setPinnedUid(user.uid.toString())} className="p-2 bg-black/40 hover:bg-church-green rounded-full backdrop-blur-md text-white border border-white/10 transition-colors">
-                                                <Layout size={14} />
+                                            <button onClick={() => setPinnedUid(currentUid?.toString() || null)} className="p-2 bg-black/40 hover:bg-church-green rounded-full backdrop-blur-md text-white border border-white/10 transition-all">
+                                                <Expand size={14} />
                                             </button>
                                         </div>
 
-                                        {/* Hand Indicator */}
-                                        {user.isHandRaised && (
-                                            <div className="absolute top-4 left-4 bg-church-gold text-black p-2 rounded-xl animate-bounce shadow-lg">
-                                                <Hand size={16} />
+                                        {isHandRaised && (
+                                            <div className="absolute top-4 left-4 bg-church-gold text-black p-1.5 rounded-lg animate-bounce shadow-lg ring-1 ring-black/10">
+                                                <Hand size={14} />
                                             </div>
                                         )}
 
-                                        {!hasVideo && (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a]">
-                                                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10">
-                                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-lg">
-                                                        {participantData[user.uid.toString()]?.displayName?.charAt(0) || '?'}
+                                        {!isCameraOn && !isScreenSharing && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]">
+                                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-3 border border-white/10">
+                                                    <div className="w-10 h-10 rounded-full bg-church-green/20 flex items-center justify-center text-church-green font-bold text-lg border border-church-green/20">
+                                                        {currentUser?.displayName?.charAt(0) || 'U'}
                                                     </div>
                                                 </div>
-                                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Video Off</span>
+                                                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Video Disabled</span>
                                             </div>
                                         )}
                                     </div>
-                                );
-                            })}
+
+                                    {/* Remote Users */}
+                                    {sortedRemoteUsers.map(user => {
+                                        const hasVideo = !!user.videoTrack;
+                                        return (
+                                            <div key={user.uid} className={`relative bg-[#121212] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden aspect-video shadow-2xl group ring-1 transition-all duration-300 ${speakingUsers.has(user.uid) ? 'ring-church-green ring-4 shadow-church-green/20' : 'ring-white/10 hover:ring-church-green/30'}`}>
+                                                <div
+                                                    className="w-full h-full"
+                                                    ref={(node) => {
+                                                        if (node && user.videoTrack) user.videoTrack.play(node);
+                                                    }}
+                                                />
+                                                <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/5">
+                                                    <span>{participantData[user.uid.toString()]?.displayName || 'Participant'}</span>
+                                                    {speakingUsers.has(user.uid) && (
+                                                        <div className="flex gap-0.5 items-end h-3 px-1">
+                                                            <div className="w-0.5 h-1 bg-church-green animate-bounce"></div>
+                                                            <div className="w-0.5 h-2 bg-church-green animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                            <div className="w-0.5 h-1.5 bg-church-green animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => setPinnedUid(user.uid.toString())} className="p-2 bg-black/40 hover:bg-church-green rounded-full backdrop-blur-md text-white border border-white/10 transition-all">
+                                                        <Expand size={14} />
+                                                    </button>
+                                                </div>
+
+                                                {user.isHandRaised && (
+                                                    <div className="absolute top-4 left-4 bg-church-gold text-black p-1.5 rounded-lg animate-bounce shadow-lg ring-1 ring-black/10">
+                                                        <Hand size={14} />
+                                                    </div>
+                                                )}
+
+                                                {!hasVideo && (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]">
+                                                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-3 border border-white/10">
+                                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 font-bold text-lg border border-white/5">
+                                                                {participantData[user.uid.toString()]?.displayName?.charAt(0) || '?'}
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">No Video Stream</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
 
-                {/* Sidebar (Chat / People) */}
+                {/* Sidebar (Chat / People) - Meet Style */}
                 {activeSidebar !== 'none' && (
-                    <div className="w-full md:w-96 glass-card border-l border-white/5 flex flex-col absolute inset-0 md:static z-20 backdrop-blur-xl bg-black/60">
-                        {/* Header */}
-                        <div className="p-6 flex items-center justify-between border-b border-white/5">
-                            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-church-gold">
-                                {activeSidebar === 'chat' ? 'Live Chat' : 'Participants'}
+                    <div className="w-full lg:w-[360px] bg-white dark:bg-[#121212] lg:rounded-2xl lg:shadow-2xl flex flex-col absolute inset-0 lg:static z-20 border-l lg:border border-white/5">
+                        <div className="p-5 flex items-center justify-between border-b border-white/5">
+                            <h2 className="text-xs font-black uppercase tracking-widest text-church-gold">
+                                {activeSidebar === 'chat' ? 'In-call Messages' : 'Participants'}
                             </h2>
-                            <button onClick={() => setActiveSidebar('none')} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                                <X size={18} />
+                            <button onClick={() => setActiveSidebar('none')} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/50">
+                                <X size={20} />
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 custom-scrollbar">
                             {activeSidebar === 'people' && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-church-green/20 flex items-center justify-center text-xs font-bold text-church-green border border-church-green/20">
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 ring-1 ring-church-green/20">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-church-green/10 flex items-center justify-center text-xs font-bold text-church-green border border-church-green/20">
                                                 {currentUser?.displayName?.charAt(0) || 'Y'}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-white">You</p>
-                                                <p className="text-[10px] uppercase tracking-wider text-white/50">Host</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-white/40">Session Host</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {!isMicOn ? <MicOff size={14} className="text-red-500" /> : <Mic size={14} className="text-church-green" />}
                                         </div>
                                     </div>
-                                    {sortedRemoteUsers.map(user => (
-                                        <div key={user.uid} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/70">
-                                                    {participantData[user.uid.toString()]?.displayName?.charAt(0) || '?'}
+
+                                    <div className="space-y-4 pt-4 border-t border-white/5">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-3">Others in call</h3>
+                                        {sortedRemoteUsers.length === 0 ? (
+                                            <p className="text-[10px] text-center text-white/20 py-4 italic">No other participants yet</p>
+                                        ) : (
+                                            sortedRemoteUsers.map(user => (
+                                                <div key={user.uid} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/40 border border-white/5">
+                                                            {participantData[user.uid.toString()]?.displayName?.charAt(0) || '?'}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-white/80">{participantData[user.uid.toString()]?.displayName || 'Guest'}</p>
+                                                            <p className="text-[9px] uppercase text-white/20">Participant</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-white/90">{participantData[user.uid.toString()]?.displayName || 'Guest'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
                             {activeSidebar === 'chat' && (
-                                <div className="space-y-4">
-                                    {messages.length === 0 && (
-                                        <div className="text-center py-10 opacity-30">
-                                            <MessageSquare size={32} className="mx-auto mb-2" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Quiet Room</p>
-                                        </div>
-                                    )}
-                                    {messages.map(msg => (
-                                        <div key={msg.id} className="flex gap-3 animate-fade-in-up">
-                                            <div className="mt-1">
-                                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold border border-white/5">
-                                                    {msg.sender.charAt(0)}
+                                <div className="flex flex-col h-full">
+                                    <div className="flex-1 space-y-6">
+                                        {messages.length === 0 && (
+                                            <div className="text-center py-20 opacity-20 flex flex-col items-center">
+                                                <MessageSquare size={48} className="mb-4" />
+                                                <p className="text-xs font-black uppercase tracking-widest leading-relaxed">Messages can be seen<br />by everyone in the call</p>
+                                            </div>
+                                        )}
+                                        {messages.map(msg => (
+                                            <div key={msg.id} className="group flex gap-3 animate-fade-in-up">
+                                                <div className="shrink-0">
+                                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold border border-white/5 text-church-gold/80">
+                                                        {msg.sender.charAt(0)}
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-baseline gap-2 mb-1">
+                                                        <span className="text-xs font-bold text-white/70 truncate">{msg.sender}</span>
+                                                        <span className="text-[9px] text-white/20">
+                                                            {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-white/90 leading-relaxed break-words">{msg.text}</p>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-xs font-bold text-church-gold">{msg.sender}</span>
-                                                    <span className="text-[9px] text-white/30 lowercase">
-                                                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-white/90 mt-0.5 leading-relaxed">{msg.text}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div ref={messagesEndRef} />
+                                        ))}
+                                        <div ref={messagesEndRef} />
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Chat Input */}
                         {activeSidebar === 'chat' && (
-                            <div className="p-4 border-t border-white/5 bg-black/20">
+                            <div className="p-4 border-t border-white/5 bg-black/40">
                                 <form onSubmit={sendMessage} className="relative">
                                     <input
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        placeholder="Type a message..."
-                                        className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-3 pl-5 pr-12 outline-none focus:border-church-green/50 transition-all text-sm placeholder:text-white/20"
+                                        placeholder="Send a message"
+                                        className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-3 pl-4 pr-12 outline-none focus:ring-1 focus:ring-church-green/50 transition-all text-sm placeholder:text-white/20"
                                     />
-                                    <button type="submit" disabled={!newMessage.trim()} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-church-green hover:text-white disabled:opacity-20 transition-colors">
-                                        <Send size={16} />
+                                    <button type="submit" disabled={!newMessage.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-church-green hover:bg-church-green/10 rounded-lg disabled:opacity-20 transition-all">
+                                        <Send size={18} />
                                     </button>
                                 </form>
                             </div>
@@ -849,50 +1090,58 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 )}
             </div>
 
-            {/* 2. Bottom Control Bar (Glassmorphism) */}
-            <div className="h-24 bg-gradient-to-t from-black via-black/90 to-transparent flex items-end justify-center pb-6 md:pb-8 px-6 z-30 shrink-0 pointer-events-none">
-                <div className="pointer-events-auto flex items-center gap-4 md:gap-6 bg-white/5 backdrop-blur-xl p-3 md:p-4 rounded-[2.5rem] border border-white/10 shadow-2xl">
-                    <button
+            {/* 2. Control Bar (Google Meet Style) */}
+            <div className="h-20 md:h-24 bg-[#050505] border-t border-white/5 flex items-center justify-between px-4 md:px-10 z-30 shrink-0">
+                {/* Left: Session Info */}
+                <div className="hidden lg:flex flex-col gap-0.5 w-1/4">
+                    <div className="flex items-center gap-2 text-white/90 font-bold mb-0.5">
+                        <Clock size={16} className="text-church-gold" />
+                        <span className="text-sm tracking-tight">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <div className="w-1 h-1 bg-white/20 rounded-full mx-1"></div>
+                        <span className="text-sm truncate max-w-[150px]">{roomName}</span>
+                    </div>
+                </div>
+
+                {/* Center: Core Controls */}
+                <div className="flex items-center gap-3 md:gap-4 flex-1 justify-center">
+                    <ControlButton
+                        icon={isMicOn ? Mic : MicOff}
                         onClick={toggleMic}
-                        title="Toggle Microphone"
-                        className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isMicOn ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-500 text-white shadow-lg shadow-red-500/30'}`}
-                    >
-                        {isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
-                    </button>
-                    <button
+                        isActive={isMicOn}
+                        isDanger={!isMicOn}
+                        label={isMicOn ? "Turn off microphone" : "Turn on microphone"}
+                    />
+                    <ControlButton
+                        icon={isCameraOn ? Video : VideoOff}
                         onClick={toggleCamera}
-                        title="Toggle Camera"
-                        className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isCameraOn ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-red-500 text-white shadow-lg shadow-red-500/30'}`}
-                    >
-                        {isCameraOn ? <Video size={20} /> : <VideoOff size={20} />}
-                    </button>
+                        isActive={isCameraOn}
+                        isDanger={!isCameraOn}
+                        label={isCameraOn ? "Turn off camera" : "Turn on camera"}
+                    />
 
-                    <button
+                    <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block"></div>
+
+                    <ControlButton
+                        icon={Monitor}
                         onClick={toggleScreenShare}
-                        title="Share Screen"
-                        className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isScreenSharing ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-                    >
-                        <Monitor size={20} />
-                    </button>
+                        isActive={isScreenSharing}
+                        colorClass="bg-blue-600 text-white hover:bg-blue-700"
+                        label={isScreenSharing ? "Stop presenting" : "Present now"}
+                    />
 
-                    <div className="w-px h-8 bg-white/10 hidden md:block"></div>
-
-                    {/* Reactions */}
-                    <div className="relative">
-                        <button
+                    <div className="relative group">
+                        <ControlButton
+                            icon={() => <span className="text-xl">😊</span>}
                             onClick={() => setShowReactions(!showReactions)}
-                            className="w-12 h-12 md:w-14 md:h-14 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-white transition-all"
-                            title="Refactions"
-                        >
-                            <span className="text-xl">😊</span>
-                        </button>
+                            label="Send a reaction"
+                        />
                         {showReactions && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-3 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl flex gap-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2">
-                                {['❤️', '👍', '🙏', '🎉', '🔥'].map(emoji => (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-2 bg-[#1a1a1a] border border-white/10 rounded-2xl flex gap-1 shadow-2xl animate-in fade-in slide-in-from-bottom-4 ring-1 ring-white/10">
+                                {['❤️', '👍', '👏', '🎉', '🔥', '😂', '😮', '😢'].map(emoji => (
                                     <button
                                         key={emoji}
                                         onClick={() => sendReaction(emoji)}
-                                        className="text-2xl hover:scale-125 transition-transform p-2 cursor-pointer"
+                                        className="text-xl hover:scale-125 hover:bg-white/10 transition-all p-2 rounded-xl cursor-pointer"
                                     >
                                         {emoji}
                                     </button>
@@ -901,47 +1150,50 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                         )}
                     </div>
 
-                    {/* Hand Raise */}
-                    <button
+                    <ControlButton
+                        icon={Hand}
                         onClick={toggleHand}
-                        title={isHandRaised ? "Lower Hand" : "Raise Hand"}
-                        className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isHandRaised ? 'bg-church-gold text-black shadow-lg shadow-church-gold/20' : 'bg-white/5 hover:bg-white/10 text-white'}`}
-                    >
-                        <Hand size={20} />
-                    </button>
+                        isActive={isHandRaised}
+                        colorClass="bg-church-gold text-black hover:bg-amber-400"
+                        label={isHandRaised ? "Lower hand" : "Raise hand"}
+                    />
 
-                    <div className="w-px h-8 bg-white/10 hidden md:block"></div>
+                    <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block"></div>
 
                     <button
                         onClick={leaveCall}
-                        title="Leave Call"
-                        className="h-12 md:h-14 px-8 bg-red-600 hover:bg-red-500 text-white rounded-full flex items-center gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/40"
+                        className="h-12 px-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/30 active:scale-95"
+                        title="Leave call"
                     >
                         <Phone size={20} className="rotate-[135deg]" />
-                        <span className="hidden md:inline font-black text-xs uppercase tracking-[0.2em]">End</span>
+                        <span className="hidden md:inline font-black text-[10px] uppercase tracking-widest">Leave</span>
+                    </button>
+                </div>
+
+                {/* Right: Panel Toggles */}
+                <div className="flex items-center gap-2 md:gap-4 w-1/4 justify-end">
+                    <button
+                        onClick={() => setActiveSidebar('none')} // Toggle logic handled in buttons below
+                        className="p-3 text-white/50 hover:text-white transition-colors lg:hidden"
+                    >
+                        <Info size={20} />
                     </button>
 
-                    <div className="w-px h-8 bg-white/10 hidden md:block"></div>
-
-                    <button
+                    <ControlButton
+                        icon={Users}
                         onClick={() => setActiveSidebar(activeSidebar === 'people' ? 'none' : 'people')}
-                        title="Participants"
-                        className={`p-4 rounded-full transition-all duration-300 ${activeSidebar === 'people' ? 'bg-church-gold text-black shadow-lg shadow-church-gold/20' : 'bg-white/5 hover:bg-white/10 text-white'}`}
-                    >
-                        <div className="relative">
-                            <Users size={20} />
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
-                                {participantCount}
-                            </span>
-                        </div>
-                    </button>
-                    <button
+                        isActive={activeSidebar === 'people'}
+                        label="Show everyone"
+                        badgeCount={participantCount}
+                        colorClass="bg-church-gold/20 text-church-gold hover:bg-church-gold/30 border-church-gold/30 border"
+                    />
+                    <ControlButton
+                        icon={MessageSquare}
                         onClick={() => setActiveSidebar(activeSidebar === 'chat' ? 'none' : 'chat')}
-                        title="Chat"
-                        className={`p-4 rounded-full transition-all duration-300 ${activeSidebar === 'chat' ? 'bg-church-green text-white shadow-lg shadow-church-green/20' : 'bg-white/5 hover:bg-white/10 text-white'}`}
-                    >
-                        <MessageSquare size={20} />
-                    </button>
+                        isActive={activeSidebar === 'chat'}
+                        label="Chat with everyone"
+                        colorClass="bg-church-green/20 text-church-green hover:bg-church-green/30 border-church-green/30 border"
+                    />
                 </div>
             </div>
         </div>
