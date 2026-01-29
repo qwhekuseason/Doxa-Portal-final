@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'admin@gmail.com' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+    
+    // Stories folder - authenticated users can upload, anyone can read
+    match /stories/{storyFile} {
+      // Allow authenticated users to upload their own images
+      // Files are named: userId_timestamp_filename.ext
+      allow create: if isAuthenticated();
+      
+      // Allow all authenticated users to read stories
+      allow read: if isAuthenticated();
+      
+      // Allow owner or admin to delete
+      // Check if filename starts with user's UID
+      allow delete: if isAuthenticated() && (
+        storyFile.matches(request.auth.uid + '_.*') || 
+        isAdmin()
+      );
+    }
+    
+    // Gallery folder - admin only for write, public read
+    match /gallery/{imageFile} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Sermons folder - admin only for write, public read
+    match /sermons/{audioFile} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // User profile pictures - users can manage their own
+    match /profile_pictures/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

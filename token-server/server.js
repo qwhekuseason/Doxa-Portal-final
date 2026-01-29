@@ -1,14 +1,16 @@
+require('dotenv').config({ path: '../.env.local' });
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
 const selfsigned = require('selfsigned');
 const { RtcTokenBuilder, RtcRole } = require('agora-token');
+const generateQuizHandler = require('../api/generateQuiz.js');
 
 const app = express();
 const PORT = 3001;
 
 // Agora credentials
-const AGORA_APP_ID = '33e2fbf899a04c90a3fa9edf66f2db2a';
+const AGORA_APP_ID = process.env.VITE_AGORA_APP_ID || '33e2fbf899a04c90a3fa9edf66f2db2a';
 const AGORA_APP_CERTIFICATE = 'eed5525bbbd64ba2a3c9fa163e7e7f9c';
 
 // Enable CORS for all origins (useful if dev server is on different port)
@@ -93,6 +95,9 @@ app.post('/generateToken', (req, res) => {
         });
     }
 });
+
+// Quiz generation endpoint (reusing the Vercel handler logic)
+app.post('/generateQuiz', generateQuizHandler);
 
 // Start HTTP server
 app.listen(PORT, '0.0.0.0', () => {

@@ -113,12 +113,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">A World of Fellowship Awaits</span>
                         </div>
 
-                        <h1 className="text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter text-gray-900 dark:text-white animate-fade-in-up">
+                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter text-gray-900 dark:text-white animate-fade-in-up">
                             Experience <br className="hidden md:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-church-green via-emerald-500 to-church-gold">Divine Presence.</span>
                         </h1>
 
-                        <p className="max-w-3xl mx-auto text-xl md:text-2xl text-gray-500 dark:text-gray-400 mb-14 leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                        <p className="max-w-3xl mx-auto text-lg md:text-2xl text-gray-500 dark:text-gray-400 mb-14 leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                             Doxa Portal isn't just an app—it's a digital sanctuary. From life-changing sermons to direct intercession, we bridge the gap between you and the body of Christ.
                         </p>
 
@@ -298,13 +298,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                         <h3 className="text-3xl md:text-5xl font-black italic tracking-tighter dark:text-white mb-10 leading-tight">
                             "A revolutionary approach to digital fellowship. The Doxa Portal provides a sanctuary for my soul in the midst of a busy world."
                         </h3>
-                        <div className="flex items-center justify-center gap-6">
+                        <div className="flex items-center justify-center">
                             <div className="w-16 h-16 rounded-[1.5rem] bg-gray-200 overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl">
-                                <img src="https://ui-avatars.com/api/?name=Rev.+David+Amoah&background=16A34A&color=fff" alt="User" />
-                            </div>
-                            <div className="text-left">
-                                <p className="font-black text-sm uppercase tracking-widest dark:text-white">Rev. David Amoah</p>
-                                <p className="text-[10px] font-bold text-church-green uppercase tracking-widest mt-1">Founding Director</p>
+                                <img src="https://ui-avatars.com/api/?name=Member&background=16A34A&color=fff" alt="Member" />
                             </div>
                         </div>
                     </div>

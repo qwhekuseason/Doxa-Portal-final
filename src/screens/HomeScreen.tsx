@@ -13,11 +13,14 @@ import {
   TrendingUp,
   Flame,
   Star,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
-import { SkeletonCard, FloatingSocialMenu, SectionHeader, StatCard } from '../components/UIComponents';
+import { SkeletonCard, SectionHeader, StatCard } from '../components/UIComponents';
 import { useTheme } from '../components/ThemeContext';
 import { parseDateSafe } from '../utils/dateUtils';
+import { StoryDevotional } from '../components/StoryDevotional';
+import { LivePulse } from '../components/LivePulse';
 
 // Static VersES Collection
 const VERSES = [
@@ -126,6 +129,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
   return (
     <div className="space-y-12 animate-fade-in pb-10">
 
+      {/* Story Devotionals */}
+      <StoryDevotional />
+
       {/* Hero Welcome Section */}
       <section className="relative rounded-3xl overflow-hidden shadow-premium group">
         {/* Dynamic Background */}
@@ -139,6 +145,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
             <div className="flex-1 space-y-3">
               <div className="flex items-center gap-3 animate-fade-in-up">
                 <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Faith Dashboard</span>
+                {user?.streak && user.streak.count > 0 && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-500 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-orange-500/20">
+                    <Flame size={10} fill="currentColor" /> {user.streak.count} Day Streak
+                  </span>
+                )}
                 <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
@@ -167,35 +178,38 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
         </div>
       </section>
 
-      {/* Main Stats Grid */}
-      <section className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <section className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title="Sermons"
           value={user?.stats?.sermonsHeard || 0}
           icon={<BookOpen />}
           color="bg-church-green"
+          onClick={() => onNavigate('sermons')}
         />
         <StatCard
           title="Points"
           value={user?.stats?.quizPoints || 0}
           icon={<Star />}
           color="bg-church-gold"
+          onClick={() => onNavigate('quiz')}
         />
         <StatCard
           title="Quizzes"
           value={user?.stats?.quizzesTaken || 0}
           icon={<TrendingUp />}
           color="bg-blue-500"
+          onClick={() => onNavigate('quiz')}
         />
         <StatCard
-          title="Highlights"
-          value={user?.stats?.versesHighlighted || 0}
+          title="Best Streak"
+          value={user?.streak?.best || 0}
           icon={<Flame />}
           color="bg-orange-500"
+          onClick={() => onNavigate('profile')}
         />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
         {/* Left Column: Feed */}
         <div className="lg:col-span-2 space-y-12">
 
@@ -326,24 +340,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
           )}
 
           {/* Quick Actions */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:sticky lg:top-8">
             <SectionHeader title="Actions" />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 md:gap-4">
               {[
                 { id: 'prayer', label: 'PRAYER', icon: <Heart />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
                 { id: 'quiz', label: 'QUIZ', icon: <Brain />, color: 'text-church-green', bg: 'bg-church-green/5 hover:bg-church-green/10' },
                 { id: 'bible', label: 'BIBLE', icon: <BookOpen />, color: 'text-blue-500', bg: 'bg-blue-500/5 hover:bg-blue-500/10' },
                 { id: 'events', label: 'EVENTS', icon: <Calendar />, color: 'text-purple-500', bg: 'bg-purple-500/5 hover:bg-purple-500/10' },
+                { id: 'chat', label: 'FELLOWSHIP', icon: <MessageSquare />, color: 'text-orange-500', bg: 'bg-orange-500/5 hover:bg-orange-500/10' },
+                { id: 'giving', label: 'GIVING', icon: <TrendingUp />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
               ].map(action => (
                 <button
                   key={action.id}
                   onClick={() => onNavigate(action.id)}
-                  className={`p-5 ${action.bg} glass-card border-none rounded-2xl flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 group`}
+                  className={`p-4 md:p-5 ${action.bg} glass-card border-none rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 group shadow-sm`}
                 >
                   <div className={`${action.color} group-hover:scale-110 transition-transform duration-500`}>
-                    {React.cloneElement(action.icon as React.ReactElement, { size: 24 })}
+                    {React.cloneElement(action.icon as React.ReactElement, { size: 20 })}
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                     {action.label}
                   </span>
                 </button>
@@ -353,8 +369,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
         </div>
       </div>
 
-      <FloatingSocialMenu />
-    </div >
+      {/* Live Spiritual Pulse */}
+      {user && <LivePulse uid={user.uid} displayName={user.displayName} />}
+    </div>
   );
 };
 

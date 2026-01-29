@@ -5,7 +5,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { RecentActivityFeed } from '../components/AdminViews';
-import { Users, BookOpen, MessageCircle, Heart, AlertTriangle, ArrowUpRight, Shield, Zap } from 'lucide-react';
+import { Users, BookOpen, MessageCircle, Heart, AlertTriangle, ArrowUpRight, Shield, Zap, Image as ImageIcon } from 'lucide-react';
 import { StatCard } from '../components/UIComponents';
 
 const ActionButton: React.FC<{ label: string; icon: React.ReactNode; color: string; onClick?: () => void }> = ({ label, icon, color, onClick }) => (
@@ -84,9 +84,9 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ActionButton label="Review Support" icon={<Heart size={20} />} color="bg-rose-500" onClick={() => navigateTo('admin-prayers')} />
               <ActionButton label="Manage Events" icon={<Zap size={20} />} color="bg-amber-500" onClick={() => navigateTo('admin-events')} />
-              <ActionButton label="Generate Content Quiz" icon={<Shield size={20} />} color="bg-church-gold" onClick={() => navigateTo('quizzes')} />
-              <ActionButton label="Upload Content" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
-              <ActionButton label="Approve Stories" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
+              <ActionButton label="Post Community Story" icon={<ImageIcon size={20} />} color="bg-blue-500" onClick={() => navigateTo('admin-stories')} />
+              <ActionButton label="Upload Content Library" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
+              <ActionButton label="Approve Testimonies" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
             </div>
           </div>
 

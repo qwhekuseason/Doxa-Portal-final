@@ -12,6 +12,8 @@ import { RtcTokenBuilder, RtcRole } from 'agora-token';
 // Initialize Firebase Admin
 admin.initializeApp();
 
+export * from './triggers';
+
 // Agora configuration from environment variables
 const AGORA_APP_ID = process.env.AGORA_APP_ID || '33e2fbf899a04c90a3fa9edf66f2db2a';
 const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE || 'eed5525bbbd64ba2a3c9fa163e7e7f9c';

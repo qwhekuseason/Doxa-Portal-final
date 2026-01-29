@@ -106,9 +106,9 @@ const SermonLibraryView: React.FC = () => {
       </div>
 
       {/* Grouping Controls */}
-      <div className="flex flex-wrap items-center gap-3 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest border border-gray-200 dark:border-white/5">
-          <Filter size={14} /> Group By
+      <div className="flex items-center gap-3 animate-fade-in-up overflow-x-auto pb-2 -mx-2 px-2 md:-mx-0 md:px-0 md:flex-wrap hide-scrollbar" style={{ animationDelay: '0.1s' }}>
+        <div className="flex-none flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-white/5 rounded-2xl text-[10px] font-black text-gray-400 uppercase tracking-widest border border-gray-200 dark:border-white/5">
+          <Filter size={14} /> <span className="hidden sm:inline">Group By</span>
         </div>
         {[
           { id: 'none', label: 'All', icon: <LayoutGrid size={14} /> },
@@ -120,7 +120,7 @@ const SermonLibraryView: React.FC = () => {
           <button
             key={btn.id}
             onClick={() => setGroupMode(btn.id as any)}
-            className={`px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 ${groupMode === btn.id
+            className={`flex-none px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap ${groupMode === btn.id
               ? 'bg-church-green text-white shadow-lg shadow-church-green/30'
               : 'glass-card border-none text-gray-500 hover:text-church-green'
               }`}

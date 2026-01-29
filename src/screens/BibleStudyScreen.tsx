@@ -84,21 +84,21 @@ const BibleStudyScreen: React.FC<BibleStudyScreenProps> = ({ user }) => {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <SectionHeader
                     title="Bible Study"
-                    subtitle="Deepen your understanding with guided study plans and personal reflections."
+                    subtitle="Deepen your understanding with guided study plans."
                 />
 
-                <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200 dark:border-white/5">
+                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-gray-200 dark:border-white/5 w-fit">
                     <button
                         onClick={() => { setView('plans'); setSelectedPlan(null); }}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'plans' || view === 'plan-detail' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm' : 'text-gray-400'}`}
+                        className={`px-4 sm:px-6 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'plans' || view === 'plan-detail' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm' : 'text-gray-400'}`}
                     >
-                        <BookMarked size={14} /> Study Plans
+                        <BookMarked size={14} /> <span className="hidden xs:inline">Plans</span><span className="xs:hidden">Plans</span>
                     </button>
                     <button
                         onClick={() => setView('notes')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'notes' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm' : 'text-gray-400'}`}
+                        className={`px-4 sm:px-6 py-2 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${view === 'notes' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm' : 'text-gray-400'}`}
                     >
-                        <StickyNote size={14} /> My Notes
+                        <StickyNote size={14} /> <span className="hidden xs:inline">Notes</span><span className="xs:hidden">Notes</span>
                     </button>
                 </div>
             </div>
@@ -161,42 +161,42 @@ const BibleStudyScreen: React.FC<BibleStudyScreenProps> = ({ user }) => {
                         <ChevronLeft size={16} /> Back to plans
                     </button>
 
-                    <div className="glass-card p-10 md:p-14 rounded-[4rem] relative overflow-hidden">
-                        <div className="flex flex-col md:flex-row gap-10">
+                    <div className="glass-card p-6 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[4rem] relative overflow-hidden">
+                        <div className="flex flex-col md:flex-row gap-6 sm:gap-10">
                             <div className="w-full md:w-1/3">
                                 <img
                                     src={selectedPlan.coverUrl || 'https://images.unsplash.com/photo-1504052434139-441c2c3109ce?auto=format&fit=crop&q=80&w=1000'}
-                                    className="w-full aspect-square object-cover rounded-[3rem] shadow-2xl"
+                                    className="w-full aspect-square object-cover rounded-[2rem] sm:rounded-[3rem] shadow-2xl"
                                 />
                             </div>
                             <div className="flex-1">
-                                <h2 className="text-4xl font-black dark:text-white uppercase tracking-tighter mb-4 leading-none">{selectedPlan.title}</h2>
-                                <div className="flex items-center gap-4 mb-6">
-                                    <span className="px-4 py-1.5 bg-church-green/10 text-church-green text-[10px] font-black uppercase tracking-widest rounded-full border border-church-green/20">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black dark:text-white uppercase tracking-tighter mb-4 leading-tight sm:leading-none">{selectedPlan.title}</h2>
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
+                                    <span className="px-3 sm:px-4 py-1.5 bg-church-green/10 text-church-green text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full border border-church-green/20">
                                         {selectedPlan.category}
                                     </span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                                         {selectedPlan.duration} Day Journey
                                     </span>
                                 </div>
-                                <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed font-serif italic">
+                                <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed font-serif italic">
                                     {selectedPlan.description}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mt-16 space-y-6">
+                        <div className="mt-10 sm:mt-16 space-y-6">
                             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-400 border-b border-gray-100 dark:border-white/5 pb-4">Daily Content</h4>
                             {selectedPlan.days.map((day, idx) => (
-                                <div key={idx} className="group glass-card p-8 rounded-[2.5rem] border-white/40 hover:bg-white dark:hover:bg-white/5 transition-all">
+                                <div key={idx} className="group glass-card p-5 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border-white/40 hover:bg-white dark:hover:bg-white/5 transition-all">
                                     <div className="flex items-start justify-between gap-6">
                                         <div>
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <span className="text-church-green font-black text-xl italic">Day {day.dayNumber}</span>
-                                                <div className="h-px w-8 bg-church-green/30"></div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-church-gold">{day.passage}</span>
+                                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                                                <span className="text-church-green font-black text-lg sm:text-xl italic">Day {day.dayNumber}</span>
+                                                <div className="hidden sm:block h-px w-8 bg-church-green/30"></div>
+                                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-church-gold">{day.passage}</span>
                                             </div>
-                                            <h3 className="text-xl font-black dark:text-white mb-4 tracking-tight">{day.title}</h3>
+                                            <h3 className="text-lg sm:text-xl font-black dark:text-white mb-4 tracking-tight">{day.title}</h3>
                                             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
                                                 {day.content}
                                             </p>
@@ -240,7 +240,7 @@ const BibleStudyScreen: React.FC<BibleStudyScreenProps> = ({ user }) => {
                     </div>
 
                     {isEditingNote ? (
-                        <div className="glass-card p-10 rounded-[3rem] shadow-premium animate-fade-in-up border-2 border-church-green/20">
+                        <div className="glass-card p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-premium animate-fade-in-up border-2 border-church-green/20">
                             <div className="flex justify-between items-center mb-8">
                                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-church-green">Write Reflection</span>
                                 <button onClick={() => setIsEditingNote(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"><X size={20} /></button>
@@ -252,7 +252,7 @@ const BibleStudyScreen: React.FC<BibleStudyScreenProps> = ({ user }) => {
                                         value={currentNote?.title || ''}
                                         onChange={e => setCurrentNote({ ...currentNote, title: e.target.value })}
                                         placeholder="Enter reflection title..."
-                                        className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl px-6 py-4 font-bold dark:text-white focus:ring-4 focus:ring-church-green/10 transition-all mt-2"
+                                        className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl px-6 py-4 font-bold dark:text-white focus:ring-4 focus:ring-church-green/10 transition-all mt-2 text-base"
                                     />
                                 </div>
                                 <div>
@@ -262,13 +262,13 @@ const BibleStudyScreen: React.FC<BibleStudyScreenProps> = ({ user }) => {
                                         onChange={e => setCurrentNote({ ...currentNote, content: e.target.value })}
                                         placeholder="Whaf did you learn today?"
                                         rows={12}
-                                        className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-[2rem] px-6 py-6 font-medium dark:text-white focus:ring-4 focus:ring-church-green/10 transition-all mt-2 resize-none"
+                                        className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-[1.5rem] md:rounded-[2rem] px-6 py-6 font-medium dark:text-white focus:ring-4 focus:ring-church-green/10 transition-all mt-2 resize-none text-base"
                                     />
                                 </div>
                                 <button
                                     onClick={handleSaveNote}
                                     disabled={savingNote}
-                                    className="w-full py-5 bg-church-green text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                    className="w-full py-5 bg-church-green text-white rounded-[1.5rem] md:rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                 >
                                     {savingNote ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                                     {savingNote ? 'Syncing...' : 'Securely Save Reflection'}

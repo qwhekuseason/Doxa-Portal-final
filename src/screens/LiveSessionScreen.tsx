@@ -144,7 +144,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             if (preview) { preview.stop(); preview.close(); }
             if (video) { video.stop(); video.close(); }
             if (audio) { audio.stop(); audio.close(); }
-            if (agoraClient) { agoraClient.leave().catch(() => {}); }
+            if (agoraClient) { agoraClient.leave().catch(() => { }); }
         };
     }, []);
 
@@ -655,7 +655,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         <button
             onClick={onClick}
             title={label}
-            className={`group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-lg ${isDanger
+            className={`group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full transition-all duration-300 shadow-lg ${isDanger
                 ? 'bg-red-500 hover:bg-red-600 text-white'
                 : isActive
                     ? (colorClass || 'bg-white text-black hover:bg-gray-200')
@@ -1093,7 +1093,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             {/* 2. Control Bar (Google Meet Style) */}
             <div className="h-20 md:h-24 bg-[#050505] border-t border-white/5 flex items-center justify-between px-4 md:px-10 z-30 shrink-0">
                 {/* Left: Session Info */}
-                <div className="hidden lg:flex flex-col gap-0.5 w-1/4">
+                <div className="hidden xl:flex flex-col gap-0.5 w-1/4">
                     <div className="flex items-center gap-2 text-white/90 font-bold mb-0.5">
                         <Clock size={16} className="text-church-gold" />
                         <span className="text-sm tracking-tight">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1162,11 +1162,11 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
 
                     <button
                         onClick={leaveCall}
-                        className="h-12 px-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/30 active:scale-95"
+                        className="h-10 md:h-12 px-4 md:px-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center gap-2 md:gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/30 active:scale-95"
                         title="Leave call"
                     >
-                        <Phone size={20} className="rotate-[135deg]" />
-                        <span className="hidden md:inline font-black text-[10px] uppercase tracking-widest">Leave</span>
+                        <Phone size={18} className="rotate-[135deg]" />
+                        <span className="hidden sm:inline font-black text-[9px] sm:text-[10px] uppercase tracking-widest">Leave</span>
                     </button>
                 </div>
 

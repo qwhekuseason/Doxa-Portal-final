@@ -22,6 +22,13 @@ export interface UserProfile {
   }>;
   createdAt?: string;
   isVerified?: boolean;
+  isOnline?: boolean;
+  lastActive?: string;
+  streak?: {
+    count: number;
+    lastChecked: string;
+    best: number;
+  };
 }
 
 export interface AuthState {
@@ -167,5 +174,33 @@ export interface StudyNote {
   tags?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Story {
+  id: string;
+  uid: string;
+  authorName: string;
+  type: 'image' | 'video' | 'text';
+  content: string; // URL or text
+  expiresAt: any;
+  createdAt: any;
+}
+
+export interface GlobalReaction {
+  id: string;
+  emoji: string;
+  uid: string;
+  displayName?: string;
+  createdAt: any;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  createdAt: any;
+  role?: string;
 }
 

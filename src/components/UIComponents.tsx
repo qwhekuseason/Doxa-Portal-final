@@ -54,6 +54,17 @@ export const SectionHeader: React.FC<{ title: string; subtitle?: string; action?
   </div>
 );
 
+export const PageHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
+  <div className="mb-10">
+    <div className="flex items-center gap-3 mb-2">
+      <div className="w-12 h-1 bg-gradient-to-r from-church-green to-emerald-500 rounded-full"></div>
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-church-green/40">Action Center</span>
+    </div>
+    <h1 className="text-4xl font-black font-sans dark:text-white tracking-tighter">{title}</h1>
+    {subtitle && <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-xl">{subtitle}</p>}
+  </div>
+);
+
 export const FloatingSocialMenu: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

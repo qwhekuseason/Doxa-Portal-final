@@ -8,6 +8,7 @@ import { UserProfile } from './src/types';
 import AuthPage from './src/components/AuthPage';
 import { ThemeProvider, useTheme } from './src/components/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { updateSpiritualStreak } from './src/utils/streakService';
 
 import {
   GlobalAudioPlayer,
@@ -16,15 +17,14 @@ import {
   LoadingSpinner,
   useClickOutside,
   ToastContainer,
-  useToast,
-  BackToTop
+  useToast
 } from './src/components/UIComponents';
 import { ReminderSystem } from './src/components/ReminderSystem';
 
 // Lazy load Screen Components
 const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen'));
 const QuizScreen = React.lazy(() => import('./src/screens/QuizScreen'));
-const PrayerWallScreen = React.lazy(() => import('./src/screens/PrayerWallScreen'));
+const GroupChatScreen = React.lazy(() => import('./src/screens/GroupChatScreen'));
 const EventsCalendarScreen = React.lazy(() => import('./src/screens/EventsCalendarScreen'));
 const TestimoniesScreen = React.lazy(() => import('./src/screens/TestimoniesScreen'));
 const SermonLibraryScreen = React.lazy(() => import('./src/screens/SermonLibraryScreen'));
@@ -40,6 +40,8 @@ const AboutScreen = React.lazy(() => import('./src/screens/AboutScreen'));
 const BirthdaysScreen = React.lazy(() => import('./src/screens/BirthdaysScreen'));
 const PrayerRequestsScreen = React.lazy(() => import('./src/screens/PrayerRequestsScreen'));
 const BibleStudyScreen = React.lazy(() => import('./src/screens/BibleStudyScreen'));
+const StoriesScreen = React.lazy(() => import('./src/screens/StoriesScreen'));
+import StoryManager from './src/components/admin/StoryManager';
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -61,7 +63,7 @@ import {
 import {
   Bell, Search, Sun, Moon, Brain, ImageIcon, Users,
   MessageCircle, Settings, Video, Headphones, Milestone, Book,
-  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, PenTool, Activity
+  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, PenTool, Activity, MessageSquare, Camera
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -70,7 +72,8 @@ const NAV_ITEMS = [
   { id: 'bible-study', icon: <PenTool size={20} />, label: 'Study' },
   { id: 'sermons', icon: <Headphones size={20} />, label: 'Sermons' },
   { id: 'live', icon: <Video size={20} />, label: 'Live' },
-  { id: 'prayer', icon: <Heart size={20} />, label: 'Prayer' },
+  { id: 'chat', icon: <MessageSquare size={20} />, label: 'Chat' },
+  { id: 'stories', icon: <Camera size={20} />, label: 'Stories' },
   { id: 'testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
   { id: 'quiz', icon: <Brain size={20} />, label: 'Quiz' },
   { id: 'journey', icon: <Milestone size={20} />, label: 'Journey' },
@@ -89,6 +92,7 @@ const ADMIN_NAV_ITEMS = [
   { id: 'admin-study-plans', icon: <PenTool size={20} />, label: 'Study Plans' },
   { id: 'admin-users', icon: <Users size={20} />, label: 'Users' },
   { id: 'admin-gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
+  { id: 'admin-stories', icon: <ImageIcon size={20} />, label: 'Stories' },
   { id: 'admin-testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
   { id: 'admin-settings', icon: <Settings size={20} />, label: 'System Settings' },
 ];
@@ -269,12 +273,17 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
       {/* --- Desktop Sidebar (Persistent) --- */}
       <aside className="hidden lg:flex flex-col w-64 xl:w-72 sticky top-0 h-screen glass-header border-r border-gray-100 dark:border-white/5 z-50">
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none"></div>
+
         {/* Sidebar Logo */}
-        <div className="p-6 pb-6 flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab('home')}>
-          <div className="w-9 h-9 bg-gradient-to-br from-church-green to-emerald-700 rounded-xl flex items-center justify-center shadow-lg shadow-church-green/20 group-hover:scale-110 transition-transform">
-            <img src="/logo.png" alt="" className="w-5 h-5 object-contain" />
+        <div className="p-8 pb-10 flex items-center gap-4 cursor-pointer group relative z-10" onClick={() => setActiveTab('home')}>
+          <div className="w-12 h-12 bg-church-green rounded-2xl flex items-center justify-center shadow-lg shadow-church-green/30 group-hover:scale-110 transition-transform duration-500">
+            <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
           </div>
-          <span className="font-sans font-black text-xl tracking-tighter dark:text-white uppercase group-hover:text-church-green transition-colors">Doxa<span className="text-church-green group-hover:text-white transition-colors">Portal</span></span>
+          <div>
+            <span className="font-sans font-black text-xl dark:text-white uppercase tracking-tighter leading-none block">Doxa Portal</span>
+            <span className="text-[9px] font-black text-church-green uppercase tracking-[0.3em] mt-1 block opacity-60">Divine Grace</span>
+          </div>
         </div>
 
 
@@ -358,29 +367,30 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       {/* --- Mobile Sidebar (Drawer) --- */}
       <div className={`fixed inset-0 z-[200] lg:hidden pointer-events-none transition-opacity duration-500 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}>
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}></div>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSidebarOpen(false)}></div>
 
         {/* Drawer */}
-        <aside className={`absolute top-4 left-4 bottom-4 w-72 glass-card rounded-4xl shadow- premium transform transition-transform duration-500 ease-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-[110%]'} flex flex-col overflow-hidden`}>
-          <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-black/50">
+        <aside className={`absolute top-0 left-0 bottom-0 w-[85%] max-w-sm bg-white dark:bg-[#050505] shadow-2xl transform transition-transform duration-500 ease-out z-[210] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col overflow-hidden`}>
+          <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-black/50 backdrop-blur-xl">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-church-green rounded-xl flex items-center justify-center">
-                <img src="/logo.png" className="w-5 h-5" />
+              <div className="w-10 h-10 bg-church-green rounded-xl flex items-center justify-center shadow-lg shadow-church-green/20">
+                <img src="/logo.png" className="w-6 h-6" alt="Logo" />
               </div>
-              <span className="font-sans font-black text-sm dark:text-white uppercase tracking-tighter">Doxa Portal</span>
+              <span className="font-sans font-black text-base dark:text-white uppercase tracking-tighter">Doxa Portal</span>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors text-gray-400"><X size={20} /></button>
+            <button onClick={() => setSidebarOpen(false)} className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-2xl transition-all active:scale-90 text-gray-500"><X size={20} /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-1 hide-scrollbar">
-            <div className="mb-6 mx-1 p-4 rounded-3xl bg-church-green/5 dark:bg-church-green/10 border border-church-green/10 flex items-center gap-4 cursor-pointer" onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}>
-              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-church-green/20" />
-              <div>
-                <div className="font-black text-xs dark:text-white uppercase tracking-tight">{user.displayName}</div>
+          <div className="flex-1 overflow-y-auto p-5 space-y-1 hide-scrollbar">
+            <div className="mb-8 p-5 rounded-[2rem] bg-church-green/5 dark:bg-church-green/10 border border-church-green/10 flex items-center gap-4 cursor-pointer active:scale-95 transition-all shadow-sm" onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}>
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-church-green/20" />
+              <div className="flex-1 min-w-0">
+                <div className="font-black text-xs dark:text-white uppercase tracking-tight truncate">{user.displayName}</div>
                 <div className="text-[9px] uppercase font-black text-church-green tracking-widest mt-0.5">{user.role} Member</div>
               </div>
             </div>
 
+            <div className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 opacity-60">Menu</div>
             {NAV_ITEMS.map(item => (
               <SidebarItem
                 key={item.id}
@@ -391,11 +401,9 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               />
             ))}
 
-
-
             {user.role === 'publicity' && (
               <>
-                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 opacity-60">Publicity</div>
+                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 opacity-60">Publicity Tools</div>
                 <SidebarItem
                   icon={<Cake size={20} />}
                   label="Birthdays"
@@ -407,7 +415,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
             {user.role === 'prayer' && (
               <>
-                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-church-gold opacity-60">Prayer Ministry</div>
+                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-church-gold opacity-60">Ministry</div>
                 <SidebarItem
                   icon={<Heart size={20} />}
                   label="Requests"
@@ -419,7 +427,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
             {user.role === 'admin' && (
               <>
-                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-purple-500 opacity-60">Admin System</div>
+                <div className="px-5 py-3 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-purple-500 opacity-60">Administration</div>
                 {ADMIN_NAV_ITEMS.map(item => (
                   <SidebarItem
                     key={item.id}
@@ -431,6 +439,12 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 ))}
               </>
             )}
+
+            <div className="mt-8 pb-10">
+              <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-5 bg-red-500/5 text-red-500 rounded-3xl hover:bg-red-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-[0.3em] border border-red-500/10 active:scale-95 shadow-sm">
+                <LogOut size={16} /> Secure Logout
+              </button>
+            </div>
           </div>
 
           <div className="p-6 border-t border-gray-100 dark:border-white/5 text-center bg-gray-50/50 dark:bg-black/20">
@@ -494,13 +508,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'events' && <EventsCalendarScreen user={user} onJoinLive={(room) => { setLiveRoom(room); setActiveTab('live'); }} />}
                 {activeTab === 'live' && <LiveSessionScreen initialRoom={liveRoom} user={user} />}
                 {activeTab === 'testimonies' && <TestimoniesScreen user={user} />}
-                {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
+                {activeTab === 'chat' && <GroupChatScreen user={user} />}
                 {activeTab === 'quiz' && <QuizScreen user={user} onNavigate={(tab) => setActiveTab(tab)} />}
                 {activeTab === 'bible' && <BibleScreen user={user} />}
                 {activeTab === 'bible-study' && <BibleStudyScreen user={user} />}
                 {activeTab === 'journey' && <JourneyScreen user={user} />}
                 {activeTab === 'gallery' && <GalleryScreen />}
                 {activeTab === 'giving' && <GivingScreen user={user} />}
+                {activeTab === 'stories' && <StoriesScreen user={user} />}
                 {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
                 {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
                 {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
@@ -516,6 +531,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'admin-quizzes' && <AdminQuizManager />}
                 {activeTab === 'admin-gallery' && <AdminGalleryManager />}
                 {activeTab === 'admin-study-plans' && <AdminStudyPlanManager />}
+                {activeTab === 'admin-stories' && <div className="max-w-6xl mx-auto"><StoryManager /></div>}
                 {activeTab === 'admin-settings' && <AdminSettingsManager />}
               </React.Suspense>
             </div>
@@ -532,7 +548,6 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       {/* Global Utilities */}
       <ToastContainer toasts={toasts} />
       <ReminderSystem userId={user.uid} />
-      <BackToTop />
     </div>
   );
 };
@@ -571,8 +586,18 @@ const App: React.FC = () => {
               dateOfBirth: userData.dateOfBirth,
               createdAt: userData.createdAt,
               isVerified: firebaseUser.emailVerified || firebaseUser.email === 'admin@gmail.com',
-              stats: userData.stats || {}
+              stats: userData.stats || {},
+              streak: userData.streak || { count: 0, lastChecked: '', best: 0 },
+              lastActive: userData.lastActive,
+              isOnline: userData.isOnline
             });
+
+            // Trigger streak update check
+            updateSpiritualStreak({
+              uid: firebaseUser.uid,
+              streak: userData.streak,
+              ...userData
+            } as any);
           } else {
             // Create default if missing
             setUser({

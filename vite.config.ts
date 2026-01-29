@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+      },
       // https: {}, // Disabled to allow HTTP for Service Worker testing on localhost
       proxy: {
         '/api/token': {
@@ -16,6 +20,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api\/token/, '')
+        },
+        '/api/generateQuiz': {
+          target: 'http://127.0.0.1:3001',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api\/generateQuiz/, '/generateQuiz')
         }
       }
     },
