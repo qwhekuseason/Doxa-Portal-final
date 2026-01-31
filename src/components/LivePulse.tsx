@@ -17,7 +17,16 @@ interface LivePulseProps {
 }
 
 export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
-    const [activeReactions, setActiveReactions] = useState<{ id: string; emoji: string; displayName?: string; x: number }[]>([]);
+    const [activeReactions, setActiveReactions] = useState<{
+        id: string;
+        emoji: string;
+        displayName?: string;
+        x: number;
+        scale: number;
+        rotation: number;
+        delay: number;
+        duration: number;
+    }[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Emoji map for display
@@ -48,26 +57,32 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                         const emoji = data.emoji;
                         const senderName = data.displayName || 'Someone';
                         const senderUid = data.uid;
-                        // Better random range for mobile (15-85%)
-                        const x = Math.floor(Math.random() * 70) + 15;
+
+                        // Dynamic properties
+                        const x = Math.floor(Math.random() * 80) + 10; // 10% to 90%
+                        const scale = 0.5 + Math.random() * 1.5; // 0.5 to 2.0
+                        const rotation = Math.floor(Math.random() * 60) - 30; // -30 to 30 deg
+                        const delay = Math.random() * 0.5;
+                        const duration = 3 + Math.random() * 2; // 3 to 5 seconds
 
                         setActiveReactions(prev => {
                             if (prev.find(r => r.id === id)) return prev;
-                            const newArr = [...prev, { id, emoji, displayName: senderName, x }];
-                            return newArr.slice(-20);
+                            const newArr = [...prev, {
+                                id,
+                                emoji,
+                                displayName: senderName,
+                                x,
+                                scale,
+                                rotation,
+                                delay,
+                                duration
+                            }];
+                            return newArr.slice(-30);
                         });
-
-                        // Send browser notification if it's not from current user
-                        if (senderUid !== uid) {
-                            sendBrowserNotification(
-                                `${emojiMap[emoji] || '💫'} New Reaction!`,
-                                `${senderName} reacted with ${emojiMap[emoji] || emoji}`
-                            );
-                        }
 
                         setTimeout(() => {
                             setActiveReactions(prev => prev.filter(r => r.id !== id));
-                        }, 3000);
+                        }, 5000);
                     }
                 }
             });
@@ -82,11 +97,26 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
 
             // Optimistic update for sender
             const tempId = Math.random().toString(36);
-            const x = Math.floor(Math.random() * 70) + 15;
-            setActiveReactions(prev => [...prev, { id: tempId, emoji, displayName: senderName, x }]);
+            const x = Math.floor(Math.random() * 80) + 10;
+            const scale = 0.8 + Math.random() * 1.2;
+            const rotation = Math.floor(Math.random() * 40) - 20;
+            const delay = 0;
+            const duration = 4;
+
+            setActiveReactions(prev => [...prev, {
+                id: tempId,
+                emoji,
+                displayName: senderName,
+                x,
+                scale,
+                rotation,
+                delay,
+                duration
+            }]);
+
             setTimeout(() => {
                 setActiveReactions(prev => prev.filter(r => r.id !== tempId));
-            }, 3000);
+            }, 5000);
 
             await addDoc(collection(db, 'global_reactions'), {
                 emoji,
@@ -111,24 +141,31 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
 
     return (
         <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden">
-            {/* Floating Emoji Reactions - Always at top of viewport */}
+            {/* Floating Emoji Reactions */}
             {activeReactions.map((r) => (
                 <div
                     key={r.id}
-                    className="fixed animate-float-up-viewport opacity-0 pointer-events-none flex flex-col items-center gap-1.5"
+                    className="fixed animate-dynamic-float opacity-0 pointer-events-none flex flex-col items-center gap-2"
                     style={{
                         left: `${r.x}%`,
-                        top: '20%', // Start from top of viewport
-                    }}
+                        bottom: '-10%', // Start off-screen at bottom
+                        animationDelay: `${r.delay}s`,
+                        animationDuration: `${r.duration}s`,
+                        transform: `scale(${r.scale}) rotate(${r.rotation}deg)`
+                    } as any}
                 >
-                    {/* Real Emoji */}
-                    <div className="text-5xl md:text-6xl drop-shadow-2xl animate-wiggle">
-                        {emojiMap[r.emoji] || '💫'}
+                    {/* Emoji with Glow */}
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="text-5xl md:text-7xl drop-shadow-premium animate-wiggle select-none">
+                            {emojiMap[r.emoji] || r.emoji || '💫'}
+                        </div>
                     </div>
-                    {/* Sender Name Badge */}
+
+                    {/* Sender Name Badge - Floating with emoji */}
                     {r.displayName && (
-                        <div className="bg-black/90 backdrop-blur-lg px-3 py-1 rounded-full border border-white/30 shadow-xl">
-                            <span className="text-[11px] font-black text-white whitespace-nowrap tracking-wide">
+                        <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-2xl animate-fade-in">
+                            <span className="text-[10px] font-black text-white whitespace-nowrap tracking-wider uppercase">
                                 {r.displayName}
                             </span>
                         </div>
@@ -138,28 +175,33 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
 
             {/* Control Buttons - Horizontal Pill */}
             <div className="fixed bottom-6 right-6 flex items-center gap-2 pointer-events-auto z-[2001]">
-                <div className={`flex items-center gap-2 md:gap-3 bg-black/95 dark:bg-[#0a0a0a] backdrop-blur-2xl border border-white/30 p-2 md:p-2.5 rounded-full transition-all duration-500 shadow-2xl ${isExpanded ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-10 opacity-0 pointer-events-none scale-90'
+                <div className={`flex items-center gap-2 md:gap-3 bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 p-2 md:p-3 rounded-[2.5rem] transition-all duration-700 shadow-premium ${isExpanded ? 'translate-x-0 opacity-100 scale-100 rotate-0' : 'translate-x-20 opacity-0 pointer-events-none scale-50 rotate-12'
                     }`}>
                     {[
-                        { emoji: '❤️', key: 'heart', gradient: 'from-red-500 to-pink-500' },
-                        { emoji: '🔥', key: 'fire', gradient: 'from-orange-500 to-red-500' },
-                        { emoji: '⭐', key: 'star', gradient: 'from-yellow-400 to-orange-400' },
-                        { emoji: '🙏', key: 'pray', gradient: 'from-blue-500 to-purple-500' },
+                        { emoji: '❤️', key: 'heart', gradient: 'from-rose-500 to-pink-600', label: 'Love' },
+                        { emoji: '🔥', key: 'fire', gradient: 'from-orange-500 to-red-600', label: 'Fire' },
+                        { emoji: '⭐', key: 'star', gradient: 'from-amber-400 to-yellow-600', label: 'Star' },
+                        { emoji: '🙏', key: 'pray', gradient: 'from-sky-500 to-indigo-600', label: 'Pray' },
                     ].map((btn) => (
                         <button
                             key={btn.key}
                             onClick={() => sendReaction(btn.key)}
-                            className={`w-12 h-12 md:w-13 md:h-13 rounded-full flex items-center justify-center text-2xl md:text-3xl transition-all active:scale-75 hover:scale-125 bg-gradient-to-br ${btn.gradient} shadow-lg hover:shadow-2xl ring-2 ring-white/20 hover:ring-white/40`}
-                            title={`Send ${btn.emoji}`}
+                            className={`group relative w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-2xl md:text-3xl transition-all active:scale-75 hover:scale-110 bg-gradient-to-br ${btn.gradient} shadow-lg hover:shadow-2xl border-2 border-white/30 hover:border-white/60`}
+                            title={`Send ${btn.label}`}
                         >
-                            {btn.emoji}
+                            <span className="group-hover:animate-bounce-short">{btn.emoji}</span>
+                            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                {btn.label}
+                            </span>
                         </button>
                     ))}
                 </div>
 
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className={`w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl transition-all active:scale-90 flex items-center justify-center border-2 border-white/30 z-10 ${isExpanded ? 'bg-gradient-to-br from-red-500 to-pink-500 text-white rotate-90 scale-110' : 'bg-gradient-to-br from-church-gold to-yellow-500 text-white shadow-church-gold/50 hover:scale-105'
+                    className={`group w-14 h-14 md:w-16 md:h-16 rounded-full shadow-premium transition-all duration-500 active:scale-90 flex items-center justify-center border-2 border-white/40 z-10 ${isExpanded
+                        ? 'bg-gradient-to-br from-gray-800 to-black text-white rotate-180 scale-110 border-white/60'
+                        : 'bg-gradient-to-br from-church-green to-emerald-700 text-white hover:scale-105 hover:shadow-church-green/40'
                         }`}
                 >
                     {isExpanded ? (
@@ -171,35 +213,49 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
             </div>
 
             <style>{`
-                @keyframes float-up-viewport {
+                @keyframes dynamic-float {
                     0% {
-                        transform: translateY(0) scale(0.8);
+                        transform: translateY(0) scale(0) rotate(0deg);
                         opacity: 0;
                     }
                     10% {
+                        transform: translateY(-10vh) scale(1) rotate(var(--r, 0deg));
                         opacity: 1;
                     }
-                    50% {
-                        transform: translateY(-30vh) scale(1.1);
+                    80% {
                         opacity: 1;
                     }
                     100% {
-                        transform: translateY(-60vh) scale(0.9);
+                        transform: translateY(-110vh) scale(1.2) rotate(calc(var(--r, 0deg) * 2));
                         opacity: 0;
                     }
                 }
 
                 @keyframes wiggle {
-                    0%, 100% { transform: rotate(-5deg); }
-                    50% { transform: rotate(5deg); }
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-10px) rotate(-5deg); }
+                    75% { transform: translateX(10px) rotate(5deg); }
                 }
 
-                .animate-float-up-viewport {
-                    animation: float-up-viewport 3s ease-out forwards;
+                @keyframes bounce-short {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-5px); }
+                }
+
+                .animate-dynamic-float {
+                    animation: dynamic-float linear forwards;
                 }
 
                 .animate-wiggle {
-                    animation: wiggle 0.3s ease-in-out 2;
+                    animation: wiggle 2s ease-in-out infinite;
+                }
+
+                .animate-bounce-short {
+                    animation: bounce-short 0.5s ease-in-out infinite;
+                }
+
+                .drop-shadow-premium {
+                    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
                 }
             `}</style>
         </div>

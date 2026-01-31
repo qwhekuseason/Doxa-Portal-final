@@ -13,6 +13,16 @@
     }
   }
 
+  /* Prevent auto-zoom on mobile inputs */
+  @media screen and (max-width: 768px) {
+
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
   body {
     @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-black overflow-x-hidden;
   }
@@ -198,4 +208,12 @@
     opacity: 0.8;
     transform: scale(1.05);
   }
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
 }

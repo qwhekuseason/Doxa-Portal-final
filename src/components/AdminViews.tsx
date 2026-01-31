@@ -12,9 +12,8 @@ import {
   limit,
   getDoc
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { HfInference } from "@huggingface/inference";
-import { db, storage, auth } from '../firebase';
+import { db, auth } from '../firebase';
 import { notifyTestimonyApproved, notifyNewSermon, notifyNewGalleryImage, notifyNewQuiz } from '../utils/notificationService';
 import { UserProfile, Sermon, GalleryImage, Quiz, QuizQuestion, Testimony, AppNotification, SiteSettings, GivingStats, StudyPlan } from '../types';
 import { getGoogleDriveDirectLink } from '../utils/galleryUtils';

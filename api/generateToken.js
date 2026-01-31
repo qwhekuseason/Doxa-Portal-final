@@ -3,11 +3,21 @@
 
 const { RtcTokenBuilder, RtcRole } = require('agora-token');
 
-// Agora credentials - should be set as environment variables in Vercel
-const AGORA_APP_ID = process.env.AGORA_APP_ID || '33e2fbf899a04c90a3fa9edf66f2db2a';
-const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE || 'eed5525bbbd64ba2a3c9fa163e7e7f9c';
+// Agora credentials - MUST be set as environment variables for security
+const AGORA_APP_ID = process.env.AGORA_APP_ID;
+const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
 
 module.exports = async (req, res) => {
+    // Check configuration
+    if (!AGORA_APP_ID || !AGORA_APP_CERTIFICATE) {
+        console.error('❌ Agora credentials not configured in environment variables');
+        // Still set CORS for error response
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.status(500).json({
+            error: 'configuration-error',
+            message: 'Live stream server is not correctly configured. Please contact the administrator.'
+        });
+    }
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');

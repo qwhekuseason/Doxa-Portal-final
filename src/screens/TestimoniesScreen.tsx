@@ -9,7 +9,7 @@ import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 // Define public query outside to ensure stability
 const publicQuery = query(collection(db, 'testimonies'), where('approved', '==', true), orderBy('createdAt', 'desc'));
 
-const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
+const TestimoniesView: React.FC<{ user: UserProfile, onMessageUser?: (target: { uid: string, displayName: string, photoURL?: string }) => void }> = ({ user, onMessageUser }) => {
   const [activeTab, setActiveTab] = useState<'public' | 'submit' | 'my'>('public');
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -164,9 +164,12 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
               </div>
 
               <div className="pt-6 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-[10px] font-black text-church-gold">
-                    {t.authorName.charAt(0).toUpperCase()}
+                <button
+                  onClick={() => t.uid !== user.uid && onMessageUser?.({ uid: t.uid, displayName: t.authorName })}
+                  className={`flex items-center gap-3 text-left transition-transform active:scale-95 ${t.uid !== user.uid ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'}`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-[10px] font-black text-church-gold uppercase">
+                    {t.authorName.charAt(0)}
                   </div>
                   <div>
                     <h5 className="text-xs font-black dark:text-white tracking-widest uppercase">{t.authorName}</h5>
@@ -175,7 +178,7 @@ const TestimoniesView: React.FC<{ user: UserProfile }> = ({ user }) => {
                       {new Date(t.createdAt).toLocaleDateString()}
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           ))}

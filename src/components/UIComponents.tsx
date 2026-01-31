@@ -40,14 +40,17 @@ export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ si
   );
 };
 
-export const SectionHeader: React.FC<{ title: string; subtitle?: string; action?: React.ReactNode }> = ({ title, subtitle, action }) => (
+export const SectionHeader: React.FC<{ title: string; subtitle?: string; icon?: React.ReactNode; action?: React.ReactNode }> = ({ title, subtitle, icon, action }) => (
   <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 group">
     <div>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-6 h-1 bg-church-green rounded-full transition-all group-hover:w-10"></div>
-        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-church-green/60">Module Information</span>
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-church-green/60 uppercase">Doxa Module</span>
       </div>
-      <h2 className="text-2xl font-black font-sans dark:text-white tracking-tight">{title}</h2>
+      <div className="flex items-center gap-3">
+        {icon && <div className="text-church-green transition-transform group-hover:scale-110 group-hover:rotate-6">{icon}</div>}
+        <h2 className="text-2xl font-black font-sans dark:text-white tracking-tight uppercase">{title}</h2>
+      </div>
       {subtitle && <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium max-w-md">{subtitle}</p>}
     </div>
     {action && <div className="flex-shrink-0 animate-fade-in">{action}</div>}
@@ -150,7 +153,8 @@ export const SidebarItem: React.FC<{
   label: string;
   active?: boolean;
   onClick?: () => void;
-}> = ({ icon, label, active, onClick }) => (
+  badge?: number;
+}> = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${active
@@ -165,11 +169,15 @@ export const SidebarItem: React.FC<{
       {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 }) : icon}
     </div>
     <span className={`relative z-10 font-bold text-[11px] uppercase tracking-[0.2em] ${active ? 'opacity-100 font-black' : 'opacity-60 group-hover:opacity-100 transition-opacity'}`}>{label}</span>
-    {active && (
-      <div className="ml-auto relative z-10">
+    <div className="ml-auto relative z-10">
+      {badge !== undefined && badge > 0 ? (
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${active ? 'bg-white text-church-green' : 'bg-church-gold text-white animate-pulse shadow-lg shadow-church-gold/20'}`}>
+          {badge}
+        </span>
+      ) : active ? (
         <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] animate-pulse"></div>
-      </div>
-    )}
+      ) : null}
+    </div>
   </button>
 );
 

@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, query, onSnapshot, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Story, UserProfile } from '../types';
-import { Plus, Trash2, Clock, Image as ImageIcon, Type, X, Send, Camera, Sparkles, Upload, Loader } from 'lucide-react';
+import { Plus, Trash2, Clock, Image as ImageIcon, Type, X, Send, Camera, Sparkles, Upload, Loader, MessageCircle, Menu } from 'lucide-react';
 import { PageHeader, LoadingSpinner } from '../components/UIComponents';
 
 interface StoriesScreenProps {
     user: UserProfile;
+    onMessageUser?: (target: { uid: string, displayName: string, photoURL?: string }) => void;
+    onStateChange?: (isActive: boolean) => void;
+    onMenuToggle?: () => void;
 }
 
-const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
+const StoriesScreen: React.FC<StoriesScreenProps> = ({ user, onMessageUser, onStateChange, onMenuToggle }) => {
     const [stories, setStories] = useState<Story[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
@@ -19,6 +22,8 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
         type: 'text' as 'text' | 'image',
         content: '',
     });
+    const [activeStoryIdx, setActiveStoryIdx] = useState<number | null>(null);
+    const [progress, setProgress] = useState(0);
 
     useEffect(() => {
         const q = query(collection(db, 'stories'), orderBy('createdAt', 'desc'));
@@ -29,9 +34,52 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
                 .filter((s: any) => s.expiresAt && s.expiresAt.toDate() > now) as Story[];
             setStories(data);
             setLoading(false);
+        }, (err) => {
+            console.error("Stories list error:", err);
+            setLoading(false);
         });
         return () => unsubscribe();
     }, []);
+
+    // Timer for auto-advance (reusing logic from StoryDevotional)
+    useEffect(() => {
+        if (activeStoryIdx === null) return;
+
+        setProgress(0);
+        const duration = 5000;
+        const interval = 50;
+        const step = (interval / duration) * 100;
+
+        const timer = setInterval(() => {
+            setProgress(p => {
+                if (p >= 100) {
+                    handleNext();
+                    return 0;
+                }
+                return p + step;
+            });
+        }, interval);
+
+        return () => clearInterval(timer);
+    }, [activeStoryIdx]);
+
+    useEffect(() => {
+        onStateChange?.(activeStoryIdx !== null || isCreating);
+    }, [activeStoryIdx, isCreating, onStateChange]);
+
+    const handleNext = () => {
+        if (activeStoryIdx !== null && activeStoryIdx < stories.length - 1) {
+            setActiveStoryIdx(activeStoryIdx + 1);
+        } else {
+            setActiveStoryIdx(null);
+        }
+    };
+
+    const handlePrev = () => {
+        if (activeStoryIdx !== null && activeStoryIdx > 0) {
+            setActiveStoryIdx(activeStoryIdx - 1);
+        }
+    };
 
     // Function to compress and convert image to Base64
     const processImage = (file: File): Promise<string> => {
@@ -154,11 +202,19 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
     };
 
     return (
-        <div className="min-h-screen p-4 md:p-8 animate-fade-in">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen md:p-8 animate-fade-in bg-white/50 dark:bg-black/20 md:rounded-[2.5rem] overflow-hidden">
+            <div className="max-w-7xl mx-auto space-y-8 p-4 md:p-0">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
+                    <div className="flex items-center gap-4">
+                        {onMenuToggle && (
+                            <button
+                                onClick={onMenuToggle}
+                                className="lg:hidden p-3 bg-white dark:bg-white/5 text-gray-500 rounded-2xl border border-black/5 active:scale-95"
+                            >
+                                <Menu size={24} />
+                            </button>
+                        )}
                         <PageHeader
                             title="Community Stories"
                             subtitle="Share your faith moments with the community. Everything is saved directly to the portal."
@@ -176,7 +232,7 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
                 {/* Create Story Modal */}
                 {isCreating && (
                     <div className="fixed inset-0 z-[1100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-                        <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-[2.5rem] p-8 shadow-premium border border-white/10 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white dark:bg-[#0a0a0a] w-full max-w-lg rounded-[2.5rem] p-8 shadow-premium border border-gray-100 dark:border-white/10 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-church-gold/10 flex items-center justify-center">
@@ -330,7 +386,11 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
                             const canDelete = isOwnStory || user.role === 'admin';
 
                             return (
-                                <div key={story.id} className="glass-card rounded-[1.5rem] overflow-hidden group border-white/10 hover:border-church-green/30 transition-all hover:scale-105 hover:shadow-2xl">
+                                <div
+                                    key={story.id}
+                                    className="glass-card rounded-[1.5rem] overflow-hidden group border-white/10 hover:border-church-green/30 transition-all hover:scale-105 hover:shadow-2xl cursor-pointer"
+                                    onClick={() => setActiveStoryIdx(stories.indexOf(story))}
+                                >
                                     <div className="aspect-[9/16] bg-gray-100 dark:bg-white/5 relative flex items-center justify-center">
                                         {story.type === 'image' ? (
                                             <img
@@ -365,6 +425,18 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
                                             </button>
                                         )}
 
+                                        {/* Message Author Button */}
+                                        {!isOwnStory && (
+                                            <button
+                                                onClick={() => onMessageUser?.({ uid: story.uid, displayName: story.authorName })}
+                                                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                            >
+                                                <div className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 scale-90 group-hover:scale-100 transition-transform">
+                                                    <MessageCircle size={14} /> Send a Message
+                                                </div>
+                                            </button>
+                                        )}
+
                                         {/* Type Badge */}
                                         <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white ${story.type === 'image' ? 'bg-blue-500' : 'bg-church-gold'}`}>
@@ -386,6 +458,83 @@ const StoriesScreen: React.FC<StoriesScreenProps> = ({ user }) => {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* Fullscreen Overlay (reusing from StoryDevotional for consistency) */}
+                {activeStoryIdx !== null && (
+                    <div className="fixed inset-0 z-[2000] bg-black flex items-center justify-center animate-in zoom-in duration-300">
+                        <div className="relative w-full h-full max-w-lg bg-gray-900 shadow-2xl overflow-hidden md:rounded-3xl md:aspect-[9/16] md:h-auto">
+
+                            {/* Progress Bar */}
+                            <div className="absolute top-4 left-4 right-4 z-20 flex gap-1">
+                                {stories.map((_, i) => (
+                                    <div key={i} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-white transition-all linear"
+                                            style={{ width: i < activeStoryIdx ? '100%' : i === activeStoryIdx ? `${progress}%` : '0%' }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Story Content */}
+                            <div className="w-full h-full flex items-center justify-center p-8">
+                                {stories[activeStoryIdx].type === 'text' ? (
+                                    <div className="text-center font-serif text-2xl italic text-white leading-relaxed">
+                                        "{stories[activeStoryIdx].content}"
+                                    </div>
+                                ) : (
+                                    <img src={stories[activeStoryIdx].content} className="w-full h-full object-contain" alt="" />
+                                )}
+                            </div>
+
+                            {/* Top Info */}
+                            <div className="absolute top-8 left-6 right-6 z-20 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-church-gold flex items-center justify-center text-[10px] font-black text-white">
+                                        {stories[activeStoryIdx].authorName[0]}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-white uppercase tracking-tight">{stories[activeStoryIdx].authorName}</p>
+                                        <p className="text-[9px] text-white/60 font-medium">Community Story</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {(stories[activeStoryIdx].uid === user.uid || user.role === 'admin') && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(stories[activeStoryIdx]); setActiveStoryIdx(null); }} className="p-2 text-white/60 hover:text-red-500 transition-colors">
+                                            <Trash2 size={20} />
+                                        </button>
+                                    )}
+                                    <button onClick={() => setActiveStoryIdx(null)} className="p-2 text-white/80 hover:text-white transition-colors">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Navigation Areas */}
+                            <div className="absolute inset-0 z-10 flex">
+                                <div className="w-1/3 h-full cursor-pointer" onClick={handlePrev}></div>
+                                <div className="w-2/3 h-full cursor-pointer" onClick={handleNext}></div>
+                            </div>
+
+                            {/* Bottom Actions */}
+                            <div className="absolute bottom-10 left-0 right-0 z-20 px-8 text-center">
+                                {stories[activeStoryIdx].uid !== user.uid && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const story = stories[activeStoryIdx];
+                                            onMessageUser?.({ uid: story.uid, displayName: story.authorName });
+                                            setActiveStoryIdx(null);
+                                        }}
+                                        className="px-10 py-3.5 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 mx-auto"
+                                    >
+                                        <MessageCircle size={14} /> Send a Message
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

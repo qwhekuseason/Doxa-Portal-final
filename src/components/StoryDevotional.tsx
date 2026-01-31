@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Story } from '../types';
-import { X, ChevronLeft, ChevronRight, Play, Volume2, VolumeX } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Play, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 
-export const StoryDevotional: React.FC = () => {
+export const StoryDevotional: React.FC<{
+    onMessageUser?: (target: { uid: string, displayName: string, photoURL?: string }) => void,
+    onStateChange?: (isActive: boolean) => void
+}> = ({ onMessageUser, onStateChange }) => {
     const [stories, setStories] = useState<Story[]>([]);
     const [activeStoryIdx, setActiveStoryIdx] = useState<number | null>(null);
     const [progress, setProgress] = useState(0);
@@ -24,6 +27,8 @@ export const StoryDevotional: React.FC = () => {
                 .filter((s: any) => s.expiresAt && s.expiresAt.toDate() > now) as Story[];
 
             setStories(data);
+        }, (err) => {
+            console.error("Story snapshot error:", err);
         });
 
         return () => unsubscribe();
@@ -51,6 +56,10 @@ export const StoryDevotional: React.FC = () => {
         return () => clearInterval(timer);
     }, [activeStoryIdx]);
 
+    useEffect(() => {
+        onStateChange?.(activeStoryIdx !== null);
+    }, [activeStoryIdx, onStateChange]);
+
     const handleNext = () => {
         if (activeStoryIdx !== null && activeStoryIdx < stories.length - 1) {
             setActiveStoryIdx(activeStoryIdx + 1);
@@ -68,7 +77,11 @@ export const StoryDevotional: React.FC = () => {
     if (stories.length === 0) return null;
 
     return (
-        <div className="mb-10">
+        <div className="mb-4 space-y-4">
+            <div className="flex items-center justify-between px-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Faith Moments</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-church-green animate-pulse"></span>
+            </div>
             <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
                 {stories.map((story, idx) => (
                     <div
@@ -145,9 +158,17 @@ export const StoryDevotional: React.FC = () => {
                         </div>
 
                         {/* Bottom Actions */}
-                        <div className="absolute bottom-10 left-0 right-0 z-20 px-8 text-center invisible pointer-events-none">
-                            <button className="px-6 py-2.5 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-xl">
-                                Reply
+                        <div className="absolute bottom-10 left-0 right-0 z-20 px-8 text-center">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const story = stories[activeStoryIdx];
+                                    onMessageUser?.({ uid: story.uid, displayName: story.authorName });
+                                    setActiveStoryIdx(null);
+                                }}
+                                className="px-10 py-3.5 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 mx-auto"
+                            >
+                                <MessageCircle size={14} /> Send a Message
                             </button>
                         </div>
                     </div>

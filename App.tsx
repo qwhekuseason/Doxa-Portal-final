@@ -1,7 +1,7 @@
 import './src/index.css';
 import React, { useEffect, useState, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, arrayUnion, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getToken } from 'firebase/messaging';
 import { auth, db, messaging } from './src/firebase';
 import { UserProfile } from './src/types';
@@ -20,11 +20,12 @@ import {
   useToast
 } from './src/components/UIComponents';
 import { ReminderSystem } from './src/components/ReminderSystem';
-
+import { LivePulse } from './src/components/LivePulse';
+import { useUnreadDMs } from './src/hooks/useUnreadDMs';
 // Lazy load Screen Components
 const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen'));
 const QuizScreen = React.lazy(() => import('./src/screens/QuizScreen'));
-const GroupChatScreen = React.lazy(() => import('./src/screens/GroupChatScreen'));
+const ChatContainer = React.lazy(() => import('./src/screens/ChatContainer'));
 const EventsCalendarScreen = React.lazy(() => import('./src/screens/EventsCalendarScreen'));
 const TestimoniesScreen = React.lazy(() => import('./src/screens/TestimoniesScreen'));
 const SermonLibraryScreen = React.lazy(() => import('./src/screens/SermonLibraryScreen'));
@@ -41,7 +42,11 @@ const BirthdaysScreen = React.lazy(() => import('./src/screens/BirthdaysScreen')
 const PrayerRequestsScreen = React.lazy(() => import('./src/screens/PrayerRequestsScreen'));
 const BibleStudyScreen = React.lazy(() => import('./src/screens/BibleStudyScreen'));
 const StoriesScreen = React.lazy(() => import('./src/screens/StoriesScreen'));
+const LibraryScreen = React.lazy(() => import('./src/screens/LibraryScreen'));
+const PrayerWallScreen = React.lazy(() => import('./src/screens/PrayerWallScreen'));
+const AttendanceAnalysis = React.lazy(() => import('./src/components/admin/AttendanceAnalysis').then(m => ({ default: m.AttendanceAnalysis })));
 import StoryManager from './src/components/admin/StoryManager';
+import { LibraryManager } from './src/components/admin/LibraryManager';
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -63,11 +68,12 @@ import {
 import {
   Bell, Search, Sun, Moon, Brain, ImageIcon, Users,
   MessageCircle, Settings, Video, Headphones, Milestone, Book,
-  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, PenTool, Activity, MessageSquare, Camera
+  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, ChevronLeft, PenTool, Activity, MessageSquare, Camera, Coins, Hand, Library
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', icon: <Home size={20} />, label: 'Home' },
+  { id: 'prayer', icon: <Hand size={20} />, label: 'Prayer' },
   { id: 'bible', icon: <Book size={20} />, label: 'Bible' },
   { id: 'bible-study', icon: <PenTool size={20} />, label: 'Study' },
   { id: 'sermons', icon: <Headphones size={20} />, label: 'Sermons' },
@@ -78,7 +84,8 @@ const NAV_ITEMS = [
   { id: 'quiz', icon: <Brain size={20} />, label: 'Quiz' },
   { id: 'journey', icon: <Milestone size={20} />, label: 'Journey' },
   { id: 'events', icon: <CalendarIcon size={20} />, label: 'Events' },
-  { id: 'giving', icon: <Heart size={20} />, label: 'Giving' },
+  { id: 'giving', icon: <Coins size={20} />, label: 'Giving' },
+  { id: 'library', icon: <Library size={20} />, label: 'Library' },
   { id: 'gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
 ];
 
@@ -94,6 +101,8 @@ const ADMIN_NAV_ITEMS = [
   { id: 'admin-gallery', icon: <ImageIcon size={20} />, label: 'Gallery' },
   { id: 'admin-stories', icon: <ImageIcon size={20} />, label: 'Stories' },
   { id: 'admin-testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
+  { id: 'admin-library', icon: <Library size={20} />, label: 'Library' },
+  { id: 'admin-attendance', icon: <Activity size={20} />, label: 'Attendance' },
   { id: 'admin-settings', icon: <Settings size={20} />, label: 'System Settings' },
 ];
 
@@ -102,18 +111,73 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const { toasts, addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [navHistory, setNavHistory] = useState<string[]>([]);
   const [currentSermon, setCurrentSermon] = useState(null);
   const [liveRoom, setLiveRoom] = useState('');
+  const [chatTarget, setChatTarget] = useState<{ uid: string; displayName: string; photoURL?: string } | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isStoryOpen, setIsStoryOpen] = useState(false);
+
+  // Custom Navigation function that tracks history
+  const navigate = (tab: string) => {
+    if (tab === activeTab) return;
+    setNavHistory(prev => [...prev, activeTab]);
+    setActiveTab(tab);
+  };
+
+  const goBack = () => {
+    if (navHistory.length === 0) return;
+    const newHistory = [...navHistory];
+    const previousTab = newHistory.pop();
+    if (previousTab) {
+      setNavHistory(newHistory);
+      setActiveTab(previousTab);
+    }
+  };
+
+  const startChat = (target: { uid: string; displayName: string; photoURL?: string }) => {
+    setChatTarget(target);
+    setIsChatOpen(true);
+    navigate('chat');
+  };
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const unreadDMs = useUnreadDMs(user?.uid);
 
   // Refs for click outside
   const settingsRef = useRef<HTMLDivElement>(null);
   const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  // Update Online Status
+  useEffect(() => {
+    if (!user?.uid) return;
+    const userRef = doc(db, 'users', user.uid);
+
+    const setStatus = (status: boolean) => {
+      updateDoc(userRef, {
+        isOnline: status,
+        lastActive: serverTimestamp()
+      }).catch(err => console.error("Status update error:", err));
+    };
+
+    setStatus(true);
+
+    const handleVisibilityChange = () => {
+      setStatus(document.visibilityState === 'visible');
+    };
+
+    window.addEventListener('beforeunload', () => setStatus(false));
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      setStatus(false);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.uid]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -227,7 +291,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
             </div>
 
             <button
-              onClick={() => { setActiveTab('profile'); setSettingsOpen(false); }}
+              onClick={() => { navigate('profile'); setSettingsOpen(false); }}
               className="flex items-center gap-4 px-5 py-3.5 rounded-2xl text-xs font-black transition-all hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 group"
             >
               <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors">
@@ -254,7 +318,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       {/* Desktop Profile Avatar */}
       <div
         className="hidden md:flex items-center gap-4 pl-4 border-l border-gray-200 dark:border-white/10 cursor-pointer group"
-        onClick={() => setActiveTab('profile')}
+        onClick={() => navigate('profile')}
       >
         <div className="relative">
           <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-10 h-10 rounded-2xl border-2 border-transparent group-hover:border-church-green transition-all object-cover" alt="" />
@@ -276,7 +340,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none"></div>
 
         {/* Sidebar Logo */}
-        <div className="p-8 pb-10 flex items-center gap-4 cursor-pointer group relative z-10" onClick={() => setActiveTab('home')}>
+        <div className="p-8 pb-10 flex items-center gap-4 cursor-pointer group relative z-10" onClick={() => navigate('home')}>
           <div className="w-12 h-12 bg-church-green rounded-2xl flex items-center justify-center shadow-lg shadow-church-green/30 group-hover:scale-110 transition-transform duration-500">
             <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
           </div>
@@ -297,7 +361,8 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
               icon={item.icon}
               label={item.label}
               active={activeTab === item.id}
-              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+              onClick={() => { navigate(item.id); setSidebarOpen(false); }}
+              badge={item.id === 'chat' ? unreadDMs : undefined}
             />
           ))}
 
@@ -382,7 +447,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 space-y-1 hide-scrollbar">
-            <div className="mb-8 p-5 rounded-[2rem] bg-church-green/5 dark:bg-church-green/10 border border-church-green/10 flex items-center gap-4 cursor-pointer active:scale-95 transition-all shadow-sm" onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}>
+            <div className="mb-8 p-5 rounded-[2rem] bg-church-green/5 dark:bg-church-green/10 border border-church-green/10 flex items-center gap-4 cursor-pointer active:scale-95 transition-all shadow-sm" onClick={() => { navigate('profile'); setSidebarOpen(false); }}>
               <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-church-green/20" />
               <div className="flex-1 min-w-0">
                 <div className="font-black text-xs dark:text-white uppercase tracking-tight truncate">{user.displayName}</div>
@@ -397,7 +462,8 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 icon={item.icon}
                 label={item.label}
                 active={activeTab === item.id}
-                onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+                onClick={() => { navigate(item.id); setSidebarOpen(false); }}
+                badge={item.id === 'chat' ? unreadDMs : undefined}
               />
             ))}
 
@@ -408,7 +474,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                   icon={<Cake size={20} />}
                   label="Birthdays"
                   active={activeTab === 'birthdays'}
-                  onClick={() => { setActiveTab('birthdays'); setSidebarOpen(false); }}
+                  onClick={() => { navigate('birthdays'); setSidebarOpen(false); }}
                 />
               </>
             )}
@@ -420,7 +486,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                   icon={<Heart size={20} />}
                   label="Requests"
                   active={activeTab === 'prayer-requests'}
-                  onClick={() => { setActiveTab('prayer-requests'); setSidebarOpen(false); }}
+                  onClick={() => { navigate('prayer-requests'); setSidebarOpen(false); }}
                 />
               </>
             )}
@@ -434,7 +500,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                     icon={item.icon}
                     label={item.label}
                     active={activeTab === item.id}
-                    onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+                    onClick={() => { navigate(item.id); setSidebarOpen(false); }}
                   />
                 ))}
               </>
@@ -458,22 +524,43 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       <main className="flex-1 flex flex-col relative overflow-hidden">
 
         {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-40 px-6 py-4 flex items-center justify-between glass-header">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all">
-            <Menu size={24} className="dark:text-white" />
-          </button>
+        {(!isChatOpen && activeTab !== 'chat') && activeTab !== 'stories' && !isStoryOpen && (
+          <header className="lg:hidden sticky top-0 z-40 px-6 py-4 flex items-center justify-between glass-header">
+            <div className="flex items-center gap-2">
+              {navHistory.length > 0 ? (
+                <button onClick={goBack} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all">
+                  <ChevronLeft size={24} className="dark:text-white" />
+                </button>
+              ) : (
+                <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all">
+                  <Menu size={24} className="dark:text-white" />
+                </button>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2" onClick={() => setActiveTab('home')}>
-            <img src="/logo.png" alt="" className="w-6 h-6 object-contain" />
-            <span className="font-sans font-black text-lg dark:text-white uppercase tracking-tighter">Doxa</span>
-          </div>
+            <div className="flex items-center gap-2" onClick={() => navigate('home')}>
+              <img src="/logo.png" alt="" className="w-6 h-6 object-contain" />
+              <span className="font-sans font-black text-lg dark:text-white uppercase tracking-tighter">Doxa</span>
+            </div>
 
-          <UserActions />
-        </header >
+            <UserActions />
+          </header >
+        )}
 
         {/* Content Scroll Area */}
-        < div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-8 scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent" >
-          <div className="max-w-7xl mx-auto animate-fade-in-up">
+        <div className={`flex-1 ${activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 pb-24 md:pb-8'} scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent`} >
+          <div className={`${(activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live') ? 'max-w-none h-full' : 'max-w-7xl mx-auto'} ${isStoryOpen ? '' : 'animate-fade-in-up'} flex flex-col`}>
+            {/* Desktop Navigation Helper (Back Button) */}
+            {navHistory.length > 0 && (
+              <div className="hidden lg:flex items-center gap-4 mb-6 sticky top-0 z-20 backdrop-blur-sm p-2 rounded-2xl">
+                <button
+                  onClick={goBack}
+                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 hover:bg-church-green/10 text-gray-500 hover:text-church-green rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-black/5 dark:border-white/5 active:scale-95 shadow-sm"
+                >
+                  <ChevronLeft size={14} /> Back
+                </button>
+              </div>
+            )}
             {/* Notification Prompt Widget */}
             {showNotifPrompt && (
               <div className="mb-8 p-6 rounded-[2rem] shadow-premium bg-gradient-to-br from-church-green to-emerald-800 text-white flex flex-col md:flex-row justify-between items-center gap-4 overflow-hidden relative group">
@@ -497,29 +584,31 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
             )}
 
             {/* Screen Rendering */}
-            <div className="min-h-[calc(100vh-200px)]">
+            <div className={activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live' ? 'h-full' : 'min-h-[calc(100vh-200px)]'}>
               <React.Suspense fallback={
                 <div className="flex items-center justify-center p-20">
                   <LoadingSpinner />
                 </div>
               }>
-                {activeTab === 'home' && <HomeScreen user={user} onNavigate={(tab) => { setActiveTab(tab); }} />}
+                {activeTab === 'home' && <HomeScreen user={user} onNavigate={(tab) => { navigate(tab); }} onMessageUser={startChat} onStoryStateChange={setIsStoryOpen} />}
                 {activeTab === 'sermons' && <SermonLibraryScreen />}
-                {activeTab === 'events' && <EventsCalendarScreen user={user} onJoinLive={(room) => { setLiveRoom(room); setActiveTab('live'); }} />}
-                {activeTab === 'live' && <LiveSessionScreen initialRoom={liveRoom} user={user} />}
-                {activeTab === 'testimonies' && <TestimoniesScreen user={user} />}
-                {activeTab === 'chat' && <GroupChatScreen user={user} />}
-                {activeTab === 'quiz' && <QuizScreen user={user} onNavigate={(tab) => setActiveTab(tab)} />}
+                {activeTab === 'chat' && <ChatContainer user={user} initialTarget={chatTarget} onClearTarget={() => setChatTarget(null)} onStateChange={setIsChatOpen} onMenuToggle={() => setSidebarOpen(true)} />}
+                {activeTab === 'testimonies' && <TestimoniesScreen user={user} onMessageUser={startChat} />}
+                {activeTab === 'quiz' && <QuizScreen user={user} onNavigate={(tab) => navigate(tab)} />}
                 {activeTab === 'bible' && <BibleScreen user={user} />}
                 {activeTab === 'bible-study' && <BibleStudyScreen user={user} />}
                 {activeTab === 'journey' && <JourneyScreen user={user} />}
                 {activeTab === 'gallery' && <GalleryScreen />}
                 {activeTab === 'giving' && <GivingScreen user={user} />}
-                {activeTab === 'stories' && <StoriesScreen user={user} />}
+                {activeTab === 'library' && <LibraryScreen user={user} />}
+                {activeTab === 'stories' && <StoriesScreen user={user} onMessageUser={startChat} onStateChange={setIsStoryOpen} onMenuToggle={() => setSidebarOpen(true)} />}
                 {activeTab === 'birthdays' && <BirthdaysScreen user={user} />}
                 {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
-                {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => setActiveTab(tab)} />}
+                {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
+                {activeTab === 'live' && <LiveSessionScreen user={user} onMenuToggle={() => setSidebarOpen(true)} />}
+                {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => navigate(tab)} />}
                 {activeTab === 'profile' && <ProfileScreen user={user} refreshUser={refreshUser} />}
+                {activeTab === 'events' && <EventsCalendarScreen user={user} />}
 
                 {/* Admin Sub-Screens */}
                 {activeTab === 'admin-prayers' && <div className="max-w-4xl mx-auto"><PrayerModeration /></div>}
@@ -530,8 +619,10 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'admin-users' && <AdminUserManager />}
                 {activeTab === 'admin-quizzes' && <AdminQuizManager />}
                 {activeTab === 'admin-gallery' && <AdminGalleryManager />}
+                {activeTab === 'admin-library' && <div className="max-w-6xl mx-auto"><LibraryManager /></div>}
                 {activeTab === 'admin-study-plans' && <AdminStudyPlanManager />}
                 {activeTab === 'admin-stories' && <div className="max-w-6xl mx-auto"><StoryManager /></div>}
+                {activeTab === 'admin-attendance' && <div className="max-w-6xl mx-auto"><AttendanceAnalysis onBack={() => navigate('admin')} /></div>}
                 {activeTab === 'admin-settings' && <AdminSettingsManager />}
               </React.Suspense>
             </div>
@@ -548,6 +639,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       {/* Global Utilities */}
       <ToastContainer toasts={toasts} />
       <ReminderSystem userId={user.uid} />
+      <LivePulse uid={user.uid} displayName={user.displayName} />
     </div>
   );
 };
@@ -600,15 +692,30 @@ const App: React.FC = () => {
             } as any);
           } else {
             // Create default if missing
-            setUser({
+            const nowIso = new Date().toISOString();
+            const newUserProfile: UserProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
               displayName: firebaseUser.displayName || 'User',
               photoURL: firebaseUser.photoURL,
               role: firebaseUser.email === 'admin@gmail.com' ? 'admin' : 'member',
               isVerified: firebaseUser.emailVerified || firebaseUser.email === 'admin@gmail.com',
-              stats: {}
-            });
+              stats: {},
+              createdAt: nowIso,
+              streak: { count: 0, lastChecked: '', best: 0 },
+              isOnline: true,
+              lastActive: nowIso
+            };
+
+            // Create in Firestore using serverTimestamp for accuracy
+            setDoc(userDocRef, {
+              ...newUserProfile,
+              createdAt: serverTimestamp(),
+              lastActive: serverTimestamp()
+            }).catch(err => console.error("Error creating user profile:", err));
+
+            // Set local state immediately for UI responsiveness
+            setUser(newUserProfile);
           }
           setLoading(false);
         }, (error) => {
@@ -654,7 +761,10 @@ const App: React.FC = () => {
           (user.isVerified === false && user.email !== 'admin@gmail.com') ? (
             <AuthPage initialMode="verify" />
           ) : mode === 'live_window' ? (
-            <LiveSessionScreen initialRoom={initialRoom} user={user} autoJoin={true} />
+            <>
+              <LiveSessionScreen initialRoom={initialRoom} user={user} autoJoin={true} />
+              <LivePulse uid={user.uid} displayName={user.displayName} />
+            </>
           ) : (
             <Dashboard user={user} refreshUser={() => { /* Real-time listener handles updates */ }} />
           )

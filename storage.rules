@@ -44,6 +44,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // E-Books folder - admin only for write, authenticated read
+    match /e_books/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     
     // User profile pictures - users can manage their own
     match /profile_pictures/{userId}/{fileName} {

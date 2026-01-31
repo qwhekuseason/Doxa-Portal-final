@@ -10,8 +10,17 @@ const app = express();
 const PORT = 3001;
 
 // Agora credentials
-const AGORA_APP_ID = process.env.VITE_AGORA_APP_ID || '33e2fbf899a04c90a3fa9edf66f2db2a';
-const AGORA_APP_CERTIFICATE = 'eed5525bbbd64ba2a3c9fa163e7e7f9c';
+const AGORA_APP_ID = process.env.VITE_AGORA_APP_ID;
+const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
+
+if (!AGORA_APP_ID || !AGORA_APP_CERTIFICATE) {
+    console.error(`
+    ❌ ERROR: Agora credentials not found!
+    Please ensure VITE_AGORA_APP_ID and AGORA_APP_CERTIFICATE 
+    are defined in your .env.local file.
+    `);
+    process.exit(1);
+}
 
 // Enable CORS for all origins (useful if dev server is on different port)
 app.use(cors());

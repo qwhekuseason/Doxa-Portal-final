@@ -14,13 +14,17 @@ import {
   Flame,
   Star,
   Users,
-  MessageSquare
+  MessageSquare,
+  Hand,
+  Coins,
+  QrCode
 } from 'lucide-react';
 import { SkeletonCard, SectionHeader, StatCard } from '../components/UIComponents';
 import { useTheme } from '../components/ThemeContext';
 import { parseDateSafe } from '../utils/dateUtils';
 import { StoryDevotional } from '../components/StoryDevotional';
-import { LivePulse } from '../components/LivePulse';
+import { AttendanceScanner } from '../components/AttendanceScanner';
+
 
 // Static VersES Collection
 const VERSES = [
@@ -98,6 +102,8 @@ const MiniEventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
 interface HomeScreenProps {
   user?: UserProfile;
   onNavigate: (tab: string) => void;
+  onMessageUser?: (target: { uid: string; displayName: string; photoURL?: string }) => void;
+  onStoryStateChange?: (isActive: boolean) => void;
 }
 
 // Define queries outside (stable refs)
@@ -105,8 +111,9 @@ const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'), limit(
 // Note: time is fixed at module load, which is acceptable for stability
 const eventQ = query(collection(db, 'events'), where('date', '>=', new Date().toISOString()), orderBy('date', 'asc'), limit(4));
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onMessageUser, onStoryStateChange }) => {
   const { theme } = useTheme();
+  const [showScanner, setShowScanner] = useState(false);
 
   const { data: recentSermons, loading: sermonsLoading } = useFirestoreQuery<Sermon>(sermonQ);
   const { data: upcomingEvents, loading: eventsLoading } = useFirestoreQuery<CalendarEvent>(eventQ);
@@ -127,13 +134,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
   }, []);
 
   return (
-    <div className="space-y-12 animate-fade-in pb-10">
+    <div className="space-y-8 animate-fade-in pb-10">
+      {showScanner && user && <AttendanceScanner user={user} onClose={() => setShowScanner(false)} />}
 
       {/* Story Devotionals */}
-      <StoryDevotional />
+      <StoryDevotional onMessageUser={onMessageUser} onStateChange={onStoryStateChange} />
 
       {/* Hero Welcome Section */}
       <section className="relative rounded-3xl overflow-hidden shadow-premium group">
+        {/* ... existing hero code ... */}
+        {/* Add Scanner Button here */}
+        <button
+          onClick={() => setShowScanner(true)}
+          className="absolute top-6 right-6 z-20 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 group/scan"
+        >
+          <QrCode size={18} className="group-hover/scan:scale-110 transition-transform" />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">Check In</span>
+        </button>
+
         {/* Dynamic Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-church-green to-emerald-900 group-hover:scale-105 transition-transform duration-[2000ms]"></div>
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
@@ -344,12 +362,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
             <SectionHeader title="Actions" />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 md:gap-4">
               {[
-                { id: 'prayer', label: 'PRAYER', icon: <Heart />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
+                { id: 'prayer', label: 'PRAYER', icon: <Hand />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
                 { id: 'quiz', label: 'QUIZ', icon: <Brain />, color: 'text-church-green', bg: 'bg-church-green/5 hover:bg-church-green/10' },
                 { id: 'bible', label: 'BIBLE', icon: <BookOpen />, color: 'text-blue-500', bg: 'bg-blue-500/5 hover:bg-blue-500/10' },
                 { id: 'events', label: 'EVENTS', icon: <Calendar />, color: 'text-purple-500', bg: 'bg-purple-500/5 hover:bg-purple-500/10' },
                 { id: 'chat', label: 'FELLOWSHIP', icon: <MessageSquare />, color: 'text-orange-500', bg: 'bg-orange-500/5 hover:bg-orange-500/10' },
-                { id: 'giving', label: 'GIVING', icon: <TrendingUp />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
+                { id: 'giving', label: 'GIVING', icon: <Coins />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
               ].map(action => (
                 <button
                   key={action.id}
@@ -369,8 +387,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate }) => {
         </div>
       </div>
 
-      {/* Live Spiritual Pulse */}
-      {user && <LivePulse uid={user.uid} displayName={user.displayName} />}
+
     </div>
   );
 };

@@ -204,3 +204,38 @@ export interface ChatMessage {
   role?: string;
 }
 
+export interface DirectMessage {
+  id: string;
+  text: string;
+  senderUid: string;
+  senderName: string;
+  receiverUid: string;
+  receiverName: string;
+  createdAt: any;
+  read: boolean;
+  participants: string[]; // [uid1, uid2]
+}
+
+export interface EBook {
+  id: string;
+  title: string;
+  author: string;
+  description: string;
+  coverUrl?: string;
+  fileUrl: string;
+  category: string;
+  fileSize: number;
+  uploadedBy: string;
+  createdAt: any;
+}
+
+export interface Conversation {
+  uid: string;
+  displayName: string;
+  photoURL?: string;
+  lastMessage: string;
+  unreadCount: number;
+  updatedAt: any;
+  participants: string[];
+  createdAt?: any;
+}

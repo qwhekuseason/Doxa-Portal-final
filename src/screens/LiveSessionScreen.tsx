@@ -28,7 +28,9 @@ import {
     Clock,
     Info,
     Expand,
-    Minimize2
+    Minimize2,
+    Menu,
+    LogOut
 } from 'lucide-react';
 import { getAgoraAppId } from '../utils/agoraConfig';
 import { prepareChannelName, generateUserId, handleAgoraError, getAgoraToken } from '../utils/agoraService';
@@ -54,6 +56,7 @@ interface LiveSessionScreenProps {
     initialRoom?: string;
     user?: UserProfile;
     autoJoin?: boolean;
+    onMenuToggle?: () => void;
 }
 
 interface RemoteUser {
@@ -82,7 +85,7 @@ interface ChatMessage {
 }
 
 // --- Component ---
-const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '', user: currentUser, autoJoin = false }) => {
+const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '', user: currentUser, autoJoin = false, onMenuToggle }) => {
     // --- State: Room & Connection ---
     const [roomName, setRoomName] = useState(initialRoom);
     const [inCall, setInCall] = useState(false);
@@ -204,6 +207,8 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 }
             });
             setParticipantData(dataMap);
+        }, (error) => {
+            console.error("Participants listener error:", error);
         });
 
         // 2. Sync Chat
@@ -553,12 +558,21 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         if (!currentUid || !roomName) return;
         setShowReactions(false);
         try {
+            // 1. Send to Room Chat (for history/sidebar)
             await addDoc(collection(db, 'live_rooms', roomName, 'messages'), {
                 sender: currentUser?.displayName || 'Guest',
                 senderUid: currentUid,
                 text: emoji,
                 type: 'reaction',
                 timestamp: serverTimestamp()
+            });
+
+            // 2. Send to Global Pulse (for dynamic floating reactions everywhere)
+            await addDoc(collection(db, 'global_reactions'), {
+                emoji,
+                uid: currentUser?.uid || currentUid.toString(),
+                displayName: currentUser?.displayName || 'Guest',
+                createdAt: serverTimestamp()
             });
         } catch (err) {
             console.error('Error sending reaction:', err);
@@ -717,11 +731,22 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                         <div className="glass-card rounded-[3.5rem] p-10 md:p-14 shadow-premium border-white/10 overflow-hidden text-center lg:text-left">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
-                            <div className="relative z-10 mb-10">
-                                <h1 className="text-4xl md:text-5xl font-black dark:text-white mb-4 tracking-tighter">Ready to join?</h1>
-                                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed max-w-sm mx-auto lg:mx-0">
-                                    Step into the live session with your team. Enter the session code to get started.
-                                </p>
+                            <div className="relative z-10 mb-10 flex justify-between items-start">
+                                <div>
+                                    <h1 className="text-4xl md:text-5xl font-black dark:text-white mb-4 tracking-tighter">Ready to join?</h1>
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed max-w-sm mx-auto lg:mx-0">
+                                        Step into the live session with your team. Enter the session code to get started.
+                                    </p>
+                                </div>
+                                {!autoJoin && onMenuToggle && (
+                                    <button
+                                        onClick={onMenuToggle}
+                                        className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all active:scale-95"
+                                        title="Back to Dashboard"
+                                    >
+                                        <LogOut size={24} className="rotate-180" />
+                                    </button>
+                                )}
                             </div>
 
                             <form onSubmit={handleJoin} className="space-y-6 relative z-10">
@@ -797,11 +822,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none z-0"></div>
 
             {/* Reaction Overlay (Floating) */}
-            {lastReaction && (
-                <div key={lastReaction.id} className="absolute bottom-32 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-up text-6xl">
-                    {lastReaction.emoji}
-                </div>
-            )}
+
 
             {/* 1. Main Stage Section */}
             <div className="flex-1 flex overflow-hidden relative z-10 lg:p-4 lg:gap-4">

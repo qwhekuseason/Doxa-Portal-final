@@ -17,14 +17,25 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
     return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
   }, []);
 
-  // Filter events to only show upcoming ones
-  const eventQ = useMemo(() => query(
-    collection(db, 'events'),
-    where('date', '>=', nowStr),
-    orderBy('date', 'asc')
-  ), [nowStr]);
+  // Fetch all events and filter/sort in JS to avoid index issues
+  const eventQ = useMemo(() => query(collection(db, 'events')), []);
 
-  const { data: events, loading } = useFirestoreQuery<CalendarEvent>(eventQ);
+  const { data: allEvents, loading, error } = useFirestoreQuery<CalendarEvent>(eventQ);
+
+  const events = useMemo(() => {
+    return allEvents
+      .filter(ev => ev.date >= nowStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [allEvents, nowStr]);
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        <h3 className="font-bold">Error Loading Events</h3>
+        <p>{error.message}</p>
+      </div>
+    );
+  }
 
   // Background cleanup for admins to physically delete old events
   React.useEffect(() => {

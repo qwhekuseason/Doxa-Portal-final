@@ -2,8 +2,7 @@
 import * as firebaseApp from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import { getFunctions } from "firebase/functions";
 import { getMessaging } from "firebase/messaging";
 
 // Your web app's Firebase configuration
@@ -23,16 +22,11 @@ const app = firebaseApp.initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Initialize Firestore with standard settings to ensure stability
-// Switching from persistentMultipleTabManager to default to resolve 'Unexpected state' assertions
 export const db = getFirestore(app);
 
-export const storage = getStorage(app);
 export const messaging = getMessaging(app);
 
 // Initialize Firebase Functions
 export const functions = getFunctions(app);
-
-// Uncomment for local emulator testing:
-// connectFunctionsEmulator(functions, 'localhost', 5001);
 
 export default app;

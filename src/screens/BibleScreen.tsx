@@ -9,7 +9,6 @@ import { UserProfile } from '../types';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SectionHeader, LoadingSpinner } from '../components/UIComponents';
-import { HfInference } from '@huggingface/inference';
 
 // --- Metadata ---
 const BIBLE_METADATA: Record<string, number> = {
@@ -116,18 +115,30 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
         if (isGenInsight || !verseData.length) return;
         setIsGenInsight(true);
         try {
-            // @ts-ignore
-            const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-            const hf = new HfInference(apiKey);
             const chapterText = verseData.map(v => `${v.verse}. ${v.text}`).join(' ');
 
-            const response = await hf.chatCompletion({
-                model: 'google/gemma-2-9b-it',
-                messages: [{ role: 'user', content: `Summarize the spiritual essence of ${book} ${chapter} in exactly 2 professional sentences. Content: ${chapterText.substring(0, 1000)}...` }],
-                max_tokens: 150,
+            const response = await fetch('/api/generateInsight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    book,
+                    chapter,
+                    content: chapterText
+                })
             });
-            setAiInsight(response.choices[0].message.content);
-        } catch (e) { setAiInsight("The Word of God is rich with wisdom."); } finally { setIsGenInsight(false); }
+
+            const data = await response.json();
+            if (data.success) {
+                setAiInsight(data.insight);
+            } else {
+                throw new Error(data.message || 'Failed to generate insight');
+            }
+        } catch (e) {
+            console.error("Insight generation error:", e);
+            setAiInsight("The Word of God is rich with wisdom.");
+        } finally {
+            setIsGenInsight(false);
+        }
     };
 
     const filteredBooks = useMemo(() =>
@@ -253,15 +264,15 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
             {/* Selection Overlays */}
             {pickerOpen && (
                 <div className="fixed inset-0 z-[500] bg-white/90 dark:bg-black/95 backdrop-blur-3xl animate-in fade-in flex flex-col overflow-hidden">
-                    <div className="max-w-6xl mx-auto w-full h-full flex flex-col p-8 md:p-16">
-                        <header className="flex items-center justify-between mb-12">
+                    <div className="max-w-6xl mx-auto w-full h-full flex flex-col p-4 sm:p-8 md:p-16">
+                        <header className="flex items-center justify-between mb-6 md:mb-12">
                             <div>
-                                <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter dark:text-white leading-none mb-2">
+                                <h2 className="text-2xl md:text-5xl font-black uppercase tracking-tighter dark:text-white leading-none mb-2">
                                     {pickerStep === 'books' ? 'Select Book' : pickerStep === 'chapters' ? `Chapters: ${book}` : 'Translation'}
                                 </h2>
-                                <p className="text-xs font-black text-church-gold uppercase tracking-[0.4em]">{pickerStep === 'books' ? 'Explore the canon' : 'Choose your passage'}</p>
+                                <p className="text-[10px] md:text-xs font-black text-church-gold uppercase tracking-[0.4em]">{pickerStep === 'books' ? 'Explore the canon' : 'Choose your passage'}</p>
                             </div>
-                            <button onClick={() => setPickerOpen(false)} className="w-16 h-16 rounded-[2rem] bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all scale-75 md:scale-100"><X size={32} /></button>
+                            <button onClick={() => setPickerOpen(false)} className="w-12 h-12 md:w-16 h-16 rounded-2xl md:rounded-[2rem] bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all scale-90 md:scale-100"><X size={24} /></button>
                         </header>
 
                         {pickerStep === 'books' && (
@@ -278,7 +289,7 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 pb-20">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 pb-20 content-start">
                                     {filteredBooks.map(b => (
                                         <button
                                             key={b}
@@ -296,7 +307,7 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                         )}
 
                         {pickerStep === 'chapters' && (
-                            <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar grid grid-cols-5 md:grid-cols-10 lg:grid-cols-12 gap-3 pb-40">
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-3 pb-40 content-start">
                                 {Array.from({ length: BIBLE_METADATA[book] || 1 }, (_, i) => i + 1).map(c => (
                                     <button
                                         key={c}
@@ -323,7 +334,7 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 pb-20">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 pb-20 content-start">
                                     {BIBLE_VERSIONS.filter(v =>
                                         v.name.toLowerCase().includes(pickerSearch.toLowerCase()) ||
                                         v.description.toLowerCase().includes(pickerSearch.toLowerCase())

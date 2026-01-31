@@ -73,14 +73,16 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
       }
 
       await updateDoc(userRef, updates);
+
+      // We do NOT update the photoURL in Firebase Auth because Base64 strings are too long.
+      // The app is already configured to prefer the photoURL from the Firestore 'users' collection.
       await updateProfile(auth.currentUser!, {
-        displayName: formData.displayName,
-        photoURL: photoPreview || user.photoURL
+        displayName: formData.displayName
       });
 
       refreshUser();
       setIsEditing(false);
-      alert('Profile synchronized successfully!');
+      alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
@@ -145,7 +147,13 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
               <p className="text-church-green font-black text-[10px] uppercase tracking-[0.3em] mb-4">{user.role}</p>
 
               <div className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-white/5 rounded-full text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest border border-gray-200/50 dark:border-white/5">
-                <Shield size={12} className="text-church-gold" /> Member Since {user.createdAt ? new Date(user.createdAt).getFullYear() : '2024'}
+                <Shield size={12} className="text-church-gold" /> Member Since {
+                  user.createdAt ? (
+                    typeof user.createdAt === 'string'
+                      ? new Date(user.createdAt).getFullYear()
+                      : (user.createdAt as any).toDate ? (user.createdAt as any).toDate().getFullYear() : '2025'
+                  ) : '2025'
+                }
               </div>
             </div>
 
@@ -157,6 +165,14 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
               <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
                 <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.quizPoints || 0}</p>
                 <p className="text-[9px] font-black text-church-gold uppercase tracking-[0.2em] mt-1">XP Points</p>
+              </div>
+              <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
+                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.stats?.quizzesTaken || 0}</p>
+                <p className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mt-1">Quizzes</p>
+              </div>
+              <div className="text-center p-4 rounded-3xl bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5">
+                <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{user?.streak?.best || 0}</p>
+                <p className="text-[9px] font-black text-orange-500 uppercase tracking-[0.2em] mt-1">Best Streak</p>
               </div>
             </div>
           </div>

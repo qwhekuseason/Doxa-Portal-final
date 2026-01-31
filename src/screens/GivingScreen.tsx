@@ -30,20 +30,6 @@ const GivingScreen: React.FC<{ user?: UserProfile }> = ({ user }) => {
         setTimeout(() => setCopied(null), 2000);
     };
 
-    const getImpactIcon = (label: string) => {
-        const l = label.toLowerCase();
-        if (l.includes('mission') || l.includes('outreach')) return <Globe size={16} />;
-        if (l.includes('build') || l.includes('fund')) return <HelpingHand size={16} />;
-        if (l.includes('community') || l.includes('youth') || l.includes('people')) return <Users size={16} />;
-        return <Sparkles size={16} />;
-    };
-
-    const impactItems = [
-        { label: 'Core Operations', percent: 45 },
-        { label: 'Community Outreach', percent: 30 },
-        { label: 'Development Fund', percent: 15 },
-        { label: 'Direct Support', percent: 10 }
-    ];
 
     const PaymentCard = ({ title, icon, color, accounts }: { title: string, icon: React.ReactNode, color: string, accounts: { name: string, number: string, subtitle?: string }[] }) => (
         <div className="glass-card p-8 rounded-[2.5rem] relative overflow-hidden group hover:shadow-premium transition-all">
@@ -116,9 +102,9 @@ const GivingScreen: React.FC<{ user?: UserProfile }> = ({ user }) => {
                 subtitle="Support the work of God and help us grow our ministry."
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Side: Payment Channels */}
-                <div className="lg:col-span-2 space-y-6">
+            <div className="max-w-4xl mx-auto space-y-8">
+                {/* Payment Channels */}
+                <div className="space-y-6">
 
                     {/* Reference Instructions */}
                     <div className="bg-church-gold/10 border border-church-gold/20 p-6 rounded-3xl flex items-start gap-4">
@@ -168,32 +154,6 @@ const GivingScreen: React.FC<{ user?: UserProfile }> = ({ user }) => {
                     )}
                 </div>
 
-                {/* Right Side: Impact and Info */}
-                <div className="space-y-8">
-                    {/* Visual Stewardship Breakdown */}
-                    <div className="glass-card p-6 rounded-3xl border-church-gold/20 hover:border-church-gold/40 transition-colors">
-                        <SectionHeader title="Giving Impact" subtitle="Where your giving goes" />
-
-                        <div className="space-y-6 mt-6">
-                            {impactItems.map((item) => (
-                                <div key={item.label}>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-church-gold/5 text-church-gold flex items-center justify-center">
-                                                {getImpactIcon(item.label)}
-                                            </div>
-                                            <span className="text-xs font-black dark:text-white">{item.label}</span>
-                                        </div>
-                                        <span className="text-[10px] font-black text-gray-400">{item.percent}%</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                        <div className="h-full bg-church-gold rounded-full" style={{ width: `${item.percent}%` }}></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
 
                 {/* Footer Note */}
                 <div className="p-6 text-center">
