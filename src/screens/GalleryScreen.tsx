@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
@@ -44,15 +44,6 @@ const GalleryView: React.FC = () => {
     }
   };
 
-  // Pre-calculate global indices and split into columns efficiently
-  const columns = useMemo(() => {
-    const cols: { item: GalleryImage; index: number }[][] = [[], [], []];
-    images.forEach((img, i) => {
-      cols[i % 3].push({ item: img, index: i });
-    });
-    return cols;
-  }, [images]);
-
   return (
     <div className="space-y-12 animate-fade-in pb-20">
       <SectionHeader
@@ -65,24 +56,21 @@ const GalleryView: React.FC = () => {
           {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} height="h-64" />)}
         </div>
       ) : (
-        <div className="flex flex-col md:flex-row gap-6">
-          {columns.map((column, colIdx) => (
-            <div key={colIdx} className="flex-1 flex flex-col gap-6">
-              {column.map(({ item: img, index: globalIndex }) => (
-                <GalleryCard
-                  key={img.id}
-                  img={img}
-                  index={globalIndex}
-                  onClick={() => {
-                    const isExternal = img.externalLink || img.url.includes('pixieset.com') || img.url.includes('gallery.');
-                    if (isExternal) {
-                      window.open(img.externalLink || img.url, '_blank');
-                    } else {
-                      openLightbox(img, globalIndex);
-                    }
-                  }}
-                />
-              ))}
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+          {images.map((img, index) => (
+            <div key={img.id} className="break-inside-avoid">
+              <GalleryCard
+                img={img}
+                index={index}
+                onClick={() => {
+                  const isExternal = img.externalLink || img.url.includes('pixieset.com') || img.url.includes('gallery.');
+                  if (isExternal) {
+                    window.open(img.externalLink || img.url, '_blank');
+                  } else {
+                    openLightbox(img, index);
+                  }
+                }}
+              />
             </div>
           ))}
         </div>
@@ -131,7 +119,7 @@ const GalleryView: React.FC = () => {
                 <span className="text-xs font-black uppercase tracking-[0.3em] text-church-gold">Image Details</span>
                 <span className="w-12 h-[1px] bg-church-gold"></span>
               </div>
-              <h3 className="text-3xl font-black text-white tracking-tighter mb-4 uppercase">{selectedImage.caption}</h3>
+              <h3 className="text-2xl md:text-3xl font-black text-white tracking-tighter mb-4 uppercase">{selectedImage.caption}</h3>
               <div className="flex items-center justify-center gap-6 text-white/50">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
                   <Calendar size={14} className="text-church-green" />

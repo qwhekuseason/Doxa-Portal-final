@@ -19,6 +19,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [aiProcessing, setAiProcessing] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,10 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ChatMessage[];
             setMessages(msgs);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching community chat:", error);
+            setError("Connection failed. Attempting to reconnect...");
             setLoading(false);
         });
 
@@ -67,7 +72,8 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
                 setAiProcessing(true);
 
                 // Extract message without mention
-                const cleanMessage = extractMessageWithoutMention(sentText);
+                let cleanMessage = extractMessageWithoutMention(sentText);
+                if (!cleanMessage) cleanMessage = "Hello";
 
                 // Get recent context
                 const recentMessages = messages.slice(-5).map(m => `${m.displayName}: ${m.text}`);
@@ -157,8 +163,18 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
                 </div>
 
                 {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <LoadingSpinner />
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <div className="bg-white/80 dark:bg-black/80 px-4 py-2 rounded-full backdrop-blur-sm shadow-sm">
+                            <LoadingSpinner />
+                        </div>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="absolute inset-x-0 top-0 p-2 z-10">
+                        <div className="bg-red-500/90 text-white px-4 py-2 rounded-xl shadow-lg backdrop-blur-sm text-center text-xs font-bold flex items-center justify-center gap-2">
+                            <span>⚠️ {error}</span>
+                        </div>
                     </div>
                 )}
 
@@ -193,10 +209,10 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
                             )}
 
                             <div className={`px-4 py-2.5 rounded-[20px] shadow-sm relative shadow-black/5 ${isOwn
-                                    ? 'bg-church-green text-white rounded-tr-none'
-                                    : isAI
-                                        ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/20 dark:to-blue-500/20 text-gray-800 dark:text-white rounded-tl-none ring-1 ring-purple-500/20'
-                                        : 'bg-white dark:bg-[#202c33] text-gray-800 dark:text-white rounded-tl-none ring-1 ring-black/[0.03] dark:ring-white/[0.05]'
+                                ? 'bg-church-green text-white rounded-tr-none'
+                                : isAI
+                                    ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10 dark:from-purple-500/20 dark:to-blue-500/20 text-gray-800 dark:text-white rounded-tl-none ring-1 ring-purple-500/20'
+                                    : 'bg-white dark:bg-[#202c33] text-gray-800 dark:text-white rounded-tl-none ring-1 ring-black/[0.03] dark:ring-white/[0.05]'
                                 }`}>
                                 <div className="text-[14px] leading-relaxed font-medium pr-8 pb-1">
                                     {msg.text}

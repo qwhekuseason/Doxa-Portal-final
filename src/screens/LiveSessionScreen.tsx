@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AgoraRTC, {
     IAgoraRTCClient,
     ILocalVideoTrack,
@@ -50,6 +50,8 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+import { DraggableFab } from '../components/DraggableFab';
 
 // --- Types ---
 interface LiveSessionScreenProps {
@@ -728,13 +730,13 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
 
                     {/* Right Side: Form */}
                     <div className="relative order-1 lg:order-2">
-                        <div className="glass-card rounded-[3.5rem] p-10 md:p-14 shadow-premium border-white/10 overflow-hidden text-center lg:text-left">
+                        <div className="glass-card rounded-3xl md:rounded-[3.5rem] p-6 md:p-10 lg:p-14 shadow-premium border-white/10 overflow-hidden text-center lg:text-left">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
-                            <div className="relative z-10 mb-10 flex justify-between items-start">
+                            <div className="relative z-10 mb-8 md:mb-10 flex justify-between items-start">
                                 <div>
-                                    <h1 className="text-4xl md:text-5xl font-black dark:text-white mb-4 tracking-tighter">Ready to join?</h1>
-                                    <p className="text-gray-500 dark:text-gray-400 font-medium text-sm leading-relaxed max-w-sm mx-auto lg:mx-0">
+                                    <h1 className="text-3xl md:text-5xl font-black dark:text-white mb-2 md:mb-4 tracking-tighter">Ready to join?</h1>
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium text-xs md:text-sm leading-relaxed max-w-sm mx-auto lg:mx-0">
                                         Step into the live session with your team. Enter the session code to get started.
                                     </p>
                                 </div>
@@ -821,11 +823,41 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             {/* Background Ambiance */}
             <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none z-0"></div>
 
-            {/* Reaction Overlay (Floating) */}
+            {/* Draggable Reaction FAB (Assistive Touch Style) */}
+            <DraggableFab className="group">
+                <div className="relative">
+                    <button
+                        onClick={() => setShowReactions(!showReactions)}
+                        className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all bg-black/60 backdrop-blur-xl border border-white/10 text-2xl hover:scale-110 active:scale-90 ${showReactions ? 'ring-2 ring-church-gold' : ''}`}
+                    >
+                        ðŸ˜Š
+                    </button>
 
+                    {/* Radial or List Menu for Emotions */}
+                    {showReactions && (
+                        <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl border border-white/10 p-3 rounded-2xl flex flex-col gap-2 animate-fade-in-up origin-bottom">
+                            {['â¤ï¸', 'ðŸ‘', 'ðŸ‘', 'ðŸŽ‰', 'ðŸ”¥', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢'].map(emoji => (
+                                <button
+                                    key={emoji}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent drag start when clicking emoji
+                                        sendReaction(emoji);
+                                    }}
+                                    className="text-2xl hover:scale-125 transition-transform p-1 cursor-pointer"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </DraggableFab>
 
             {/* 1. Main Stage Section */}
             <div className="flex-1 flex overflow-hidden relative z-10 lg:p-4 lg:gap-4">
+                {/* ... (rest of main stage) ... */}
                 {/* Video Area */}
                 <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${activeSidebar !== 'none' ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-4 custom-scrollbar flex items-center justify-center">
@@ -1112,7 +1144,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             </div>
 
             {/* 2. Control Bar (Google Meet Style) */}
-            <div className="h-20 md:h-24 bg-[#050505] border-t border-white/5 flex items-center justify-between px-4 md:px-10 z-30 shrink-0">
+            <div className="h-20 md:h-24 bg-[#050505] border-t border-white/5 flex items-center justify-between px-2 md:px-10 z-30 shrink-0">
                 {/* Left: Session Info */}
                 <div className="hidden xl:flex flex-col gap-0.5 w-1/4">
                     <div className="flex items-center gap-2 text-white/90 font-bold mb-0.5">
@@ -1124,7 +1156,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 </div>
 
                 {/* Center: Core Controls */}
-                <div className="flex items-center gap-3 md:gap-4 flex-1 justify-center">
+                <div className="flex items-center gap-2 md:gap-4 flex-1 justify-center overflow-x-auto hide-scrollbar py-2">
                     <ControlButton
                         icon={isMicOn ? Mic : MicOff}
                         onClick={toggleMic}
@@ -1150,26 +1182,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                         label={isScreenSharing ? "Stop presenting" : "Present now"}
                     />
 
-                    <div className="relative group">
-                        <ControlButton
-                            icon={() => <span className="text-xl">😊</span>}
-                            onClick={() => setShowReactions(!showReactions)}
-                            label="Send a reaction"
-                        />
-                        {showReactions && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 p-2 bg-[#1a1a1a] border border-white/10 rounded-2xl flex gap-1 shadow-2xl animate-in fade-in slide-in-from-bottom-4 ring-1 ring-white/10">
-                                {['❤️', '👍', '👏', '🎉', '🔥', '😂', '😮', '😢'].map(emoji => (
-                                    <button
-                                        key={emoji}
-                                        onClick={() => sendReaction(emoji)}
-                                        className="text-xl hover:scale-125 hover:bg-white/10 transition-all p-2 rounded-xl cursor-pointer"
-                                    >
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* REMOVED STATIC REACTION BUTTON TO AVOID DUPLICATION */}
 
                     <ControlButton
                         icon={Hand}
@@ -1183,11 +1196,11 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
 
                     <button
                         onClick={leaveCall}
-                        className="h-10 md:h-12 px-4 md:px-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center gap-2 md:gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/30 active:scale-95"
+                        className="h-10 md:h-12 w-10 md:w-auto px-0 md:px-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center gap-2 md:gap-3 transition-all transform hover:scale-105 shadow-xl shadow-red-900/30 active:scale-95 shrink-0"
                         title="Leave call"
                     >
                         <Phone size={18} className="rotate-[135deg]" />
-                        <span className="hidden sm:inline font-black text-[9px] sm:text-[10px] uppercase tracking-widest">Leave</span>
+                        <span className="hidden md:inline font-black text-[9px] sm:text-[10px] uppercase tracking-widest">Leave</span>
                     </button>
                 </div>
 

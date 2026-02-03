@@ -4,6 +4,7 @@ import { db } from '../../firebase';
 import { Story } from '../../types';
 import { Plus, Trash2, Clock, Image as ImageIcon, Type, Video, X, Send } from 'lucide-react';
 import { PageHeader, LoadingSpinner } from '../UIComponents';
+import { notifyNewStory } from '../../utils/notificationService';
 
 const StoryManager: React.FC = () => {
     const [stories, setStories] = useState<Story[]>([]);
@@ -39,6 +40,8 @@ const StoryManager: React.FC = () => {
                 createdAt: serverTimestamp(),
                 expiresAt: expiresAt
             });
+
+            await notifyNewStory(newStory.authorName, newStory.type);
 
             setNewStory({ type: 'text', content: '', authorName: 'Admin' });
             setIsCreating(false);
@@ -93,8 +96,8 @@ const StoryManager: React.FC = () => {
                                         type="button"
                                         onClick={() => setNewStory({ ...newStory, type: t.id as any })}
                                         className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${newStory.type === t.id
-                                                ? 'border-church-green bg-church-green/5 text-church-green'
-                                                : 'border-gray-100 dark:border-white/5 text-gray-400'
+                                            ? 'border-church-green bg-church-green/5 text-church-green'
+                                            : 'border-gray-100 dark:border-white/5 text-gray-400'
                                             }`}
                                     >
                                         {t.icon}

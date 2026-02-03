@@ -140,24 +140,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 </section>
 
                 {/* Video Teaser / Brand Moment */}
-                <section id="vision" className="px-6 mb-32 reveal">
+                <section id="vision" className="px-6 mb-20 md:mb-32 reveal">
                     <div className="max-w-7xl mx-auto">
-                        <div className="relative rounded-[3rem] md:rounded-[5rem] overflow-hidden shadow-premium group aspect-[21/9] border-8 border-white dark:border-gray-900">
+                        <div className="relative rounded-[2.5rem] md:rounded-[5rem] overflow-hidden shadow-premium group aspect-[4/3] sm:aspect-video md:aspect-[21/9] border-4 md:border-8 border-white dark:border-gray-900">
                             <img
                                 src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=2000"
                                 alt="Worship"
                                 className="w-full h-full object-cover transition-transform duration-[3000ms] group-hover:scale-110 brightness-50"
                                 loading="lazy"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-center text-center p-10">
-                                <div className="p-8 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 text-white hover:scale-110 transition-all cursor-pointer shadow-2xl mb-8 group/play">
-                                    <PlayCircle size={64} className="fill-white/10 group-hover/play:fill-white/40 transition-all" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-center text-center p-6 md:p-10">
+                                <div className="p-5 md:p-8 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 text-white hover:scale-110 transition-all cursor-pointer shadow-2xl mb-6 md:mb-8 group/play">
+                                    <PlayCircle size={48} className="md:w-16 md:h-16 fill-white/10 group-hover/play:fill-white/40 transition-all" />
                                 </div>
-                                <h3 className="text-white text-4xl md:text-6xl font-black italic tracking-tighter mb-4 leading-none max-w-4xl">"Where the Spirit of the Lord is, there is Liberty."</h3>
+                                <h3 className="text-white text-2xl md:text-6xl font-black italic tracking-tighter mb-4 leading-none max-w-4xl">"Where the Spirit of the Lord is, there is Liberty."</h3>
                                 <div className="flex items-center gap-4">
-                                    <div className="h-px w-12 bg-church-gold/50"></div>
-                                    <p className="text-church-gold font-black uppercase tracking-[0.4em] text-xs">2 Corinthians 3:17</p>
-                                    <div className="h-px w-12 bg-church-gold/50"></div>
+                                    <div className="h-px w-8 md:w-12 bg-church-gold/50"></div>
+                                    <p className="text-church-gold font-black uppercase tracking-[0.4em] text-[10px] md:text-xs">2 Corinthians 3:17</p>
+                                    <div className="h-px w-8 md:w-12 bg-church-gold/50"></div>
                                 </div>
                             </div>
                         </div>
@@ -165,19 +165,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 </section>
 
                 {/* Features - Premium Masonry/Grid */}
-                <section id="features" className="py-40 px-6 bg-gray-50/50 dark:bg-white/[0.02] border-y border-gray-100 dark:border-white/5 reveal">
+                <section id="features" className="py-24 md:py-40 px-6 bg-gray-50/50 dark:bg-white/[0.02] border-y border-gray-100 dark:border-white/5 reveal">
                     <div className="max-w-7xl mx-auto">
-                        <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 md:mb-24 gap-8">
                             <div className="max-w-2xl">
                                 <h4 className="text-church-green text-xs font-black uppercase tracking-[0.4em] mb-4">Divine Ecosystem</h4>
-                                <h2 className="text-4xl md:text-6xl font-black dark:text-white tracking-tighter leading-none">Complete Tools for <br className="hidden md:block" /> your <span className="text-church-gold">Soul's Growth.</span></h2>
+                                <h2 className="text-3xl md:text-6xl font-black dark:text-white tracking-tighter leading-none">Complete Tools for <br className="hidden md:block" /> your <span className="text-church-gold">Soul's Growth.</span></h2>
                             </div>
-                            <p className="max-w-xs text-gray-500 font-medium text-lg leading-relaxed mb-4">
+                            <p className="max-w-xs text-gray-500 font-medium text-base md:text-lg leading-relaxed md:mb-4">
                                 Curated experiences designed to nurture your spirit and connect the community.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                             {[
                                 {
                                     icon: <BookOpen size={28} />,
@@ -228,11 +228,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                     tag: "Inspiring"
                                 }
                             ].map((feature, i) => (
-                                <div key={i} className="group glass-card p-10 rounded-[3rem] hover:-translate-y-4 transition-all duration-700">
-                                    <div className="w-16 h-16 rounded-2xl mb-8 flex items-center justify-center bg-church-green/5 text-church-green group-hover:bg-church-green group-hover:text-white transition-all duration-500 shadow-sm">
-                                        {feature.icon}
+                                <div key={i} className="group glass-card p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] hover:-translate-y-4 transition-all duration-700">
+                                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-6 md:mb-8 flex items-center justify-center bg-church-green/5 text-church-green group-hover:bg-church-green group-hover:text-white transition-all duration-500 shadow-sm">
+                                        {React.cloneElement(feature.icon as React.ReactElement, { size: 24, className: 'md:w-7 md:h-7' })}
                                     </div>
-                                    <div className="mb-4">
+                                    <div className="mb-3 md:mb-4">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-church-gold/60">{feature.tag}</span>
                                         <h3 className="text-xl font-black mt-1 text-gray-900 dark:text-white tracking-tight">{feature.title}</h3>
                                     </div>
@@ -244,29 +244,29 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 </section>
 
                 {/* Community Section */}
-                <section id="community" className="py-32 reveal px-6">
-                    <div className="max-w-6xl mx-auto rounded-[4rem] bg-gradient-to-br from-indigo-900 to-slate-900 overflow-hidden relative shadow-premium">
+                <section id="community" className="py-20 md:py-32 reveal px-6">
+                    <div className="max-w-6xl mx-auto rounded-[2.5rem] md:rounded-[4rem] bg-gradient-to-br from-indigo-900 to-slate-900 overflow-hidden relative shadow-premium">
                         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
-                        <div className="p-12 md:p-24 relative z-10 flex flex-col md:flex-row items-center gap-16">
+                        <div className="p-8 md:p-24 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-16">
                             <div className="flex-1 text-center md:text-left">
-                                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-8">Built for the <br /><span className="text-church-gold">Modern Believer.</span></h2>
-                                <p className="text-white/60 text-lg md:text-xl font-medium mb-12 leading-relaxed">
+                                <h2 className="text-3xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6 md:mb-8">Built for the <br /><span className="text-church-gold">Modern Believer.</span></h2>
+                                <p className="text-white/60 text-base md:text-xl font-medium mb-8 md:mb-12 leading-relaxed">
                                     Doxa Portal combines state-of-the-art technology with time-honored spiritual values. It's safe, secure, and purely professional.
                                 </p>
-                                <div className="flex flex-wrap gap-8 justify-center md:justify-start">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20"><Shield /></div>
-                                        <p className="text-xs font-black uppercase tracking-widest text-white">Encrypted Data</p>
+                                <div className="flex flex-wrap gap-6 md:gap-8 justify-center md:justify-start">
+                                    <div className="flex items-center gap-3 md:gap-4">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20"><Shield size={20} /></div>
+                                        <p className="text-xs font-black uppercase tracking-widest text-white">Encrypted</p>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20"><Video /></div>
-                                        <p className="text-xs font-black uppercase tracking-widest text-white">4K Live Streams</p>
+                                    <div className="flex items-center gap-3 md:gap-4">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/20"><Video size={20} /></div>
+                                        <p className="text-xs font-black uppercase tracking-widest text-white">Live 4K</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-64 h-64 md:w-96 md:h-96 rounded-[3rem] bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl flex items-center justify-center relative group">
+                            <div className="w-48 h-48 md:w-96 md:h-96 rounded-[2rem] md:rounded-[3rem] bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl flex items-center justify-center relative group">
                                 <div className="absolute inset-0 bg-church-green/20 rounded-full blur-[100px] animate-pulse"></div>
-                                <Star size={128} className="text-church-gold relative z-10 animate-float" />
+                                <Star size={80} className="md:w-32 md:h-32 text-church-gold relative z-10 animate-float" />
                             </div>
                         </div>
                     </div>

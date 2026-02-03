@@ -127,25 +127,25 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-20 glass-card rounded-[2.5rem] flex flex-col items-center">
-          <CalendarIcon size={64} className="text-gray-200 dark:text-gray-800 mb-6" />
+          <CalendarIcon size={64} className="text-gray-200 dark:text-white/10 mb-6" />
           <h3 className="text-xl font-bold dark:text-white">No Upcoming Events</h3>
           <p className="text-gray-400 mt-2">Check back later for new updates.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-10">
           {events.map((ev, index) => {
             const date = new Date(ev.date);
             const isLive = ev.meetingLink && ev.meetingLink.length > 0;
             return (
               <div
                 key={ev.id}
-                className="group glass-card rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 animate-fade-in-up flex flex-col h-full"
+                className="group glass-card rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 animate-fade-in-up flex flex-col h-full"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Visual Header Gradient */}
                 <div className={`h-2.5 w-full ${ev.type === 'service' ? 'bg-church-green' : ev.type === 'youth' ? 'bg-church-gold' : 'bg-blue-500'}`}></div>
 
-                <div className="p-8 flex-1 flex flex-col">
+                <div className="p-6 md:p-8 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-8">
                     <div className="flex items-center gap-5">
                       <div className="bg-gray-100 dark:bg-white/5 rounded-2xl p-4 text-center min-w-[70px] border border-gray-100 dark:border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-700 shadow-sm">
@@ -206,13 +206,13 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
                   {isLive && (
                     <button
                       onClick={() => onJoinLive && onJoinLive(ev.meetingLink!)}
-                      className="w-full py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-lg shadow-red-500/30 transition-all hover:scale-[1.03] active:scale-[0.97]"
+                      className="w-full py-4 md:py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-3 shadow-lg shadow-red-500/30 transition-all hover:scale-[1.03] active:scale-[0.97]"
                     >
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                       </span>
-                      Join Service Now
+                      Join Now
                     </button>
                   )}
                 </div>
@@ -225,7 +225,7 @@ const EventsCalendarView: React.FC<{ user: UserProfile; onJoinLive?: (room: stri
       {/* Add Event Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="glass-card rounded-[3rem] w-full max-w-lg p-10 shadow-premium border-white/10 relative overflow-hidden">
+          <div className="glass-card rounded-[2rem] md:rounded-[3rem] w-full max-w-lg p-6 md:p-10 shadow-premium border-white/10 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-xl transition-colors text-gray-400"

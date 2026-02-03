@@ -30,7 +30,8 @@ import {
   ChevronLeft,
   Camera,
   Upload,
-  Shield
+  Shield,
+  Calendar
 } from 'lucide-react';
 
 interface AuthPageProps {
@@ -449,11 +450,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
                     />
                   </div>
                   <div className="relative group">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                     <input
                       type="date"
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 px-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
+                      className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/30 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-bold"
                     />
                   </div>
                   <div className="relative group col-span-full">

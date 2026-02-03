@@ -20,8 +20,12 @@ import {
     Loader2,
     BookOpen,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    FileText,
+    ImageIcon,
+    Save
 } from 'lucide-react';
+import { initGoogleAuth, uploadFileToDrive } from '../../utils/googleDriveService';
 
 export const LibraryManager: React.FC = () => {
     const [books, setBooks] = useState<EBook[]>([]);
@@ -38,6 +42,15 @@ export const LibraryManager: React.FC = () => {
     const [fileUrl, setFileUrl] = useState('');
     const [coverUrl, setCoverUrl] = useState('');
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [bookFile, setBookFile] = useState<File | null>(null);
+    const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadStep, setUploadStep] = useState<'idle' | 'files' | 'cover' | 'saving' | 'done'>('idle');
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        initGoogleAuth();
+    }, []);
 
     // Image processing helper
     const processImage = (file: File): Promise<string> => {
@@ -71,18 +84,11 @@ export const LibraryManager: React.FC = () => {
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setUploading(true);
-        setError(null);
-        try {
-            const base64 = await processImage(file);
-            setImagePreview(base64);
-            setCoverUrl(base64);
-        } catch (err) {
-            console.error("Image processing error:", err);
-            setError("Failed to process image.");
-        } finally {
-            setUploading(false);
-        }
+        setCoverFile(file);
+        // Create a local preview
+        const reader = new FileReader();
+        reader.onload = (e) => setImagePreview(e.target?.result as string);
+        reader.readAsDataURL(file);
     };
 
     useEffect(() => {
@@ -99,34 +105,60 @@ export const LibraryManager: React.FC = () => {
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fileUrl || !title || !author) {
-            setError("Title, Author, and Book Link are required.");
+        if (!title || !author || (!bookFile && !fileUrl)) {
+            setError("Title, Author, and either a Book File or Book Link are required.");
             return;
         }
 
         setUploading(true);
         setError(null);
+        setUploadProgress(0);
 
         try {
+            let finalFileUrl = fileUrl;
+            let finalCoverUrl = coverUrl;
+            let fileSize = 0;
+
+            if (bookFile) {
+                setUploadStep('files');
+                const driveResult = await uploadFileToDrive(bookFile, (p) => setUploadProgress(p));
+                finalFileUrl = driveResult.downloadLink;
+                fileSize = bookFile.size;
+            }
+
+            if (coverFile) {
+                setUploadStep('cover');
+                setUploadProgress(0);
+                const coverResult = await uploadFileToDrive(coverFile, (p) => setUploadProgress(p));
+                finalCoverUrl = `https://lh3.googleusercontent.com/d/${coverResult.fileId}`;
+            }
+
+            setUploadStep('saving');
             await addDoc(collection(db, 'e_books'), {
                 title,
                 author,
                 category,
                 description,
-                fileUrl,
-                coverUrl: coverUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=300&h=450&fit=crop',
-                fileSize: 0,
+                fileUrl: finalFileUrl,
+                coverUrl: finalCoverUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=300&h=450&fit=crop',
+                fileSize,
                 uploadedBy: 'Admin',
                 createdAt: serverTimestamp()
             });
 
-            setIsModalOpen(false);
-            resetForm();
+            setUploadStep('done');
+            setShowSuccess(true);
+            setTimeout(() => {
+                setIsModalOpen(false);
+                setShowSuccess(false);
+                resetForm();
+                setUploadStep('idle');
+            }, 2000);
         } catch (err: any) {
             console.error("Upload error:", err);
             setError(err.message || "Failed to add eBook.");
-        } finally {
             setUploading(false);
+            setUploadStep('idle');
         }
     };
 
@@ -149,6 +181,8 @@ export const LibraryManager: React.FC = () => {
         setFileUrl('');
         setCoverUrl('');
         setImagePreview(null);
+        setBookFile(null);
+        setCoverFile(null);
         setError(null);
     };
 
@@ -217,7 +251,7 @@ export const LibraryManager: React.FC = () => {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 md:p-8 pt-12 md:items-center md:pt-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-[#0a0a0a] w-full max-w-2xl max-h-[85vh] md:max-h-[90vh] rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/5 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto relative">
                         <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
                             <div>
@@ -232,7 +266,56 @@ export const LibraryManager: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8 relative">
+                            {(uploading || showSuccess) && (
+                                <div className="absolute inset-0 z-50 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-md flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-300">
+                                    {showSuccess ? (
+                                        <div className="space-y-6 animate-in zoom-in duration-500">
+                                            <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border-4 border-green-500">
+                                                <CheckCircle2 size={48} className="text-green-500 animate-bounce" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Done!</h4>
+                                                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Resource successfully Added</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full max-w-xs space-y-8">
+                                            <div className="relative">
+                                                <div className="w-20 h-20 bg-church-gold/10 rounded-3xl flex items-center justify-center mx-auto text-church-gold animate-pulse">
+                                                    {uploadStep === 'files' ? <FileText size={40} /> : uploadStep === 'cover' ? <ImageIcon size={40} /> : <Save size={40} />}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="text-left">
+                                                        <p className="text-[10px] font-black text-church-gold uppercase tracking-[0.2em] mb-1">
+                                                            Step {uploadStep === 'files' ? '1/3' : uploadStep === 'cover' ? '2/3' : '3/3'}
+                                                        </p>
+                                                        <h4 className="text-lg font-black dark:text-white uppercase tracking-tight">
+                                                            {uploadStep === 'files' ? 'Uploading E-Book' : uploadStep === 'cover' ? 'Uploading Cover' : 'Finalizing'}
+                                                        </h4>
+                                                    </div>
+                                                    <span className="text-xl font-black dark:text-white tabular-nums">{uploadProgress}%</span>
+                                                </div>
+
+                                                <div className="h-3 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden border border-gray-200 dark:border-white/10">
+                                                    <div
+                                                        className="h-full bg-church-gold shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all duration-300 ease-out rounded-full"
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    />
+                                                </div>
+
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                    Please don't close this window
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {error && (
                                 <div className="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl flex items-center gap-3 text-red-600">
                                     <AlertCircle size={20} />
@@ -288,15 +371,48 @@ export const LibraryManager: React.FC = () => {
                                     />
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">eBook File (PDF/Epub)</label>
+                                    <div className="relative group/file">
+                                        {bookFile ? (
+                                            <div className="p-4 rounded-2xl bg-church-gold/5 border-2 border-church-gold/30 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-church-gold/20 rounded-xl flex items-center justify-center text-church-gold">
+                                                        <FileText size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-black dark:text-white uppercase truncate max-w-[200px]">{bookFile.name}</p>
+                                                        <p className="text-[10px] font-bold text-gray-400">{(bookFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBookFile(null)}
+                                                    className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="flex items-center gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-2 border-dashed border-gray-200 dark:border-white/10 hover:border-church-gold/30 cursor-pointer transition-all">
+                                                <input type="file" className="hidden" onChange={e => e.target.files?.[0] && setBookFile(e.target.files[0])} disabled={uploading} />
+                                                <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-xl flex items-center justify-center text-gray-400">
+                                                    <Plus size={20} />
+                                                </div>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select eBook File</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Book URL (Link)</label>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Or Paste Link (Optional)</label>
                                         <input
                                             placeholder="https://drive.google.com/..."
                                             className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-church-gold/20 dark:text-white outline-none font-bold text-xs"
                                             value={fileUrl}
                                             onChange={e => setFileUrl(e.target.value)}
-                                            required
                                             disabled={uploading}
                                         />
                                     </div>
@@ -328,7 +444,7 @@ export const LibraryManager: React.FC = () => {
 
                                 <button
                                     type="submit"
-                                    disabled={uploading || !fileUrl || !title}
+                                    disabled={uploading || !title || (!bookFile && !fileUrl)}
                                     className="w-full bg-church-gold hover:bg-amber-600 text-white font-black py-5 rounded-3xl shadow-xl shadow-church-gold/20 active:scale-95 transition-all text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 disabled:opacity-50"
                                 >
                                     {uploading ? (
@@ -338,8 +454,8 @@ export const LibraryManager: React.FC = () => {
                                         </>
                                     ) : (
                                         <>
-                                            <CheckCircle2 size={20} />
-                                            <span>Register Resource</span>
+                                            <Upload size={20} />
+                                            <span>Upload Resource</span>
                                         </>
                                     )}
                                 </button>

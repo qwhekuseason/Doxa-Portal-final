@@ -127,6 +127,11 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                 })
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `Server error: ${response.status}`);
+            }
+
             const data = await response.json();
             if (data.success) {
                 setAiInsight(data.insight);

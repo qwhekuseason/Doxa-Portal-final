@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
 import { UserProfile } from '../types';
-import { Loader2, X, CheckCircle2, QrCode } from 'lucide-react';
+import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useToast } from './UIComponents';
 
 interface AttendanceScannerProps {
@@ -60,7 +60,6 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ user, onCl
             }
 
             // 3. Mark user as present
-            // Identify if this is a "New Member" (Joined in the last 7 days)
             const joinedDate = user.createdAt ? (typeof user.createdAt === 'string' ? new Date(user.createdAt) : (user.createdAt as any).toDate ? (user.createdAt as any).toDate() : new Date()) : new Date();
             const isNewMember = (new Date().getTime() - joinedDate.getTime()) < (7 * 24 * 60 * 60 * 1000);
 
@@ -73,7 +72,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ user, onCl
                 isNewMember: isNewMember
             });
 
-            // 4. Update user stats (Remove streak increment)
+            // 4. Update user stats
             const userRef = doc(db, 'users', user.uid);
             await updateDoc(userRef, {
                 'stats.attendanceCount': increment(1),
@@ -91,80 +90,100 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ user, onCl
             console.error("Check-in error:", error);
             setStatus('fail');
             addToast(error.message || "Failed to check in.", 'error');
-            setLoading(false); // Allow retry
+            setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-            <button
-                onClick={onClose}
-                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all"
-            >
-                <X size={24} />
-            </button>
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+            {/* The "Screen" / Scanner Card */}
+            <div className="relative w-full max-w-sm bg-[#050505] rounded-[2.5rem] flex flex-col items-center p-6 pb-10 border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
 
-            <div className="w-full max-w-md space-y-8 text-center">
+                {/* Background Accent */}
+                <div className="absolute inset-0 bg-gradient-to-b from-church-green/5 to-transparent pointer-events-none rounded-[2.5rem]"></div>
 
-                {status === 'scan' && (
-                    <div className="space-y-6">
-                        <div className="relative w-64 h-64 mx-auto rounded-3xl overflow-hidden border-4 border-church-green shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-                            <Scanner
-                                onScan={(results) => {
-                                    if (results && results.length > 0) {
-                                        handleScan(results[0].rawValue);
-                                    }
-                                }}
-                                onError={(error: any) => console.log(error?.message)}
-                                styles={{
-                                    container: { width: '100%', height: '100%' }
-                                }}
-                            />
-                            {/* Scanning Animation Overlay */}
-                            <div className="absolute inset-0 border-t-4 border-church-green/50 animate-[scan_2s_infinite]"></div>
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 z-50 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 border border-white/5"
+                    title="Close"
+                >
+                    <X size={20} className="text-white/60" />
+                </button>
+
+                <div className="w-full flex flex-col items-center justify-center space-y-6 relative z-10">
+                    {status === 'scan' && (
+                        <>
+                            <div className="text-center space-y-1">
+                                <h2 className="text-xl font-black uppercase tracking-tight text-white">Check In</h2>
+                                <p className="text-[10px] font-bold text-church-green uppercase tracking-[0.2em]">Scan QR Code</p>
+                            </div>
+
+                            {/* Scanner Box - Compact Size */}
+                            <div className="relative w-full aspect-square max-w-[280px] rounded-[2rem] overflow-hidden border-4 border-church-green shadow-[0_0_40px_rgba(34,197,94,0.2)] bg-black">
+                                <Scanner
+                                    onScan={(results) => {
+                                        if (results && results.length > 0) {
+                                            handleScan(results[0].rawValue);
+                                        }
+                                    }}
+                                    onError={(error: any) => console.log(error?.message)}
+                                    styles={{
+                                        container: { width: '100%', height: '100%' },
+                                        video: { objectFit: 'cover' }
+                                    }}
+                                />
+                                {/* Scanning Animation Overlay */}
+                                <div className="absolute inset-x-0 top-0 h-1 bg-church-green shadow-[0_0_15px_#22c55e] animate-[scan_2s_infinite] pointer-events-none z-20"></div>
+
+                                {/* Corner Accents - Smaller */}
+                                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-white/20 rounded-tl-lg pointer-events-none"></div>
+                                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-white/20 rounded-tr-lg pointer-events-none"></div>
+                                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-white/20 rounded-bl-lg pointer-events-none"></div>
+                                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-white/20 rounded-br-lg pointer-events-none"></div>
+                            </div>
+
+                            <div className="text-center px-4">
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-relaxed">
+                                    Align the QR code within the frame
+                                </p>
+                            </div>
+                        </>
+                    )}
+
+                    {status === 'processing' && (
+                        <div className="flex flex-col items-center justify-center py-10 animate-pulse">
+                            <div className="w-16 h-16 bg-church-green/10 rounded-full flex items-center justify-center mb-4 border border-church-green/20">
+                                <Loader2 size={32} className="text-church-green animate-spin" />
+                            </div>
+                            <p className="text-sm font-black uppercase tracking-widest text-church-green">Processing...</p>
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-black uppercase tracking-tight">Scan QR Code</h2>
-                            <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-2">Point camera at the screen</p>
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                {status === 'processing' && (
-                    <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-                        <QrCode size={64} className="text-church-green mb-6" />
-                        <p className="text-lg font-black uppercase tracking-widest text-church-green">Verifying...</p>
-                    </div>
-                )}
-
-                {status === 'success' && (
-                    <div className="flex flex-col items-center justify-center py-10 animate-in zoom-in duration-300">
-                        <div className="w-24 h-24 bg-church-green rounded-full flex items-center justify-center mb-6 shadow-lg shadow-church-green/40">
-                            <CheckCircle2 size={48} className="text-white" />
+                    {status === 'success' && (
+                        <div className="flex flex-col items-center justify-center py-6 animate-in zoom-in duration-500">
+                            <div className="w-20 h-20 bg-church-green rounded-full flex items-center justify-center mb-6 shadow-lg shadow-church-green/20">
+                                <CheckCircle2 size={40} className="text-white" />
+                            </div>
+                            <h2 className="text-2xl font-black uppercase tracking-tight mb-1">Success!</h2>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Attendance Recorded</p>
                         </div>
-                        <h2 className="text-3xl font-black uppercase tracking-tighter">Welcome!</h2>
-                        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-2">You are checked in.</p>
-                        <div className="mt-8 px-6 py-2 bg-church-green/20 rounded-full text-church-green font-black uppercase text-xs tracking-[0.2em]">
-                            Presence Recorded
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                {status === 'fail' && (
-                    <div className="flex flex-col items-center justify-center py-10">
-                        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 text-red-500">
-                            <X size={40} />
+                    {status === 'fail' && (
+                        <div className="flex flex-col items-center justify-center py-6 animate-in shake">
+                            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 text-red-500 border border-red-500/10">
+                                <X size={40} />
+                            </div>
+                            <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-6">Scan Failed</p>
+                            <button
+                                onClick={() => setStatus('scan')}
+                                className="px-8 py-3 bg-white text-black rounded-xl font-black uppercase text-xs tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Retry
+                            </button>
                         </div>
-                        <p className="text-sm font-bold text-red-400 uppercase tracking-widest">Scan Failed. Try Again.</p>
-                        <button
-                            onClick={() => setStatus('scan')}
-                            className="mt-8 px-8 py-3 bg-white text-black rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-all"
-                        >
-                            Retry
-                        </button>
-                    </div>
-                )}
-
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -5,6 +5,7 @@ import { useFirestoreQuery } from '../hooks';
 import { UserProfile, PrayerRequest } from '../types';
 import { Heart, Clock, Loader2, AlertTriangle, Send, Shield, Info, CheckCircle } from 'lucide-react';
 import { SkeletonCard, SectionHeader } from '../components/UIComponents';
+import { notifyNewPrayerRequest } from '../utils/notificationService';
 
 // Define query outside to ensure stability
 // Query will be defined inside component via useMemo to filter by user.uid
@@ -35,6 +36,7 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
         approved: false,
         createdAt: new Date().toISOString()
       });
+      await notifyNewPrayerRequest(isPrivate ? 'Someone' : user.displayName || 'Anonymous');
       setNewRequest('');
       setIsPrivate(false);
     } catch (e) { console.error(e); } finally { setSubmitting(false); }
@@ -95,8 +97,8 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
                   />
                 </div>
 
-                <div className="flex items-center gap-3 px-3 bg-black/20 rounded-xl border border-white/5">
-                  <label className="flex items-center gap-2 cursor-pointer group/toggle">
+                <div className="flex items-center gap-4 p-1 pl-4 bg-black/20 rounded-xl border border-white/5 md:w-auto w-full">
+                  <label className="flex items-center gap-2 cursor-pointer group/toggle shrink-0">
                     <div
                       onClick={(e) => { e.preventDefault(); setIsPrivate(!isPrivate); }}
                       className={`w-10 h-5 rounded-full relative transition-all duration-300 ${isPrivate ? 'bg-church-gold' : 'bg-white/20'}`}
@@ -108,7 +110,7 @@ const PrayerWallView: React.FC<{ user: UserProfile }> = ({ user }) => {
 
                   <button
                     disabled={submitting || !newRequest.trim()}
-                    className="bg-white text-church-green px-6 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center gap-2"
+                    className="flex-1 bg-white text-church-green px-8 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {submitting ? <Loader2 className="animate-spin" size={14} /> : (
                       <>

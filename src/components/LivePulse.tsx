@@ -28,6 +28,10 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
         duration: number;
     }[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [hasDragged, setHasDragged] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     // Emoji map for display
     const emojiMap: Record<string, string> = {
@@ -36,6 +40,44 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
         'star': '⭐',
         'pray': '🙏'
     };
+
+    const handleStart = (clientX: number, clientY: number) => {
+        setIsDragging(true);
+        setHasDragged(false);
+        setDragStart({ x: clientX - position.x, y: clientY - position.y });
+    };
+
+    const handleMove = (clientX: number, clientY: number) => {
+        if (!isDragging) return;
+        setHasDragged(true);
+        const newX = Math.max(20, Math.min(window.innerWidth - 60, clientX - dragStart.x));
+        const newY = Math.max(20, Math.min(window.innerHeight - 60, clientY - dragStart.y));
+        setPosition({ x: newX, y: newY });
+    };
+
+    const handleEnd = () => {
+        setIsDragging(false);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+        const handleTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        const handleEndEvents = () => handleEnd();
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleEndEvents);
+            window.addEventListener('touchmove', handleTouchMove);
+            window.addEventListener('touchend', handleEndEvents);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleEndEvents);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleEndEvents);
+        };
+    }, [isDragging, dragStart]);
 
     useEffect(() => {
         const q = query(
@@ -56,7 +98,6 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                         const id = change.doc.id;
                         const emoji = data.emoji;
                         const senderName = data.displayName || 'Someone';
-                        const senderUid = data.uid;
 
                         // Dynamic properties
                         const x = Math.floor(Math.random() * 80) + 10; // 10% to 90%
@@ -92,6 +133,7 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
     }, [uid]);
 
     const sendReaction = async (emoji: string) => {
+        if (hasDragged) return;
         try {
             const senderName = displayName || 'Member';
 
@@ -174,8 +216,16 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
             ))}
 
             {/* Control Buttons - Horizontal Pill */}
-            <div className="fixed bottom-6 right-6 flex items-center gap-2 pointer-events-auto z-[2001]">
-                <div className={`flex items-center gap-2 md:gap-3 bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 p-2 md:p-3 rounded-[2.5rem] transition-all duration-700 shadow-premium ${isExpanded ? 'translate-x-0 opacity-100 scale-100 rotate-0' : 'translate-x-20 opacity-0 pointer-events-none scale-50 rotate-12'
+            <div
+                className="fixed flex items-center gap-2 pointer-events-auto z-[2001]"
+                style={{
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                    transform: 'translate(-50%, -50%)',
+                    transition: isDragging ? 'none' : 'all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+                }}
+            >
+                <div className={`absolute right-full mr-4 flex items-center gap-2 md:gap-3 bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 p-2 md:p-3 rounded-[2.5rem] transition-all duration-700 shadow-premium ${isExpanded ? 'translate-x-0 opacity-100 scale-100 rotate-0' : 'translate-x-20 opacity-0 pointer-events-none scale-50 rotate-12'
                     }`}>
                     {[
                         { emoji: '❤️', key: 'heart', gradient: 'from-rose-500 to-pink-600', label: 'Love' },
@@ -198,11 +248,13 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                 </div>
 
                 <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className={`group w-14 h-14 md:w-16 md:h-16 rounded-full shadow-premium transition-all duration-500 active:scale-90 flex items-center justify-center border-2 border-white/40 z-10 ${isExpanded
+                    onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
+                    onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
+                    onClick={() => { if (!hasDragged) setIsExpanded(!isExpanded); }}
+                    className={`group w-14 h-14 md:w-16 md:h-16 rounded-full shadow-premium transition-all duration-500 active:scale-90 flex items-center justify-center border-2 border-white/40 z-10 cursor-move outline-none ${isExpanded
                         ? 'bg-gradient-to-br from-gray-800 to-black text-white rotate-180 scale-110 border-white/60'
                         : 'bg-gradient-to-br from-church-green to-emerald-700 text-white hover:scale-105 hover:shadow-church-green/40'
-                        }`}
+                        } ${isDragging ? 'scale-125 shadow-2xl brightness-110' : ''}`}
                 >
                     {isExpanded ? (
                         <X size={28} className="drop-shadow-lg" />

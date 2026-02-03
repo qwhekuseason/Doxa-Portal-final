@@ -121,11 +121,11 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
 
         {/* Left Column: Avatar & Card */}
-        <div className="lg:col-span-1 space-y-8">
-          <div className="glass-card rounded-[3rem] p-8 pb-12 shadow-premium border-white/40 text-center relative overflow-hidden group">
+        <div className="lg:col-span-1 space-y-8 px-2 md:px-0">
+          <div className="glass-card rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-8 pb-10 md:pb-12 shadow-premium border-white/40 text-center relative overflow-hidden group">
             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-br from-church-green to-emerald-900 opacity-80 group-hover:scale-105 transition-transform duration-1000"></div>
 
             <div className="relative z-10 pt-10 flex flex-col items-center">
@@ -133,7 +133,7 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
                 <img
                   src={photoPreview || user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`}
                   alt={user.displayName}
-                  className="w-40 h-40 rounded-[2.5rem] border-8 border-white dark:border-black shadow-2xl object-cover bg-white"
+                  className="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] md:rounded-[2.5rem] border-4 md:border-8 border-white dark:border-black shadow-2xl object-cover bg-white"
                 />
                 {isEditing && (
                   <label className="absolute -bottom-2 -right-2 bg-church-gold hover:bg-amber-600 text-white p-3 rounded-2xl cursor-pointer shadow-xl transition-all hover:scale-110 active:scale-90 border-4 border-white dark:border-black">
@@ -213,9 +213,9 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
         </div>
 
         {/* Right Column: Detailed Info Form */}
-        <div className="lg:col-span-2">
-          <div className="glass-card rounded-[3rem] p-10 md:p-14 shadow-premium border-white/40">
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-10">Account Details</h3>
+        <div className="lg:col-span-2 px-2 md:px-0">
+          <div className="glass-card rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 lg:p-14 shadow-premium border-white/40">
+            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tighter uppercase mb-8 md:mb-10">Account Details</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className={`space-y-3 transition-all ${isEditing ? 'scale-100' : 'opacity-80'}`}>
@@ -303,17 +303,17 @@ const ProfileScreen: React.FC<{ user: UserProfile, refreshUser: () => void }> = 
           </div>
 
           {/* Security Banner */}
-          <div className="mt-8 p-8 bg-gradient-to-r from-church-gold/10 to-amber-500/10 rounded-[2.5rem] border border-church-gold/20 flex flex-col md:flex-row items-center gap-8 group">
-            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-black/20 flex items-center justify-center text-church-gold shadow-lg group-hover:scale-110 transition-transform">
-              <Shield size={28} />
+          <div className="mt-8 p-6 md:p-8 bg-gradient-to-r from-church-gold/10 to-amber-500/10 rounded-[2rem] md:rounded-[2.5rem] border border-church-gold/20 flex flex-col md:flex-row items-center gap-6 md:gap-8 group">
+            <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white dark:bg-black/20 flex items-center justify-center text-church-gold shadow-lg group-hover:scale-110 transition-transform">
+              <Shield size={24} className="md:w-7 md:h-7" />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h4 className="font-black text-gray-900 dark:text-white tracking-tight uppercase">Privacy & Security</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Change your password and manage active sessions to keep your personal data secure.</p>
+              <h4 className="font-black text-sm md:text-base text-gray-900 dark:text-white tracking-tight uppercase">Privacy & Security</h4>
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">Manage your active sessions and security preferences.</p>
             </div>
             <button
               onClick={handlePasswordReset}
-              className="px-6 py-3 bg-white dark:bg-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 hover:bg-church-gold hover:text-white transition-all"
+              className="w-full md:w-auto px-6 py-3 bg-white dark:bg-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-white/5 hover:bg-church-gold hover:text-white transition-all shadow-sm"
             >
               Reset Password
             </button>

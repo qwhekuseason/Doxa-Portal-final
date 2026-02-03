@@ -25,12 +25,12 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const { book, chapter, content } = req.body;
+        const { userMessage, userName, conversationContext } = req.body;
 
-        if (!book || !chapter || !content) {
+        if (!userMessage) {
             return res.status(400).json({
                 error: 'invalid-argument',
-                message: 'book, chapter, and content are required'
+                message: 'userMessage is required'
             });
         }
 
@@ -43,25 +43,39 @@ module.exports = async (req, res) => {
         }
 
         const hf = new HfInference(apiKey);
+
+        const contextMessages = conversationContext?.slice(-5).join('\n') || '';
+
+        const systemInstruction = `You are "Doxa AI", a friendly and knowledgeable Christian assistant for the Doxa Portal church community. You help members with:
+- Biblical questions and scripture references
+- Prayer requests and spiritual guidance
+- Church event information
+- General Christian fellowship and encouragement
+
+Respond in a warm, encouraging, and concise manner (2-3 sentences max). Use emojis appropriately. If asked about church-specific events or details you don't know, politely suggest they check the Events or Admin sections.`;
+
+        const userQuery = `Context from recent messages:
+${contextMessages}
+
+${userName || 'A member'} asked: ${userMessage}`;
+
         const response = await hf.chatCompletion({
-            model: 'mistralai/Mistral-7B-Instruct-v0.3',
+            model: 'meta-llama/Llama-3.1-8B-Instruct',
             messages: [
-                {
-                    role: 'user',
-                    content: `Summarize the spiritual essence of ${book} ${chapter} in exactly 2 professional and inspiring sentences. Base it on this text: ${content.substring(0, 2000)}`
-                }
+                { role: 'system', content: systemInstruction },
+                { role: 'user', content: userQuery }
             ],
-            max_tokens: 200,
+            max_tokens: 300,
             temperature: 0.7,
         });
 
         return res.status(200).json({
             success: true,
-            insight: response.choices[0].message.content
+            text: response.choices[0].message.content
         });
 
     } catch (error) {
-        console.error('❌ Error in generateInsight:', error);
+        console.error('❌ Error in generateChatResponse:', error);
 
         // Check for specific Hugging Face errors
         if (error.message && error.message.includes('auth')) {
@@ -73,7 +87,7 @@ module.exports = async (req, res) => {
 
         return res.status(500).json({
             error: 'internal',
-            message: `AI Error: ${error.message || 'Failed to generate insight.'}`
+            message: `AI Error: ${error.message || 'Unknown error'}`
         });
     }
 };

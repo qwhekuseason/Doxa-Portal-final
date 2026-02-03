@@ -149,11 +149,11 @@ const SermonLibraryView: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 md:gap-10">
                 {items.map((sermon, idx) => (
                   <div
                     key={sermon.id}
-                    className="group glass-card border-white/40 dark:border-white/5 rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 flex flex-col h-full animate-fade-in-up"
+                    className="group glass-card border-white/40 dark:border-white/5 rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-premium hover:shadow-premium-green hover:-translate-y-3 transition-all duration-700 flex flex-col h-full animate-fade-in-up"
                     style={{ animationDelay: `${idx * 0.05}s` }}
                   >
                     {/* (Card content remains the same, but I'll optimize for slightly cleaner code below) */}

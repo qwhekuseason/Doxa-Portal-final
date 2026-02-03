@@ -11,25 +11,25 @@ const AboutScreen: React.FC = () => {
             />
 
             {/* Vision & Mission Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="glass-card p-12 rounded-[3.5rem] relative overflow-hidden group">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
+                <div className="glass-card p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-church-green/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-church-green/10 transition-colors"></div>
                     <div className="w-16 h-16 rounded-[1.5rem] bg-church-green/5 text-church-green flex items-center justify-center mb-8">
                         <Target size={32} />
                     </div>
-                    <h3 className="text-3xl font-black dark:text-white mb-6 tracking-tighter italic">Our Mission</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed font-medium">
+                    <h3 className="text-2xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Mission</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg leading-relaxed font-medium">
                         To inspire and lead believers through spiritual sermons, faith-driven growth, and a dedication to service.
                     </p>
                 </div>
 
-                <div className="glass-card p-12 rounded-[3.5rem] relative overflow-hidden group">
+                <div className="glass-card p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-church-gold/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-church-gold/10 transition-colors"></div>
                     <div className="w-16 h-16 rounded-[1.5rem] bg-church-gold/5 text-church-gold flex items-center justify-center mb-8">
                         <Globe size={32} />
                     </div>
-                    <h3 className="text-3xl font-black dark:text-white mb-6 tracking-tighter italic">Our Vision</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed font-medium">
+                    <h3 className="text-2xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Vision</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg leading-relaxed font-medium">
                         To be a vibrant and welcoming community of believers, growing in faith, service, and excellence.
                     </p>
                 </div>
@@ -61,16 +61,16 @@ const AboutScreen: React.FC = () => {
             </div>
 
             {/* Community Moment */}
-            <div className="relative h-[500px] rounded-[4rem] overflow-hidden group shadow-premium">
+            <div className="relative h-[400px] md:h-[500px] rounded-[2.5rem] md:rounded-[4rem] overflow-hidden group shadow-premium">
                 <img
                     src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=2000"
                     alt="Community"
                     className="w-full h-full object-cover grayscale opacity-50 transition-transform duration-[5s] group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col items-center justify-end p-16 text-center">
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col items-center justify-end p-8 md:p-16 text-center">
                     <Anchor size={48} className="text-white mb-6 opacity-40" />
-                    <h3 className="text-white text-4xl md:text-6xl font-black tracking-tighter leading-none italic mb-4">"Built on a Solid Rock."</h3>
-                    <p className="text-white/60 font-black uppercase tracking-[0.4em] text-xs">Faith & Service</p>
+                    <h3 className="text-white text-3xl md:text-6xl font-black tracking-tighter leading-none italic mb-4">"Built on a Solid Rock."</h3>
+                    <p className="text-white/60 font-black uppercase tracking-[0.4em] text-[10px] md:text-xs">Faith & Service</p>
                 </div>
             </div>
         </div>

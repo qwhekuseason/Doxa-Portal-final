@@ -106,3 +106,47 @@ export const notifyNewQuiz = async (topic: string, difficulty: string) => {
     await createNotification(notification);
     sendBrowserNotification(notification.title, notification.message);
 };
+
+export const notifyNewStudyPlan = async (planTitle: string, category: string) => {
+    const notification: NotificationData = {
+        title: '📖 New Study Plan Published',
+        message: `Join the "${planTitle}" journey today! (${category})`,
+        type: 'success'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyNewStory = async (authorName: string, type: string) => {
+    const notification: NotificationData = {
+        title: '✨ New Story Highlight',
+        message: `${authorName} posted a new community ${type}`,
+        type: 'info'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyNewPrayerRequest = async (authorName: string) => {
+    const notification: NotificationData = {
+        title: '🙏 New Prayer Request',
+        message: `${authorName} has submitted a request for prayer`,
+        type: 'warning'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyNewLiveMeeting = async (meetingCode: string) => {
+    const notification: NotificationData = {
+        title: '🎥 Live Meeting Started',
+        message: `A new session has started! Join with code: ${meetingCode}`,
+        type: 'success'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};

@@ -3,6 +3,7 @@ import { Video, Plus, Trash2, Loader2, Copy, Check } from 'lucide-react';
 import { addDoc, collection, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { prepareChannelName } from '../../utils/agoraService';
+import { notifyNewLiveMeeting } from '../../utils/notificationService';
 
 interface LiveRoom {
     id: string;
@@ -63,6 +64,8 @@ export const LiveRoomManager: React.FC = () => {
                 createdBy: 'admin',
                 active: true
             });
+
+            await notifyNewLiveMeeting(meetingCode);
 
             fetchRooms();
             // Don't show alert, just update UI

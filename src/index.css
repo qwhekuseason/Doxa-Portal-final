@@ -23,6 +23,26 @@
     }
   }
 
+  /* Make date/time picker icons visible in dark mode */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    @apply dark:invert dark:brightness-200 dark:opacity-80;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    @apply dark:opacity-100 dark:scale-110;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="time"] {
+    color-scheme: dark;
+  }
+
   body {
     @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-black overflow-x-hidden;
   }
