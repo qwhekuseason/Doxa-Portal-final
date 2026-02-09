@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { X, Sparkles } from 'lucide-react';
-import { createNotification, sendBrowserNotification } from '../utils/notificationService';
+import { createNotification, sendBrowserNotification, notifyLiveReaction } from '../utils/notificationService';
 
 interface Reaction {
     id: string;
@@ -28,10 +28,33 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
         duration: number;
     }[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [position, setPosition] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 80 });
+    const [position, setPosition] = useState({
+        x: typeof window !== 'undefined' ? window.innerWidth - 60 : 300,
+        y: typeof window !== 'undefined' ? window.innerHeight - 100 : 600
+    });
     const [isDragging, setIsDragging] = useState(false);
     const [hasDragged, setHasDragged] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    // Ensure icon stays on screen during resize/orientation change
+    useEffect(() => {
+        const handleResize = () => {
+            setPosition((prev) => {
+                const maxX = window.innerWidth - 40;
+                const maxY = window.innerHeight - 40; // Account for safe areas
+                return {
+                    x: Math.min(Math.max(40, prev.x), maxX),
+                    y: Math.min(Math.max(40, prev.y), maxY)
+                };
+            });
+        };
+
+        // Run once on mount to ensure valid position
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Emoji map for display
     const emojiMap: Record<string, string> = {
@@ -50,8 +73,9 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
     const handleMove = (clientX: number, clientY: number) => {
         if (!isDragging) return;
         setHasDragged(true);
-        const newX = Math.max(20, Math.min(window.innerWidth - 60, clientX - dragStart.x));
-        const newY = Math.max(20, Math.min(window.innerHeight - 60, clientY - dragStart.y));
+        // Add safe margins to prevent hiding under notches/bars
+        const newX = Math.max(30, Math.min(window.innerWidth - 30, clientX - dragStart.x));
+        const newY = Math.max(80, Math.min(window.innerHeight - 80, clientY - dragStart.y));
         setPosition({ x: newX, y: newY });
     };
 
@@ -167,12 +191,8 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                 createdAt: serverTimestamp()
             });
 
-            // Create Firestore notification for all users
-            await createNotification({
-                title: `${emojiMap[emoji] || '💫'} Reaction from ${senderName}`,
-                message: `${senderName} reacted with ${emojiMap[emoji] || emoji}`,
-                type: 'info'
-            });
+            // Create notification for all users
+            await notifyLiveReaction(senderName, emojiMap[emoji] || emoji);
 
             // Haptic/Visual feedback
             if ('vibrate' in navigator) navigator.vibrate(10);
@@ -182,38 +202,40 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
     };
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden">
-            {/* Floating Emoji Reactions */}
-            {activeReactions.map((r) => (
-                <div
-                    key={r.id}
-                    className="fixed animate-dynamic-float opacity-0 pointer-events-none flex flex-col items-center gap-2"
-                    style={{
-                        left: `${r.x}%`,
-                        bottom: '-10%', // Start off-screen at bottom
-                        animationDelay: `${r.delay}s`,
-                        animationDuration: `${r.duration}s`,
-                        transform: `scale(${r.scale}) rotate(${r.rotation}deg)`
-                    } as any}
-                >
-                    {/* Emoji with Glow */}
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="text-5xl md:text-7xl drop-shadow-premium animate-wiggle select-none">
-                            {emojiMap[r.emoji] || r.emoji || '💫'}
+        <>
+            <div className="fixed inset-0 pointer-events-none z-[2000] overflow-hidden">
+                {/* Floating Emoji Reactions */}
+                {activeReactions.map((r) => (
+                    <div
+                        key={r.id}
+                        className="fixed animate-dynamic-float opacity-0 pointer-events-none flex flex-col items-center gap-2"
+                        style={{
+                            left: `${r.x}%`,
+                            bottom: '-10%', // Start off-screen at bottom
+                            animationDelay: `${r.delay}s`,
+                            animationDuration: `${r.duration}s`,
+                            transform: `scale(${r.scale}) rotate(${r.rotation}deg)`
+                        } as any}
+                    >
+                        {/* Emoji with Glow */}
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="text-5xl md:text-7xl drop-shadow-premium animate-wiggle select-none">
+                                {emojiMap[r.emoji] || r.emoji || '💫'}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Sender Name Badge - Floating with emoji */}
-                    {r.displayName && (
-                        <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-2xl animate-fade-in">
-                            <span className="text-[10px] font-black text-white whitespace-nowrap tracking-wider uppercase">
-                                {r.displayName}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            ))}
+                        {/* Sender Name Badge - Floating with emoji */}
+                        {r.displayName && (
+                            <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-2xl animate-fade-in">
+                                <span className="text-[10px] font-black text-white whitespace-nowrap tracking-wider uppercase">
+                                    {r.displayName}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
 
             {/* Control Buttons - Horizontal Pill */}
             <div
@@ -222,7 +244,8 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                     left: `${position.x}px`,
                     top: `${position.y}px`,
                     transform: 'translate(-50%, -50%)',
-                    transition: isDragging ? 'none' : 'all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28)'
+                    transition: isDragging ? 'none' : 'all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28)',
+                    touchAction: 'none'
                 }}
             >
                 <div className={`absolute right-full mr-4 flex items-center gap-2 md:gap-3 bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 p-2 md:p-3 rounded-[2.5rem] transition-all duration-700 shadow-premium ${isExpanded ? 'translate-x-0 opacity-100 scale-100 rotate-0' : 'translate-x-20 opacity-0 pointer-events-none scale-50 rotate-12'
@@ -249,7 +272,10 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
 
                 <button
                     onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
-                    onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
+                    onTouchStart={(e) => {
+                        // e.preventDefault(); // Commenting out to avoid passive listener warning
+                        handleStart(e.touches[0].clientX, e.touches[0].clientY);
+                    }}
                     onClick={() => { if (!hasDragged) setIsExpanded(!isExpanded); }}
                     className={`group w-14 h-14 md:w-16 md:h-16 rounded-full shadow-premium transition-all duration-500 active:scale-90 flex items-center justify-center border-2 border-white/40 z-10 cursor-move outline-none ${isExpanded
                         ? 'bg-gradient-to-br from-gray-800 to-black text-white rotate-180 scale-110 border-white/60'
@@ -310,6 +336,6 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
                     filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
                 }
             `}</style>
-        </div>
+        </>
     );
 };

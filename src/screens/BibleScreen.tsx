@@ -283,28 +283,27 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                         {pickerStep === 'books' && (
                             <div className="flex-1 flex flex-col min-h-0">
                                 {/* Search Area */}
-                                <div className="relative mb-8">
-                                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-church-green" size={20} />
+                                <div className="relative mb-6">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-church-green" size={20} />
                                     <input
                                         autoFocus
                                         placeholder="Search for a book..."
                                         value={pickerSearch}
                                         onChange={(e) => setPickerSearch(e.target.value)}
-                                        className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 focus:border-church-green/50 rounded-2xl py-4 pl-14 pr-6 text-lg font-bold outline-none transition-all dark:text-white"
+                                        className="w-full bg-gray-100 dark:bg-white/5 border-none focus:ring-2 focus:ring-church-green/20 pl-11 pr-4 py-3.5 rounded-2xl text-[15px] font-medium dark:text-white placeholder-gray-500 transition-all outline-none"
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 pb-20 content-start">
+                                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pb-24 overflow-y-auto custom-scrollbar content-start">
                                     {filteredBooks.map(b => (
                                         <button
                                             key={b}
                                             onClick={() => { setBook(b); setPickerStep('chapters'); setPickerSearch(''); }}
-                                            className={`group relative h-20 rounded-xl text-center transition-all border ${book === b ? 'bg-church-green text-white border-church-green shadow-lg' : 'bg-white/5 border-black/5 dark:border-white/10 hover:border-church-green/50 hover:bg-white/10'}`}
+                                            className={`group relative h-14 sm:h-20 rounded-xl flex items-center justify-center text-center transition-all border ${book === b ? 'bg-church-green text-white border-church-green shadow-lg shadow-church-green/20' : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-church-green/50 hover:bg-gray-50 dark:hover:bg-white/10'}`}
                                         >
-                                            <p className={`font-black uppercase tracking-tighter truncate px-2 relative z-10 ${b.length > 10 ? 'text-[10px]' : 'text-xs'}`} title={b}>
+                                            <span className={`font-black uppercase tracking-tight truncate px-2 relative z-10 ${b.length > 10 ? 'text-[10px]' : 'text-xs'}`}>
                                                 {b}
-                                            </p>
-                                            <div className="absolute inset-0 flex items-center justify-center text-4xl font-black opacity-[0.02] pointer-events-none transition-all group-hover:opacity-[0.05]">{b[0]}</div>
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
@@ -312,16 +311,18 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
                         )}
 
                         {pickerStep === 'chapters' && (
-                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-3 pb-40 content-start">
-                                {Array.from({ length: BIBLE_METADATA[book] || 1 }, (_, i) => i + 1).map(c => (
-                                    <button
-                                        key={c}
-                                        onClick={() => { setChapter(c); setPickerOpen(false); }}
-                                        className={`aspect-square rounded-2xl flex items-center justify-center text-xl font-black transition-all border ${chapter === c ? 'bg-church-gold text-white border-church-gold shadow-premium-gold rotate-6 scale-110' : 'bg-white/5 border-black/5 dark:border-white/10 text-gray-900 dark:text-white hover:bg-church-green hover:text-white hover:scale-110'}`}
-                                    >
-                                        {c}
-                                    </button>
-                                ))}
+                            <div className="flex-1 flex flex-col min-h-0">
+                                <div className="grid grid-cols-5 xs:grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3 pb-24 overflow-y-auto custom-scrollbar content-start p-1">
+                                    {Array.from({ length: BIBLE_METADATA[book] || 1 }, (_, i) => i + 1).map(c => (
+                                        <button
+                                            key={c}
+                                            onClick={() => { setChapter(c); setPickerOpen(false); }}
+                                            className={`aspect-square rounded-xl flex items-center justify-center text-lg font-black transition-all border ${chapter === c ? 'bg-church-gold text-white border-church-gold shadow-lg shadow-church-gold/30 scale-110 rotate-3 z-10' : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 text-gray-900 dark:text-white hover:bg-church-green hover:text-white hover:border-church-green hover:scale-110 active:scale-95'}`}
+                                        >
+                                            {c}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

@@ -109,43 +109,43 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ user, initialTarget, onCl
     return (
         <div className="flex flex-col lg:flex-row h-full w-full animate-fade-in relative bg-white dark:bg-[#121b22] lg:bg-transparent overflow-hidden">
             {/* Sidebar / Chat List */}
-            <div className={`w-full lg:w-96 shrink-0 flex flex-col h-full bg-white dark:bg-[#121b22] lg:bg-transparent ${(selectedUser || communityActive) ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
+            <div className={`w-full lg:w-96 shrink-0 flex flex-col h-full bg-white dark:bg-[#121b22] lg:bg-transparent ${(selectedUser || communityActive) ? 'hidden lg:flex' : 'flex'} overflow-hidden transition-all duration-500`}>
                 {/* Mobile Dashboard Header */}
-                <div className="lg:hidden px-6 pt-safe pb-2">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
+                <div className="lg:hidden sticky top-0 z-20 px-4 pt-safe pb-3 bg-white/90 dark:bg-black/90 backdrop-blur-xl border-b border-gray-100 dark:border-white/5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
                             <button
                                 onClick={onMenuToggle}
-                                className="p-2 -ml-2 bg-gray-100 dark:bg-white/5 rounded-xl text-gray-500 hover:text-church-green"
+                                className="w-10 h-10 -ml-2 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 active:scale-90 transition-all text-gray-800 dark:text-white"
                             >
                                 <Menu size={24} />
                             </button>
-                            <h1 className="text-2xl font-black dark:text-gray-100 tracking-tight">Messages</h1>
+                            <h1 className="text-2xl font-black dark:text-white tracking-tighter">Messages</h1>
                         </div>
-                        <div className="p-2 bg-gray-100 dark:bg-white/5 rounded-full text-gray-500">
+                        <button className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-full text-gray-500 active:scale-90 transition-all">
                             <Search size={20} />
-                        </div>
+                        </button>
                     </div>
 
-                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl mb-4">
+                    <div className="flex p-1.5 bg-gray-100 dark:bg-white/5 rounded-2xl relative isolate">
                         <button
                             onClick={() => { setActiveTab('community'); setSelectedUser(null); setCommunityActive(true); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'community' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm shadow-black/5' : 'text-gray-400'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'community' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm shadow-black/5 ring-1 ring-black/5 dark:ring-white/5' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                         >
-                            <Hash size={16} /> Community
+                            <Hash size={14} /> Community
                         </button>
                         <button
                             onClick={() => { setActiveTab('direct'); setCommunityActive(false); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'direct' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm shadow-black/5' : 'text-gray-400'}`}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative ${activeTab === 'direct' ? 'bg-white dark:bg-white/10 text-church-green shadow-sm shadow-black/5 ring-1 ring-black/5 dark:ring-white/5' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                         >
-                            <MessageSquare size={16} /> Private
-                            {unreadTotal > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
+                            <MessageSquare size={14} /> Private
+                            {unreadTotal > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
                         </button>
                     </div>
                 </div>
 
                 {/* Desktop Tabs */}
-                <div className="hidden lg:flex flex-col gap-3 p-4 bg-white dark:bg-white/5 rounded-3xl mb-4">
+                <div className="hidden lg:flex flex-col gap-3 p-4 bg-white dark:bg-white/5 rounded-3xl mb-4 shadow-sm border border-gray-100 dark:border-white/5">
                     <button
                         onClick={() => { setActiveTab('community'); setSelectedUser(null); setCommunityActive(true); }}
                         className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all ${activeTab === 'community'
@@ -175,37 +175,40 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ user, initialTarget, onCl
                 </div>
 
                 {/* List Area */}
-                <div className="flex-1 flex flex-col min-h-0">
-                    <div className="px-6 lg:px-4 py-2 flex items-center justify-between lg:mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+                <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-transparent">
+                    <div className="px-5 lg:px-4 py-3 flex items-center justify-between lg:mb-2 bg-gray-50/50 dark:bg-white/5 lg:bg-transparent border-b border-gray-100 dark:border-white/5 lg:border-none">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
                             {activeTab === 'community' ? 'Group Chat' : 'Conversations'}
                         </span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto hide-scrollbar">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                         {activeTab === 'community' ? (
-                            <div className="px-6 py-10 text-center space-y-3">
-                                <Hash size={40} className="mx-auto text-church-green opacity-20" />
-                                <p className="text-[12px] font-bold text-gray-400 uppercase leading-snug">
-                                    Join the massive family conversation in our Community Hub.
+                            <div className="mx-4 my-6 p-6 md:p-8 rounded-[2rem] bg-gradient-to-br from-church-green/5 to-emerald-500/5 text-center space-y-4 border border-church-green/10">
+                                <div className="w-16 h-16 rounded-2xl bg-church-green/10 flex items-center justify-center mx-auto mb-2">
+                                    <Hash size={32} className="text-church-green" />
+                                </div>
+                                <h3 className="text-lg font-black dark:text-white tracking-tight">Community Hub</h3>
+                                <p className="text-xs font-medium text-gray-500 leading-relaxed max-w-xs mx-auto">
+                                    Join the massive family conversation. Share testimonies, ask questions, and fellowship.
                                 </p>
                                 <button
                                     onClick={() => { setCommunityActive(true); }}
-                                    className="px-6 py-2 bg-church-green/10 text-church-green text-[10px] font-black uppercase rounded-full"
+                                    className="w-full py-4 bg-church-green text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-lg shadow-church-green/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                                 >
-                                    Open Hub
+                                    Enter Hub
                                 </button>
                             </div>
                         ) : (
                             <>
-                                <div className="px-6 lg:px-0 mb-4">
+                                <div className="px-4 mb-2 lg:mb-4">
                                     <div className="relative group">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                                         <input
                                             placeholder="Search people..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full bg-gray-100 dark:bg-white/5 border-none focus:ring-2 focus:ring-church-green/20 pl-11 pr-4 py-3 rounded-2xl text-[14px] font-medium dark:text-gray-100 placeholder-gray-500"
+                                            className="w-full bg-gray-100 dark:bg-white/5 border-none focus:ring-2 focus:ring-church-green/20 pl-11 pr-4 py-3.5 rounded-2xl text-[13px] font-medium dark:text-gray-100 placeholder-gray-500 transition-all"
                                         />
                                     </div>
                                 </div>
@@ -232,30 +235,30 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ user, initialTarget, onCl
                                         <button
                                             key={uid}
                                             onClick={() => setSelectedUser({ uid, displayName, photoURL })}
-                                            className={`w-full flex items-center gap-4 px-6 lg:px-4 py-4 transition-all group ${selectedUser?.uid === uid
-                                                ? 'bg-church-green/5 dark:bg-church-green/10 lg:border-r-4 border-church-green'
-                                                : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative overflow-hidden ${selectedUser?.uid === uid
+                                                ? 'bg-church-green/10 dark:bg-white/10'
+                                                : 'hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]'
                                                 }`}
                                         >
                                             <div className="relative shrink-0">
-                                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-church-green/20 to-emerald-500/20 flex items-center justify-center text-church-green group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                                                    {photoURL ? <img src={photoURL} className="w-full h-full object-cover" /> : <span className="font-black text-sm uppercase">{displayName[0]}</span>}
+                                                <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/10 flex items-center justify-center text-church-green font-black text-lg group-hover:scale-105 transition-transform duration-500 overflow-hidden shadow-sm">
+                                                    {photoURL ? <img src={photoURL} className="w-full h-full object-cover" /> : <span>{displayName[0]}</span>}
                                                 </div>
                                                 {userStatuses[uid]?.isOnline && (
-                                                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-church-green border-2 border-white dark:border-[#121b22] rounded-full"></div>
+                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-church-green border-2 border-white dark:border-[#121b22] rounded-full shadow-sm"></div>
                                                 )}
                                             </div>
                                             <div className="flex-1 text-left min-w-0">
-                                                <div className="flex justify-between items-baseline mb-0.5">
-                                                    <span className="text-[15px] font-black dark:text-gray-100 truncate tracking-tight">{displayName}</span>
+                                                <div className="flex justify-between items-baseline mb-1">
+                                                    <span className={`text-[15px] font-bold dark:text-gray-100 truncate tracking-tight transition-colors ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700 dark:text-gray-300'}`}>{displayName}</span>
                                                     {isConv && <span className="text-[10px] text-gray-400 font-bold uppercase">{item.updatedAt?.toDate ? new Date(item.updatedAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'New'}</span>}
                                                 </div>
-                                                <div className="flex justify-between items-center gap-2">
-                                                    <p className={`text-[13px] ${(isConv && unreadCount > 0) ? 'text-church-green font-black' : 'text-gray-500 font-medium'} truncate line-clamp-1`}>
+                                                <div className="flex justify-between items-center gap-3">
+                                                    <p className={`text-[13px] ${(isConv && unreadCount > 0) ? 'text-church-green font-bold' : 'text-gray-400 font-medium'} truncate line-clamp-1 flex-1`}>
                                                         {isConv ? item.lastMessage : 'Start a new conversation'}
                                                     </p>
                                                     {(isConv && unreadCount > 0) && (
-                                                        <span className="bg-church-green text-white text-[10px] font-black min-w-[20px] h-5 flex items-center justify-center px-1 rounded-full shrink-0 shadow-lg shadow-church-green/20">
+                                                        <span className="bg-church-green text-white text-[10px] font-black min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-full shrink-0 shadow-lg shadow-church-green/20 animate-pulse">
                                                             {unreadCount}
                                                         </span>
                                                     )}
@@ -264,7 +267,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({ user, initialTarget, onCl
                                         </button>
                                     );
                                 })}
-                                <div className="h-24 lg:hidden" /> {/* Mobile Spacer */}
+
                             </>
                         )}
                     </div>

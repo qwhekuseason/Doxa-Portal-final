@@ -4,7 +4,7 @@ import { SectionHeader } from '../components/UIComponents';
 
 const AboutScreen: React.FC = () => {
     return (
-        <div className="max-w-6xl mx-auto space-y-20 pb-20 animate-fade-in-up">
+        <div className="max-w-6xl mx-auto space-y-12 md:space-y-20 pb-24 md:pb-20 animate-fade-in-up px-4 md:px-0">
             <SectionHeader
                 title="Mission & Vision"
                 subtitle="Doxa Portal is more than a platform; it's a digital extension of our church, built to keep our believers connected to the word."
@@ -14,10 +14,10 @@ const AboutScreen: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
                 <div className="glass-card p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-church-green/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-church-green/10 transition-colors"></div>
-                    <div className="w-16 h-16 rounded-[1.5rem] bg-church-green/5 text-church-green flex items-center justify-center mb-8">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-church-green/5 text-church-green flex items-center justify-center mb-6 md:mb-8">
                         <Target size={32} />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Mission</h3>
+                    <h3 className="text-3xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Mission</h3>
                     <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg leading-relaxed font-medium">
                         To inspire and lead believers through spiritual sermons, faith-driven growth, and a dedication to service.
                     </p>
@@ -25,10 +25,10 @@ const AboutScreen: React.FC = () => {
 
                 <div className="glass-card p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-church-gold/5 blur-[50px] -mr-16 -mt-16 group-hover:bg-church-gold/10 transition-colors"></div>
-                    <div className="w-16 h-16 rounded-[1.5rem] bg-church-gold/5 text-church-gold flex items-center justify-center mb-8">
+                    <div className="w-16 h-16 rounded-[1.5rem] bg-church-gold/5 text-church-gold flex items-center justify-center mb-6 md:mb-8">
                         <Globe size={32} />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Vision</h3>
+                    <h3 className="text-3xl md:text-3xl font-black dark:text-white mb-4 md:mb-6 tracking-tighter italic">Our Vision</h3>
                     <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg leading-relaxed font-medium">
                         To be a vibrant and welcoming community of believers, growing in faith, service, and excellence.
                     </p>
@@ -36,21 +36,21 @@ const AboutScreen: React.FC = () => {
             </div>
 
             {/* Values Section */}
-            <div className="space-y-12">
-                <div className="text-center">
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-church-green mb-4 block">Core Foundations</span>
-                    <h2 className="text-4xl md:text-5xl font-black dark:text-white tracking-tighter">What We Stand For</h2>
+            <div className="space-y-8 md:space-y-12">
+                <div className="text-center px-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-church-green mb-3 block">Core Foundations</span>
+                    <h2 className="text-3xl md:text-5xl font-black dark:text-white tracking-tighter">What We Stand For</h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                     {[
                         { icon: <ShieldCheck />, title: "Faith", desc: "Living out the gospel with truth and transparency in all we do." },
                         { icon: <Heart />, title: "Fellowship", desc: "Building authentic relationships that nurture and sustain spiritual growth." },
                         { icon: <Sparkles />, title: "Service", desc: "Striving for impact by giving our very best in every endeavor of ministry." },
                         { icon: <Users />, title: "Discipleship", desc: "Equipping every believer to grow and share their testimony with others." }
                     ].map((value, i) => (
-                        <div key={i} className="text-center p-8">
-                            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-white/5 text-church-green flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:scale-110 transition-transform">
+                        <div key={i} className="text-center p-6 md:p-8 glass-card border border-transparent hover:border-white/20 rounded-3xl transition-all">
+                            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-white/5 text-church-green flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-sm group-hover:scale-110 transition-transform">
                                 {value.icon}
                             </div>
                             <h4 className="text-lg font-black dark:text-white mb-2 tracking-tight">{value.title}</h4>
@@ -61,7 +61,7 @@ const AboutScreen: React.FC = () => {
             </div>
 
             {/* Community Moment */}
-            <div className="relative h-[400px] md:h-[500px] rounded-[2.5rem] md:rounded-[4rem] overflow-hidden group shadow-premium">
+            <div className="relative h-[300px] md:h-[500px] rounded-[2rem] md:rounded-[4rem] overflow-hidden group shadow-premium mx-4 md:mx-0">
                 <img
                     src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=2000"
                     alt="Community"
@@ -69,7 +69,7 @@ const AboutScreen: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col items-center justify-end p-8 md:p-16 text-center">
                     <Anchor size={48} className="text-white mb-6 opacity-40" />
-                    <h3 className="text-white text-3xl md:text-6xl font-black tracking-tighter leading-none italic mb-4">"Built on a Solid Rock."</h3>
+                    <h3 className="text-white text-2xl md:text-6xl font-black tracking-tighter leading-none italic mb-4">"Built on a Solid Rock."</h3>
                     <p className="text-white/60 font-black uppercase tracking-[0.4em] text-[10px] md:text-xs">Faith & Service</p>
                 </div>
             </div>

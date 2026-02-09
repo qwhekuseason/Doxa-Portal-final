@@ -192,7 +192,7 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
   if (!isOpen) return null;
 
   return (
-    <div ref={popoverRef} className="absolute top-full right-0 mt-3 w-72 glass-card rounded-2xl shadow-premium z-50 animate-fade-in-up overflow-hidden">
+    <div ref={popoverRef} className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:top-full md:right-0 md:mt-3 md:w-80 glass-card rounded-3xl shadow-premium z-50 animate-fade-in-up overflow-hidden max-h-[80vh] flex flex-col">
       <div className="p-5 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
         <div>
           <h3 className="font-black text-xs uppercase tracking-[0.2em] text-gray-900 dark:text-white">Updates</h3>
@@ -290,6 +290,35 @@ export const ToastContainer: React.FC<{ toasts: Toast[] }> = ({ toasts }) => (
   </div>
 );
 
+export const NotificationBanner: React.FC<{
+  notification: { title: string; message: string; type: string } | null;
+  onClose: () => void;
+}> = ({ notification, onClose }) => {
+  if (!notification) return null;
+
+  return (
+    <div className="fixed top-4 inset-x-4 md:top-6 md:right-6 md:left-auto md:w-96 z-[300] animate-in slide-in-from-top-full duration-500">
+      <div
+        onClick={onClose}
+        className="glass-card !bg-white/80 dark:!bg-gray-900/80 backdrop-blur-2xl rounded-[2rem] p-4 shadow-2xl border border-white/40 dark:border-white/10 flex gap-4 items-center cursor-pointer active:scale-95 transition-all"
+      >
+        <div className="w-12 h-12 bg-church-green rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-church-green/20">
+          <img src="/logo.png" className="w-7 h-7" alt="" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center mb-0.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-church-green">Doxa Notification</span>
+            <span className="text-[9px] font-bold text-gray-400 uppercase">Now</span>
+          </div>
+          <p className="font-black text-sm text-gray-900 dark:text-white truncate tracking-tight">{notification.title}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{notification.message}</p>
+        </div>
+        <div className="w-1 h-8 bg-gray-200 dark:bg-white/10 rounded-full"></div>
+      </div>
+    </div>
+  );
+};
+
 export const BackToTop: React.FC = () => {
   const [visible, setVisible] = React.useState(false);
 
@@ -316,45 +345,117 @@ const X: React.FC<{ [key: string]: any }> = (props) => (
 );
 
 export const GlobalAudioPlayer: React.FC<{ sermon: any; onClose: () => void }> = ({ sermon, onClose }) => {
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (sermon && audioRef.current) {
+      audioRef.current.play().catch(e => console.error("Auto-play blocked:", e));
+      setIsPlaying(true);
+    }
+  }, [sermon]);
+
   if (!sermon) return null;
 
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleTimeUpdate = () => {
+    if (!audioRef.current) return;
+    setCurrentTime(audioRef.current.currentTime);
+    setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (!audioRef.current) return;
+    setDuration(audioRef.current.duration);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!audioRef.current) return;
+    const seekTo = (parseFloat(e.target.value) / 100) * duration;
+    audioRef.current.currentTime = seekTo;
+    setProgress(parseFloat(e.target.value));
+  };
+
+  const formatTime = (time: number) => {
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 glass-header text-white p-6 shadow-premium z-50 animate-in fade-in slide-in-from-bottom-5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-        <div className="flex items-center gap-5 flex-1 min-w-0">
+    <div className="fixed bottom-0 left-0 right-0 glass-header text-white p-6 shadow-premium z-[100] animate-in fade-in slide-in-from-bottom-5">
+      <audio
+        ref={audioRef}
+        src={sermon.audioUrl}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={() => setIsPlaying(false)}
+      />
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-5 flex-1 min-w-0 w-full md:w-auto">
           <div className="relative group">
             <img src={sermon.coverUrl} alt={sermon.title} className="w-16 h-16 rounded-2xl object-cover shadow-lg group-hover:scale-105 transition-transform" />
-            <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Activity size={24} className="animate-pulse" />
+            <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center">
+              {isPlaying && <Activity size={24} className="animate-pulse text-church-green" />}
             </div>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-church-green mb-1">Now Playing</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-church-green mb-1">Now Streaming</p>
             <p className="font-bold text-lg dark:text-white truncate tracking-tight">{sermon.title}</p>
-            <p className="text-sm text-gray-500 font-medium truncate">{sermon.preacher}</p>
+            <p className="text-sm text-gray-500 font-medium truncate italic">with {sermon.speaker}</p>
           </div>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="w-12 h-12 bg-church-green hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-church-green/30 transition-all hover:scale-105 active:scale-95">
-            <PlayCircle size={24} />
-          </button>
-          <div className="hidden md:flex flex-col gap-2 w-48">
+
+        <div className="flex items-center gap-6 w-full md:w-auto">
+          <div className="flex flex-col gap-2 flex-1 md:w-64">
             <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-              <span>12:45</span>
-              <span>45:00</span>
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
             </div>
-            <input type="range" min="0" max="100" className="w-full h-1 bg-gray-200 dark:bg-gray-800 rounded-full appearance-none accent-church-green cursor-pointer" />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={progress || 0}
+              onChange={handleSeek}
+              className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full appearance-none accent-church-green cursor-pointer"
+            />
           </div>
-          <button onClick={onClose} className="p-3 hover:bg-gray-100 dark:hover:bg-white/10 rounded-2xl transition-all text-gray-400">
-            <X className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={togglePlay}
+              className="w-14 h-14 bg-church-green hover:bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-church-green/30 transition-all hover:scale-105 active:scale-95"
+            >
+              {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
+            </button>
+            <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all text-gray-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const PlayCircle: React.FC<{ [key: string]: any }> = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+const Play: React.FC<{ [key: string]: any }> = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+);
+
+const Pause: React.FC<{ [key: string]: any }> = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
 );
 

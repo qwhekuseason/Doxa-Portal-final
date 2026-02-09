@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '../.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
@@ -109,7 +110,7 @@ app.post('/generateToken', (req, res) => {
 // Quiz generation endpoint (reusing the Vercel handler logic)
 app.post('/generateQuiz', generateQuizHandler);
 
-const generateChatResponseHandler = require('../api/generateChatResponse.js');
+const generateChatResponseHandler = require('../api/generateChatResponse.cjs');
 app.post('/generateChatResponse', generateChatResponseHandler);
 
 const generateInsightHandler = require('../api/generateInsight.js');

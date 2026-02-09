@@ -360,24 +360,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onMessageUser
           {/* Quick Actions */}
           <div className="space-y-6 lg:sticky lg:top-8">
             <SectionHeader title="Actions" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'prayer', label: 'PRAYER', icon: <Hand />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
-                { id: 'quiz', label: 'QUIZ', icon: <Brain />, color: 'text-church-green', bg: 'bg-church-green/5 hover:bg-church-green/10' },
-                { id: 'bible', label: 'BIBLE', icon: <BookOpen />, color: 'text-blue-500', bg: 'bg-blue-500/5 hover:bg-blue-500/10' },
-                { id: 'events', label: 'EVENTS', icon: <Calendar />, color: 'text-purple-500', bg: 'bg-purple-500/5 hover:bg-purple-500/10' },
-                { id: 'chat', label: 'FELLOWSHIP', icon: <MessageSquare />, color: 'text-orange-500', bg: 'bg-orange-500/5 hover:bg-orange-500/10' },
-                { id: 'giving', label: 'GIVING', icon: <Coins />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
-              ].map(action => (
+                { id: 'prayer', label: 'Prayer', icon: <Hand />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
+                { id: 'quiz', label: 'Quiz', icon: <Brain />, color: 'text-church-green', bg: 'bg-church-green/5 hover:bg-church-green/10' },
+                { id: 'bible', label: 'Bible', icon: <BookOpen />, color: 'text-blue-500', bg: 'bg-blue-500/5 hover:bg-blue-500/10' },
+                { id: 'events', label: 'Events', icon: <Calendar />, color: 'text-purple-500', bg: 'bg-purple-500/5 hover:bg-purple-500/10' },
+                { id: 'chat', label: 'Connect', icon: <MessageSquare />, color: 'text-orange-500', bg: 'bg-orange-500/5 hover:bg-orange-500/10' },
+                { id: 'giving', label: 'Give', icon: <Coins />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
+              ].map((action, idx) => (
                 <button
                   key={action.id}
                   onClick={() => onNavigate(action.id)}
-                  className={`p-4 md:p-5 ${action.bg} glass-card border-none rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition-all hover:scale-105 active:scale-95 group shadow-sm`}
+                  className={`aspect-square p-2 ${action.bg} glass-card border-none rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 group shadow-sm`}
                 >
-                  <div className={`${action.color} group-hover:scale-110 transition-transform duration-500`}>
+                  <div className={`${action.color} p-2 rounded-xl bg-white/50 dark:bg-black/20 group-hover:bg-white/80 dark:group-hover:bg-white/10 transition-colors`}>
                     {React.cloneElement(action.icon as React.ReactElement, { size: 20 })}
                   </div>
-                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                     {action.label}
                   </span>
                 </button>
@@ -386,8 +386,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onMessageUser
           </div>
         </div>
       </div>
-
-
     </div>
   );
 };

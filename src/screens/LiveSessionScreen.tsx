@@ -50,6 +50,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { notifyHandRaised, notifyChatMessage, notifyLiveReaction } from '../utils/notificationService';
 
 import { DraggableFab } from '../components/DraggableFab';
 
@@ -535,6 +536,10 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 text: newMessage.trim(),
                 timestamp: serverTimestamp()
             });
+
+            // Send notification
+            await notifyChatMessage(currentUser.displayName || 'Guest', newMessage.trim(), `Live: ${roomName}`);
+
             setNewMessage('');
         } catch (err) {
             console.error('Send message error:', err);
@@ -550,6 +555,10 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             await setDoc(doc(db, 'live_participants', `${roomName}_${currentUid}`), {
                 isHandRaised: newState
             }, { merge: true });
+
+            if (newState) {
+                await notifyHandRaised(currentUser?.displayName || 'Guest', roomName);
+            }
         } catch (err) {
             console.error('Error toggling hand:', err);
             setIsHandRaised(!newState); // Revert on error
@@ -576,6 +585,9 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 displayName: currentUser?.displayName || 'Guest',
                 createdAt: serverTimestamp()
             });
+
+            // Send notification
+            await notifyLiveReaction(currentUser?.displayName || 'Guest', emoji);
         } catch (err) {
             console.error('Error sending reaction:', err);
         }
@@ -671,7 +683,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         <button
             onClick={onClick}
             title={label}
-            className={`group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full transition-all duration-300 shadow-lg ${isDanger
+            className={`group relative flex items-center justify-center w-11 h-11 md:w-14 md:h-14 rounded-full transition-all duration-300 shadow-lg active:scale-95 ${isDanger
                 ? 'bg-red-500 hover:bg-red-600 text-white'
                 : isActive
                     ? (colorClass || 'bg-white text-black hover:bg-gray-200')
@@ -1144,7 +1156,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             </div>
 
             {/* 2. Control Bar (Google Meet Style) */}
-            <div className="h-20 md:h-24 bg-[#050505] border-t border-white/5 flex items-center justify-between px-2 md:px-10 z-30 shrink-0">
+            <div className="h-auto min-h-[5rem] md:h-24 bg-[#050505]/95 backdrop-blur-md border-t border-white/5 flex items-center justify-between px-3 md:px-10 z-30 shrink-0 pb-safe pt-2 md:pt-0">
                 {/* Left: Session Info */}
                 <div className="hidden xl:flex flex-col gap-0.5 w-1/4">
                     <div className="flex items-center gap-2 text-white/90 font-bold mb-0.5">

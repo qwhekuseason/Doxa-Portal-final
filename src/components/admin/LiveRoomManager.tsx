@@ -101,114 +101,117 @@ export const LiveRoomManager: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in-up">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6 md:space-y-8 animate-fade-in-up pb-20">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold font-serif dark:text-white">Live Room Management</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Create and manage video conference rooms</p>
+                    <h2 className="text-2xl md:text-3xl font-black dark:text-white tracking-tighter uppercase mb-1">Live Rooms</h2>
+                    <p className="text-gray-500 font-medium text-xs md:text-sm uppercase tracking-wide">Manage your video conference channels.</p>
                 </div>
             </div>
 
             {/* Create Room Section */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-6">
+            <div className="glass-card p-6 md:p-8 rounded-[2rem] border-white/40 shadow-premium">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                     <div>
-                        <h3 className="text-lg font-bold dark:text-white flex items-center gap-2">
-                            <Video size={20} className="text-church-green" />
+                        <h3 className="text-lg md:text-xl font-black dark:text-white flex items-center gap-3 mb-2">
+                            <span className="w-10 h-10 rounded-xl bg-church-green/10 text-church-green flex items-center justify-center">
+                                <Video size={20} />
+                            </span>
                             New Meeting
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Generate a unique code for a new video session
+                        <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest pl-1">
+                            Generate a secure code for live sessions
                         </p>
                     </div>
 
                     <button
                         onClick={handleCreateRoom}
                         disabled={creating}
-                        className="px-6 py-3 bg-church-green hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-church-green/20"
+                        className="px-6 py-4 bg-church-green text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50 shadow-lg shadow-church-green/20"
                     >
-                        {creating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
+                        {creating ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                         Create Instant Meeting
                     </button>
                 </div>
 
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg h-fit">
-                        <Video size={20} className="text-blue-600 dark:text-blue-300" />
+                <div className="p-4 md:p-5 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex gap-4">
+                    <div className="shrink-0 p-2.5 bg-blue-500/10 text-blue-500 rounded-xl h-fit">
+                        <Video size={20} />
                     </div>
                     <div>
-                        <p className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-1">
+                        <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
                             Google Meet-style Sessions
                         </p>
-                        <p className="text-xs text-blue-700 dark:text-blue-200">
-                            Clicking "Create Instant Meeting" will generate a unique code (e.g., <code className="bg-white dark:bg-black/20 px-1 py-0.5 rounded font-mono">abc-def-ghi</code>). Share this code with members to let them join. Up to 17 people can join a single call.
+                        <p className="text-[11px] leading-relaxed text-blue-600/70 dark:text-blue-400/70 font-medium">
+                            Clicking "Create Instant Meeting" generates a unique code (e.g., <code className="bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded font-mono text-blue-700 dark:text-blue-300 font-bold">abc-def-ghi</code>). Share this code with members to let them join. Up to 17 people can join a single call.
                         </p>
                     </div>
                 </div>
             </div>
 
             {/* Rooms List */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                    <h3 className="text-lg font-bold dark:text-white">Active Rooms ({rooms.length})</h3>
+            <div className="glass-card rounded-[2rem] overflow-hidden border-white/40 shadow-premium">
+                <div className="p-6 md:p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Active Rooms ({rooms.length})</h3>
                 </div>
 
                 {loading ? (
-                    <div className="p-12 text-center">
-                        <Loader2 className="animate-spin mx-auto text-church-green" size={32} />
+                    <div className="p-16 text-center">
+                        <Loader2 className="animate-spin mx-auto text-church-green mb-4" size={32} />
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading Rooms...</p>
                     </div>
                 ) : rooms.length === 0 ? (
-                    <div className="p-12 text-center text-gray-500">
-                        <Video size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>No rooms created yet. Create your first room above!</p>
+                    <div className="p-16 text-center text-gray-400">
+                        <div className="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4 text-gray-300">
+                            <Video size={32} />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest">No active rooms found</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <div className="divide-y divide-gray-100 dark:divide-white/5">
                         {rooms.map((room) => (
-                            <div key={room.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex-1">
+                            <div key={room.id} className="p-6 md:p-8 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <h4 className="text-lg font-bold dark:text-white">{room.name}</h4>
-                                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-full">
+                                            <h4 className="text-base font-black dark:text-white tracking-tight truncate">{room.name}</h4>
+                                            <span className="px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-green-500/20">
                                                 Active
                                             </span>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                <strong>Code:</strong> <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded text-sm text-church-green font-bold tracking-wider">{room.channelName}</code>
+                                        <div className="space-y-1.5 pl-1">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                                <span className="font-bold uppercase tracking-wider text-[9px] opacity-70">Code:</span>
+                                                <code className="bg-gray-100 dark:bg-white/10 px-2 py-1 rounded-lg text-church-green font-mono font-bold tracking-wider text-xs border border-gray-200 dark:border-white/5 group-hover:scale-105 transition-transform">{room.channelName}</code>
                                             </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                Created {new Date(room.createdAt).toLocaleDateString()} at {new Date(room.createdAt).toLocaleTimeString()}
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">
+                                                Created {new Date(room.createdAt).toLocaleDateString()}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3 pt-4 md:pt-0 border-t md:border-none border-gray-100 dark:border-white/5">
                                         <button
                                             onClick={() => copyChannelName(room.channelName, room.id)}
-                                            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors"
-                                            title="Copy channel name"
+                                            className="flex-1 md:flex-none px-4 py-3 bg-gray-100 dark:bg-white/5 hover:bg-church-green/10 hover:text-church-green text-gray-600 dark:text-gray-300 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
                                         >
                                             {copiedId === room.id ? (
                                                 <>
-                                                    <Check size={16} className="text-green-600" />
-                                                    Copied!
+                                                    <Check size={14} className="text-church-green" />Copied
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Copy size={16} />
-                                                    Copy Name
+                                                    <Copy size={14} /> Copy Code
                                                 </>
                                             )}
                                         </button>
 
                                         <button
                                             onClick={() => handleDeleteRoom(room.id, room.name)}
-                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            className="p-3 text-red-400 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all active:scale-90"
                                             title="Delete room"
                                         >
-                                            <Trash2 size={20} />
+                                            <Trash2 size={18} />
                                         </button>
                                     </div>
                                 </div>
@@ -219,26 +222,21 @@ export const LiveRoomManager: React.FC = () => {
             </div>
 
             {/* Instructions */}
-            <div className="bg-gradient-to-r from-church-green/10 to-emerald-600/10 dark:from-church-green/20 dark:to-emerald-600/20 p-6 rounded-2xl border border-church-green/20">
-                <h4 className="font-bold text-gray-900 dark:text-white mb-3">How to use:</h4>
-                <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                    <li className="flex gap-2">
-                        <span className="font-bold text-church-green">1.</span>
-                        <span>Click "Create Instant Meeting" to generate a unique secure code</span>
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-bold text-church-green">2.</span>
-                        <span>Copy the meeting code (e.g., abc-def-ghi) and share it with others</span>
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-bold text-church-green">3.</span>
-                        <span>Members paste the code in "Live Sessions" to join the call</span>
-                    </li>
-                    <li className="flex gap-2">
-                        <span className="font-bold text-church-green">4.</span>
-                        <span>Multiple people (up to 17) can join the same call using the code</span>
-                    </li>
-                </ol>
+            <div className="glass-card p-6 rounded-2xl border-church-green/20 bg-gradient-to-r from-church-green/5 to-emerald-500/5">
+                <h4 className="font-black text-gray-900 dark:text-white mb-4 text-xs uppercase tracking-widest">How to use</h4>
+                <div className="space-y-3">
+                    {[
+                        "Click 'Create Instant Meeting' to generate a unique code.",
+                        "Copy the meeting code (e.g., abc-def-ghi).",
+                        "Share it with members to let them join via 'Live Sessions'.",
+                        "Up to 17 people can join a single call."
+                    ].map((step, i) => (
+                        <div key={i} className="flex gap-3 text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">
+                            <span className="font-black text-church-green w-4">{i + 1}.</span>
+                            <span>{step}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

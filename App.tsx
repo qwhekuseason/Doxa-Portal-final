@@ -17,13 +17,16 @@ import {
   LoadingSpinner,
   useClickOutside,
   ToastContainer,
-  useToast
+  useToast,
+  NotificationBanner
 } from './src/components/UIComponents';
 import { ReminderSystem } from './src/components/ReminderSystem';
 import { LivePulse } from './src/components/LivePulse';
+import { DoxaAI } from './src/components/DoxaAI';
 import { useUnreadDMs } from './src/hooks/useUnreadDMs';
+import { useNotifications } from './src/hooks/useNotifications';
 // Lazy load Screen Components
-const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen'));
+const AdminDashboardScreen = React.lazy(() => import('./src/screens/AdminDashboardScreen')) as React.FC<any>;
 const QuizScreen = React.lazy(() => import('./src/screens/QuizScreen'));
 const ChatContainer = React.lazy(() => import('./src/screens/ChatContainer'));
 const EventsCalendarScreen = React.lazy(() => import('./src/screens/EventsCalendarScreen'));
@@ -44,9 +47,12 @@ const BibleStudyScreen = React.lazy(() => import('./src/screens/BibleStudyScreen
 const StoriesScreen = React.lazy(() => import('./src/screens/StoriesScreen'));
 const LibraryScreen = React.lazy(() => import('./src/screens/LibraryScreen'));
 const PrayerWallScreen = React.lazy(() => import('./src/screens/PrayerWallScreen'));
+const ServiceReviewScreen = React.lazy(() => import('./src/screens/ServiceReviewScreen'));
 const AttendanceAnalysis = React.lazy(() => import('./src/components/admin/AttendanceAnalysis').then(m => ({ default: m.AttendanceAnalysis })));
 import StoryManager from './src/components/admin/StoryManager';
 import { LibraryManager } from './src/components/admin/LibraryManager';
+import { ServiceReviewManager } from './src/components/admin/ServiceReviewManager';
+
 
 // Admin Screens
 import { PrayerModeration } from './src/components/admin/PrayerModeration';
@@ -68,7 +74,7 @@ import {
 import {
   Bell, Search, Sun, Moon, Brain, ImageIcon, Users,
   MessageCircle, Settings, Video, Headphones, Milestone, Book,
-  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, ChevronLeft, PenTool, Activity, MessageSquare, Camera, Coins, Hand, Library
+  Home, Heart, Calendar as CalendarIcon, Shield, BookOpen, LogOut, X, Menu, Cake, ChevronRight, ChevronLeft, PenTool, Activity, MessageSquare, Camera, Coins, Hand, Library, Star
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -103,8 +109,11 @@ const ADMIN_NAV_ITEMS = [
   { id: 'admin-testimonies', icon: <MessageCircle size={20} />, label: 'Testimonies' },
   { id: 'admin-library', icon: <Library size={20} />, label: 'Library' },
   { id: 'admin-attendance', icon: <Activity size={20} />, label: 'Attendance' },
+  { id: 'admin-reviews', icon: <Star size={20} />, label: 'Reviews' },
   { id: 'admin-settings', icon: <Settings size={20} />, label: 'System Settings' },
 ];
+
+
 
 const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ user, refreshUser }) => {
   const { theme, toggleTheme } = useTheme();
@@ -121,6 +130,19 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
+  const [activeBanner, setActiveBanner] = useState<{ title: string; message: string; type: string } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('reviewSession');
+    if (sessionId) {
+      setReviewSessionId(sessionId);
+      setActiveTab('service-review');
+      // Clear the URL param without refreshing
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Custom Navigation function that tracks history
   const navigate = (tab: string) => {
@@ -238,6 +260,23 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
   const handleLogout = () => signOut(auth);
 
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user.uid, user.role === 'admin');
+
+  // Trigger toast for new notifications that haven't been seen in this session
+  const lastNotifId = useRef<string | null>(null);
+  useEffect(() => {
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length > 0 && unread[0].id !== lastNotifId.current) {
+      const latest = unread[0];
+      addToast(latest.title, 'info');
+      setActiveBanner({ title: latest.title, message: latest.message, type: latest.type });
+      lastNotifId.current = latest.id;
+
+      // Auto-hide banner after 6 seconds
+      setTimeout(() => setActiveBanner(null), 6000);
+    }
+  }, [notifications, addToast]);
+
   const UserActions = () => (
     <div className="flex items-center gap-3 md:gap-4 lg:gap-6">
       {/* Global Header Search */}
@@ -261,10 +300,14 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
         <div className="relative">
           <button
             onClick={(e) => { e.stopPropagation(); setNotificationsOpen(!notificationsOpen); }}
-            className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-300' : 'bg-green-50/50 border-green-100 text-church-green'}`}
+            className={`p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-300' : 'bg-green-50/50 border-green-100 text-church-green'}`}
           >
             <Bell size={20} />
-            <span className={`absolute top-2.5 right-2.5 w-2 h-2 rounded-full border-2 animate-bounce ${theme === 'dark' ? 'bg-church-gold border-black' : 'bg-church-green border-white'}`}></span>
+            {unreadCount > 0 && (
+              <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full border-2 flex items-center justify-center text-[9px] font-black ${theme === 'dark' ? 'bg-church-gold border-black text-black' : 'bg-church-green border-white text-white'}`}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
           <NotificationPopover
             isOpen={notificationsOpen}
@@ -279,7 +322,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
       <div className="relative" ref={settingsRef}>
         <button
           onClick={() => setSettingsOpen(!settingsOpen)}
-          className={`p-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-400' : 'bg-green-50/50 border-green-100 text-church-green shadow-sm'}`}
+          className={`p-3 rounded-2xl transition-all hover:scale-105 active:scale-95 border ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-400' : 'bg-green-50/50 border-green-100 text-church-green shadow-sm'}`}
         >
           <Settings size={20} />
         </button>
@@ -435,7 +478,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
         <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSidebarOpen(false)}></div>
 
         {/* Drawer */}
-        <aside className={`absolute top-0 left-0 bottom-0 w-[85%] max-w-sm bg-white dark:bg-[#050505] shadow-2xl transform transition-transform duration-500 ease-out z-[210] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col overflow-hidden`}>
+        <aside className={`absolute top-0 left-0 bottom-0 w-[85%] max-w-[300px] bg-white dark:bg-[#080808] shadow-2xl transform transition-transform duration-500 cubic-bezier(0.2, 0.8, 0.2, 1) z-[210] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col overflow-hidden`}>
           <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-black/50 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-church-green rounded-xl flex items-center justify-center shadow-lg shadow-church-green/20">
@@ -525,33 +568,38 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
         {/* Mobile Header */}
         {(!isChatOpen && activeTab !== 'chat') && activeTab !== 'stories' && !isStoryOpen && (
-          <header className="lg:hidden sticky top-0 z-40 px-6 py-4 flex items-center justify-between glass-header">
-            <div className="flex items-center gap-2">
-              {navHistory.length > 0 ? (
-                <button onClick={goBack} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all">
-                  <ChevronLeft size={24} className="dark:text-white" />
+          <header className={`lg:hidden sticky top-0 z-40 px-5 py-3 pt-safe flex items-center justify-between transition-all duration-500 ${window.scrollY > 10 ? 'items-center bg-white/90 dark:bg-black/90 backdrop-blur-xl border-b border-gray-100 dark:border-white/5 shadow-sm' : 'bg-transparent'}`}>
+            <div className="flex items-center gap-3">
+              {navHistory.length > 0 && activeTab !== 'home' ? (
+                <button
+                  onClick={goBack}
+                  className="w-10 h-10 -ml-2 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 active:scale-90 transition-all text-gray-800 dark:text-white"
+                >
+                  <ChevronLeft size={24} />
                 </button>
               ) : (
-                <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl transition-all">
-                  <Menu size={24} className="dark:text-white" />
+                <button onClick={() => setSidebarOpen(true)} className="w-10 h-10 -ml-2 flex items-center justify-center hover:bg-white/10 dark:hover:bg-white/5 rounded-full transition-all active:scale-90 text-gray-800 dark:text-white">
+                  <Menu size={24} />
                 </button>
               )}
+
+              <div className="flex flex-col">
+                <span className="font-display font-black text-lg dark:text-white uppercase tracking-tighter leading-none">Doxa</span>
+                <span className="text-[8px] font-black text-church-green tracking-[0.2em] uppercase opacity-80">Portal</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2" onClick={() => navigate('home')}>
-              <img src="/logo.png" alt="" className="w-6 h-6 object-contain" />
-              <span className="font-sans font-black text-lg dark:text-white uppercase tracking-tighter">Doxa</span>
+            <div className="flex items-center gap-2">
+              <UserActions />
             </div>
-
-            <UserActions />
           </header >
         )}
 
         {/* Content Scroll Area */}
-        <div className={`flex-1 ${activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 pb-24 md:pb-8'} scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent`} >
+        <div className={`flex-1 ${activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-6 pb-safe lg:pb-8'} scroll-smooth hide-scrollbar bg-gradient-to-b from-transparent to-gray-50/50 dark:to-transparent`} >
           <div className={`${(activeTab === 'chat' || activeTab === 'stories' || activeTab === 'live') ? 'max-w-none h-full' : 'max-w-7xl mx-auto'} ${isStoryOpen ? '' : 'animate-fade-in-up'} flex flex-col`}>
             {/* Desktop Navigation Helper (Back Button) */}
-            {navHistory.length > 0 && (
+            {navHistory.length > 0 && activeTab !== 'chat' && activeTab !== 'stories' && (
               <div className="hidden lg:flex items-center gap-4 mb-6 sticky top-0 z-20 backdrop-blur-sm p-2 rounded-2xl">
                 <button
                   onClick={goBack}
@@ -563,7 +611,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
             )}
             {/* Notification Prompt Widget */}
             {showNotifPrompt && (
-              <div className="mb-8 p-6 rounded-[2rem] shadow-premium bg-gradient-to-br from-church-green to-emerald-800 text-white flex flex-col md:flex-row justify-between items-center gap-4 overflow-hidden relative group">
+              <div className="mb-8 p-6 lg:rounded-[2rem] rounded-3xl shadow-premium bg-gradient-to-br from-church-green to-emerald-800 text-white flex flex-col md:flex-row justify-between items-center gap-4 overflow-hidden relative group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000"></div>
 
                 <div className="flex gap-4 items-center relative z-10">
@@ -591,7 +639,7 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 </div>
               }>
                 {activeTab === 'home' && <HomeScreen user={user} onNavigate={(tab) => { navigate(tab); }} onMessageUser={startChat} onStoryStateChange={setIsStoryOpen} />}
-                {activeTab === 'sermons' && <SermonLibraryScreen />}
+                {activeTab === 'sermons' && <SermonLibraryScreen onPlay={(sermon) => setCurrentSermon(sermon)} />}
                 {activeTab === 'chat' && <ChatContainer user={user} initialTarget={chatTarget} onClearTarget={() => setChatTarget(null)} onStateChange={setIsChatOpen} onMenuToggle={() => setSidebarOpen(true)} />}
                 {activeTab === 'testimonies' && <TestimoniesScreen user={user} onMessageUser={startChat} />}
                 {activeTab === 'quiz' && <QuizScreen user={user} onNavigate={(tab) => navigate(tab)} />}
@@ -606,9 +654,10 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'prayer-requests' && <PrayerRequestsScreen user={user} />}
                 {activeTab === 'prayer' && <PrayerWallScreen user={user} />}
                 {activeTab === 'live' && <LiveSessionScreen user={user} onMenuToggle={() => setSidebarOpen(true)} />}
-                {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => navigate(tab)} />}
+                {activeTab === 'admin' && <AdminDashboardScreen onNavigate={(tab) => navigate(tab)} addToast={addToast} />}
                 {activeTab === 'profile' && <ProfileScreen user={user} refreshUser={refreshUser} />}
                 {activeTab === 'events' && <EventsCalendarScreen user={user} />}
+                {activeTab === 'service-review' && <ServiceReviewScreen user={user} sessionId={reviewSessionId || undefined} onBack={() => { setReviewSessionId(null); navigate('home'); }} />}
 
                 {/* Admin Sub-Screens */}
                 {activeTab === 'admin-prayers' && <div className="max-w-4xl mx-auto"><PrayerModeration /></div>}
@@ -623,13 +672,15 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
                 {activeTab === 'admin-study-plans' && <AdminStudyPlanManager />}
                 {activeTab === 'admin-stories' && <div className="max-w-6xl mx-auto"><StoryManager /></div>}
                 {activeTab === 'admin-attendance' && <div className="max-w-6xl mx-auto"><AttendanceAnalysis onBack={() => navigate('admin')} /></div>}
+                {activeTab === 'admin-reviews' && <ServiceReviewManager />}
                 {activeTab === 'admin-settings' && <AdminSettingsManager />}
               </React.Suspense>
             </div>
           </div>
         </div >
 
-      </main >
+
+      </main>
 
       {/* Audio Player Overlay */}
       <React.Suspense fallback={null}>
@@ -638,8 +689,13 @@ const Dashboard: React.FC<{ user: UserProfile; refreshUser: () => void }> = ({ u
 
       {/* Global Utilities */}
       <ToastContainer toasts={toasts} />
+      <NotificationBanner
+        notification={activeBanner}
+        onClose={() => setActiveBanner(null)}
+      />
       <ReminderSystem userId={user.uid} />
       <LivePulse uid={user.uid} displayName={user.displayName} />
+      {activeTab === 'home' && <DoxaAI />}
     </div>
   );
 };

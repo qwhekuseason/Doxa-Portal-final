@@ -66,5 +66,61 @@ export const onNewChatMessage = functions.firestore
         }
     });
 
+/**
+ * Send Push Notification for general system notifications (Sermons, Events, etc.)
+ */
+export const onNewNotification = functions.firestore
+    .document('notifications/{notificationId}')
+    .onCreate(async (snap, context) => {
+        const notif = snap.data();
+        if (!notif) return;
+
+        const payload = {
+            notification: {
+                title: notif.title || 'Doxa Portal Update',
+                body: notif.message || 'New content has been added.',
+                icon: '/logo.png',
+                click_action: 'https://tfc-doxa-portal.com/'
+            },
+            data: {
+                url: 'https://tfc-doxa-portal.com/',
+                type: notif.type || 'info'
+            }
+        };
+
+        try {
+            let tokensQuery: admin.firestore.Query = admin.firestore().collection('users');
+
+            // If not global, target specific users
+            if (notif.isGlobal === false && notif.targetUsers && notif.targetUsers.length > 0) {
+                // Fetch only targeted users
+                // Note: Firestore 'in' query limit is 30. For simplicity/larger groups, we query all with tokens and filter in code or send multiple queries.
+                // For this project, we'll fetch users with tokens and match.
+                tokensQuery = tokensQuery.where('uid', 'in', notif.targetUsers.slice(0, 30));
+            }
+
+            const tokensSnapshot = await tokensQuery.where('fcmTokens', '!=', null).get();
+            const tokens: string[] = [];
+
+            tokensSnapshot.forEach(doc => {
+                const userData = doc.data();
+                if (userData.fcmTokens && Array.isArray(userData.fcmTokens)) {
+                    tokens.push(...userData.fcmTokens);
+                }
+            });
+
+            if (tokens.length > 0) {
+                const chunkSize = 500;
+                for (let i = 0; i < tokens.length; i += chunkSize) {
+                    const chunk = tokens.slice(i, i + chunkSize);
+                    await admin.messaging().sendToDevice(chunk, payload);
+                }
+                console.log(`Sent system notification to ${tokens.length} devices.`);
+            }
+        } catch (error) {
+            console.error('Error sending system notifications:', error);
+        }
+    });
+
 // Re-export existing functions
 export * from './index';

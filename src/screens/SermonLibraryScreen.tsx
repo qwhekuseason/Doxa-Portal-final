@@ -9,7 +9,7 @@ import { SkeletonCard, SectionHeader } from '../components/UIComponents';
 // Define query outside for stability
 const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'));
 
-const SermonLibraryView: React.FC = () => {
+const SermonLibraryView: React.FC<{ onPlay?: (sermon: Sermon) => void }> = ({ onPlay }) => {
   const { data: sermons, loading } = useFirestoreQuery<Sermon>(sermonQ);
   const [searchTerm, setSearchTerm] = useState('');
   const [groupMode, setGroupMode] = useState<'none' | 'service' | 'speaker' | 'month' | 'year'>('none');
@@ -69,15 +69,18 @@ const SermonLibraryView: React.FC = () => {
   }, [filtered, groupMode]);
 
   const handlePlay = async (sermon: Sermon) => {
-    if (sermon.audioUrl) {
+    if (onPlay) {
+      onPlay(sermon);
+    } else if (sermon.audioUrl) {
       window.open(sermon.audioUrl, '_blank');
-      if (auth.currentUser) {
-        try {
-          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-            'stats.sermonsHeard': increment(1)
-          });
-        } catch (e) { console.error(e); }
-      }
+    }
+
+    if (auth.currentUser) {
+      try {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          'stats.sermonsHeard': increment(1)
+        });
+      } catch (e) { console.error(e); }
     }
   };
 

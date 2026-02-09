@@ -1,14 +1,14 @@
 
-
 import React, { useMemo, useState } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
 import { RecentActivityFeed } from '../components/AdminViews';
-import { Users, BookOpen, MessageCircle, Heart, AlertTriangle, ArrowUpRight, Shield, Zap, Image as ImageIcon, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, BookOpen, MessageCircle, Heart, AlertTriangle, ArrowUpRight, Shield, Zap, Image as ImageIcon, BarChart3, TrendingUp, TrendingDown, Star, Bell } from 'lucide-react';
 import { StatCard } from '../components/UIComponents';
 import { AttendanceProjector } from '../components/admin/AttendanceProjector';
 import { UserProfile } from '../types';
+import { createNotification, sendBrowserNotification } from '../utils/notificationService';
 
 const ActionButton: React.FC<{ label: string; icon: React.ReactNode; color: string; onClick?: () => void }> = ({ label, icon, color, onClick }) => (
   <button onClick={onClick} className="group flex items-center justify-between p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer">
@@ -24,9 +24,29 @@ const ActionButton: React.FC<{ label: string; icon: React.ReactNode; color: stri
 
 type TimeFilter = '7days' | '30days';
 
-const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
+interface AdminDashboardProps {
+  onNavigate?: (tab: string) => void;
+  addToast?: (msg: string, type: 'info' | 'success' | 'warning' | 'error') => void;
+}
+
+const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addToast }) => {
   const [showProjector, setShowProjector] = useState(false);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('7days');
+
+  const handleTestNotification = async () => {
+    const testNotif = {
+      title: '🧪 System Test Notification',
+      message: 'This is a test notification to verify the system is active.',
+      type: 'info' as const,
+    };
+    await createNotification(testNotif);
+    sendBrowserNotification(testNotif.title, testNotif.message);
+    if (addToast) {
+      addToast("Test notification dispatched!", "success");
+    } else {
+      alert("Test notification sent! Check the bell icon.");
+    }
+  };
 
   const userQ = useMemo(() => query(collection(db, 'users')), []);
   const sermonQ = useMemo(() => query(collection(db, 'sermons')), []);
@@ -99,12 +119,12 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
           <h1 className="text-4xl font-serif font-bold text-gray-900 dark:text-white tracking-tight">System Overview</h1>
           <p className="text-gray-500 mt-1 font-medium">Welcome back. Here's what's happening {timeFilter === '7days' ? 'this week' : 'this month'}.</p>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-900 p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex gap-2">
+        <div className="bg-gray-50 dark:bg-gray-900 p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-wrap gap-2">
           <button
             onClick={() => setTimeFilter('7days')}
             className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold border transition-all ${timeFilter === '7days'
-                ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
-                : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
+              ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
+              : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
               }`}
           >
             7 Days
@@ -112,11 +132,19 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
           <button
             onClick={() => setTimeFilter('30days')}
             className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold border transition-all ${timeFilter === '30days'
-                ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
-                : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
+              ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
+              : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
               }`}
           >
             30 Days
+          </button>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 my-auto mx-1"></div>
+          <button
+            onClick={handleTestNotification}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-church-green/10 text-church-green hover:bg-church-green hover:text-white transition-all text-sm font-bold border border-church-green/20"
+            title="Send test notification to verify system"
+          >
+            <Bell size={14} /> Test Notif
           </button>
         </div>
       </div>
@@ -137,26 +165,29 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
           {/* Stats Row - High Contrast Pop */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard
-              title="Total Users"
+              title="Members"
               value={users.length}
               icon={<Users />}
-              color="bg-blue-600"
+              color="bg-church-green"
               trend={userGrowth.percentage > 0 ? `${userGrowth.isPositive ? '+' : '-'}${userGrowth.percentage}%` : undefined}
               loading={l1}
+              onClick={() => navigateTo('admin-users')}
             />
             <StatCard
               title="Content Library"
               value={sermons.length}
               icon={<BookOpen />}
-              color="bg-church-green"
+              color="bg-blue-600"
               loading={l2}
+              onClick={() => navigateTo('admin-sermons')}
             />
             <StatCard
-              title="Pending Stories"
+              title="Pending Testimonies"
               value={testimonies.length}
-              icon={<MessageCircle />}
+              icon={<Shield />}
               color="bg-purple-600"
               loading={l3}
+              onClick={() => navigateTo('admin-testimonies')}
             />
             <StatCard
               title="Support Requests"
@@ -165,6 +196,7 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
               color="bg-rose-500"
               trend={prayers.length > 0 ? `${prayers.length} pending` : undefined}
               loading={l4}
+              onClick={() => navigateTo('admin-prayers')}
             />
           </div>
 
@@ -210,6 +242,7 @@ const AdminDashboardScreen: React.FC<{ onNavigate?: (tab: string) => void }> = (
               <ActionButton label="Post Community Story" icon={<ImageIcon size={20} />} color="bg-blue-500" onClick={() => navigateTo('admin-stories')} />
               <ActionButton label="Upload Content Library" icon={<BookOpen size={20} />} color="bg-church-green" onClick={() => navigateTo('admin-sermons')} />
               <ActionButton label="Approve Testimonies" icon={<Shield size={20} />} color="bg-purple-500" onClick={() => navigateTo('admin-testimonies')} />
+              <ActionButton label="Manage Service Reviews" icon={<Star size={20} />} color="bg-church-gold" onClick={() => navigateTo('admin-reviews')} />
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import { UserProfile, ChatMessage } from '../types';
 import { LoadingSpinner } from '../components/UIComponents';
 import { Send, Users, ChevronLeft, Search, Smile, Paperclip, Bot, Sparkles } from 'lucide-react';
 import { generateAIResponse, isAIMention, extractMessageWithoutMention } from '../utils/aiService';
+import { notifyChatMessage } from '../utils/notificationService';
 
 interface GroupChatScreenProps {
     user: UserProfile;
@@ -66,6 +67,9 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
                 text: sentText,
                 createdAt: serverTimestamp()
             });
+
+            // Send notification
+            await notifyChatMessage(user.displayName, sentText);
 
             // Check if AI was mentioned
             if (isAIMention(sentText)) {

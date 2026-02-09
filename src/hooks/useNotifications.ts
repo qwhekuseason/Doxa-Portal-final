@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, limit, or } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export interface Notification {
@@ -9,6 +9,8 @@ export interface Notification {
     timestamp: any;
     read: boolean;
     type: 'info' | 'success' | 'warning' | 'error';
+    isGlobal?: boolean;
+    targetUsers?: string[];
 }
 
 // Define ref outside
@@ -25,12 +27,20 @@ export const useNotifications = (userId?: string, isAdminUser: boolean = false) 
             return;
         }
 
-        // Only filter by UID if not an admin. Admins can see all, but for UI, we might still want to filter.
-        // For now, let's follow the rule: normal users must filter by their UID.
-        let q = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
-
-        if (!isAdminUser && userId) {
-            q = query(notifsRef, where('uid', '==', userId), orderBy('timestamp', 'desc'), limit(20));
+        let q;
+        if (isAdminUser) {
+            q = query(notifsRef, orderBy('timestamp', 'desc'), limit(20));
+        } else {
+            // Normal users see global OR targeted
+            q = query(
+                notifsRef,
+                or(
+                    where('isGlobal', '==', true),
+                    where('targetUsers', 'array-contains', userId)
+                ),
+                orderBy('timestamp', 'desc'),
+                limit(20)
+            );
         }
 
         const unsubscribe = onSnapshot(q, (snapshot) => {

@@ -887,7 +887,7 @@ export const AdminGalleryManager: React.FC = () => {
                 index={idx}
                 isAdmin={true}
                 onDelete={() => deleteImage(img.id)}
-                onClick={() => { }}
+                onClick={() => window.open(img.externalLink || img.url, '_blank')}
               />
             ))}
             {images.length === 0 && (
@@ -1050,8 +1050,62 @@ export const AdminQuizManager: React.FC = () => {
               )}
 
               {mode === 'manual' && (
-                <div className="p-4 text-center text-xs text-gray-400 font-bold uppercase tracking-widest">
-                  Manual entry coming soon or use the AI for instant creation!
+                <div className="space-y-6">
+                  {questions.map((q, qIdx) => (
+                    <div key={qIdx} className="p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-church-green uppercase tracking-widest">Question {qIdx + 1}</span>
+                        {questions.length > 1 && (
+                          <button onClick={() => setQuestions(questions.filter((_, i) => i !== qIdx))} className="text-red-500 hover:text-red-700 p-1">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        placeholder="Enter your question here..."
+                        className="w-full p-3 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-church-gold dark:text-white font-bold"
+                        value={q.question}
+                        onChange={e => {
+                          const newQ = [...questions];
+                          newQ[qIdx].question = e.target.value;
+                          setQuestions(newQ);
+                        }}
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {q.options.map((opt, oIdx) => (
+                          <div key={oIdx} className="flex gap-2 items-center">
+                            <input
+                              type="radio"
+                              name={`correct-${qIdx}`}
+                              checked={q.correctIndex === oIdx}
+                              onChange={() => {
+                                const newQ = [...questions];
+                                newQ[qIdx].correctIndex = oIdx;
+                                setQuestions(newQ);
+                              }}
+                              className="accent-church-gold w-4 h-4"
+                            />
+                            <input
+                              placeholder={`Option ${oIdx + 1}`}
+                              className="flex-1 p-3 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-xl outline-none text-sm dark:text-white"
+                              value={opt}
+                              onChange={e => {
+                                const newQ = [...questions];
+                                newQ[qIdx].options[oIdx] = e.target.value;
+                                setQuestions(newQ);
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setQuestions([...questions, { question: '', options: ['', '', '', ''], correctIndex: 0 }])}
+                    className="w-full py-3 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl text-gray-400 font-bold text-xs uppercase tracking-widest hover:border-church-gold hover:text-church-gold transition-all"
+                  >
+                    + Add Another Question
+                  </button>
                 </div>
               )}
 

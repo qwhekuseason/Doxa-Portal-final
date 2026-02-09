@@ -15,6 +15,7 @@ export const createNotification = async (data: NotificationData) => {
     try {
         await addDoc(collection(db, 'notifications'), {
             ...data,
+            isGlobal: !data.targetUsers || data.targetUsers.length === 0,
             timestamp: serverTimestamp(),
             read: false,
             createdAt: new Date().toISOString()
@@ -27,13 +28,30 @@ export const createNotification = async (data: NotificationData) => {
 /**
  * Sends a browser notification (if permission granted)
  */
-export const sendBrowserNotification = (title: string, body: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, {
+export const sendBrowserNotification = async (title: string, body: string) => {
+    if (!('Notification' in window)) return;
+
+    if (Notification.permission === 'granted') {
+        const options = {
             body,
             icon: '/logo.png',
-            badge: '/logo.png'
-        });
+            badge: '/logo.png',
+            vibrate: [100, 50, 100],
+            tag: 'doxa-alert',
+            renotify: true
+        };
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                registration.showNotification(title, options);
+            } else {
+                new Notification(title, options);
+            }
+        } catch (err) {
+            console.warn('System notification failed, falling back to window.Notification', err);
+            try { new Notification(title, options); } catch (e) { }
+        }
     }
 };
 
@@ -145,6 +163,63 @@ export const notifyNewLiveMeeting = async (meetingCode: string) => {
         title: '🎥 Live Meeting Started',
         message: `A new session has started! Join with code: ${meetingCode}`,
         type: 'success'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyChatMessage = async (senderName: string, text: string, groupName: string = 'Community') => {
+    const notification: NotificationData = {
+        title: `💬 ${senderName} in ${groupName}`,
+        message: text.length > 50 ? `${text.substring(0, 47)}...` : text,
+        type: 'info'
+    };
+
+    await createNotification(notification);
+    // We might not want browser notifications for every message to avoid spamming, 
+    // but the user asked for "everything".
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyHandRaised = async (userName: string, roomName: string) => {
+    const notification: NotificationData = {
+        title: '✋ Hand Raised',
+        message: `${userName} raised their hand in ${roomName}`,
+        type: 'warning'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyLiveReaction = async (userName: string, emoji: string) => {
+    const notification: NotificationData = {
+        title: '✨ Live Interaction',
+        message: `${userName} reacted with ${emoji}`,
+        type: 'info'
+    };
+
+    await createNotification(notification);
+};
+
+export const notifyNewEBook = async (title: string, author: string) => {
+    const notification: NotificationData = {
+        title: '📚 New eBook Added',
+        message: `"${title}" by ${author} is now available in the library`,
+        type: 'success'
+    };
+
+    await createNotification(notification);
+    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyDirectMessage = async (senderName: string, text: string, receiverUid: string) => {
+    const notification: NotificationData = {
+        title: `📧 Message from ${senderName}`,
+        message: text.length > 50 ? `${text.substring(0, 47)}...` : text,
+        type: 'info',
+        targetUsers: [receiverUid]
     };
 
     await createNotification(notification);

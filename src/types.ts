@@ -239,3 +239,25 @@ export interface Conversation {
   participants: string[];
   createdAt?: any;
 }
+
+export interface ServiceReviewSession {
+  id: string;
+  title: string;
+  date: string;
+  isActive: boolean;
+  createdAt: any;
+  createdBy: string;
+}
+
+export interface ServiceReview {
+  id: string;
+  sessionId: string;
+  uid?: string;
+  displayName?: string;
+  rating: number;
+  generalExperience: string;
+  highlights: string;
+  suggestions: string;
+  createdAt: any;
+}
+

@@ -4,6 +4,7 @@ import { db } from '../../firebase';
 import { UserProfile, DirectMessage } from '../../types';
 import { Send, User, MessageCircle, ChevronLeft, Search, Paperclip, Check, CheckCheck, Star, Smile, X } from 'lucide-react';
 import { LoadingSpinner } from '../UIComponents';
+import { notifyDirectMessage } from '../../utils/notificationService';
 
 interface DirectMessagePanelProps {
     currentUser: UserProfile;
@@ -94,6 +95,9 @@ export const DirectMessagePanel: React.FC<DirectMessagePanelProps> = ({ currentU
             };
 
             await addDoc(collection(db, 'direct_messages'), msgData);
+
+            // Send notification to receiver
+            await notifyDirectMessage(currentUser.displayName, textToSend, targetUser.uid);
 
             const convRef = doc(db, 'conversations', chatId);
             await setDoc(convRef, {

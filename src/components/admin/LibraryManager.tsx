@@ -26,6 +26,7 @@ import {
     Save
 } from 'lucide-react';
 import { initGoogleAuth, uploadFileToDrive } from '../../utils/googleDriveService';
+import { notifyNewEBook } from '../../utils/notificationService';
 
 export const LibraryManager: React.FC = () => {
     const [books, setBooks] = useState<EBook[]>([]);
@@ -145,6 +146,9 @@ export const LibraryManager: React.FC = () => {
                 uploadedBy: 'Admin',
                 createdAt: serverTimestamp()
             });
+
+            // Send notification
+            await notifyNewEBook(title, author);
 
             setUploadStep('done');
             setShowSuccess(true);
