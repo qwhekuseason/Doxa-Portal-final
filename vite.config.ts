@@ -46,6 +46,31 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      chunkSizeWarningLimit: 1500, // Agora SDK is ~1.3MB, we've already split it into its own chunk
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Split Firebase into its own chunk
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            // Split Agora SDK into its own chunk
+            if (id.includes('agora')) {
+              return 'vendor-agora';
+            }
+            // Split Lucide icons into its own chunk
+            if (id.includes('lucide-react')) {
+              return 'vendor-ui';
+            }
+            // Split React and core libraries
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-core';
+            }
+          }
+        }
+      }
     }
   };
 });

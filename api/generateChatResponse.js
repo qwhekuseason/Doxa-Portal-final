@@ -1,4 +1,5 @@
-const { HfInference } = require('@huggingface/inference');
+// Use dynamic import for ESM modules in CommonJS environment
+let HfInference;
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -14,6 +15,16 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
+    }
+
+    if (!HfInference) {
+        try {
+            const module = await import('@huggingface/inference');
+            HfInference = module.HfInference;
+        } catch (e) {
+            console.error('Failed to import @huggingface/inference:', e);
+            return res.status(500).json({ error: 'dependency-error', message: 'Failed to load AI library' });
+        }
     }
 
     // Only allow POST requests
@@ -35,16 +46,20 @@ module.exports = async (req, res) => {
         }
 
         const apiKey = process.env.HUGGINGFACE_API_KEY;
+
         if (!apiKey) {
+            console.error("Missing HUGGINGFACE_API_KEY");
             return res.status(500).json({
                 error: 'configuration-error',
-                message: 'AI service is not configured.'
+                message: 'AI service is not configured (Missing API Key).'
             });
         }
 
         const hf = new HfInference(apiKey);
 
-        const contextMessages = conversationContext?.slice(-5).join('\n') || '';
+        const contextMessages = Array.isArray(conversationContext)
+            ? conversationContext.slice(-5).join('\n')
+            : '';
 
         const systemInstruction = `You are "Doxa AI", a friendly and knowledgeable Christian assistant for the Doxa Portal church community. You help members with:
 - Biblical questions and scripture references
@@ -59,31 +74,27 @@ ${contextMessages}
 
 ${userName || 'A member'} asked: ${userMessage}`;
 
+        // Using a chat model that supports the messages API
         const response = await hf.chatCompletion({
-            model: 'meta-llama/Llama-3.1-8B-Instruct',
+            model: "meta-llama/Meta-Llama-3-8B-Instruct",
             messages: [
-                { role: 'system', content: systemInstruction },
-                { role: 'user', content: userQuery }
+                { role: "system", content: systemInstruction },
+                { role: "user", content: userQuery }
             ],
             max_tokens: 300,
-            temperature: 0.7,
+            temperature: 0.7
         });
+
+        // Robust response parsing
+        const outputText = response.choices?.[0]?.message?.content || "I'm having trouble thinking right now. Please try again.";
 
         return res.status(200).json({
             success: true,
-            text: response.choices[0].message.content
+            text: outputText
         });
 
     } catch (error) {
         console.error('❌ Error in generateChatResponse:', error);
-
-        // Check for specific Hugging Face errors
-        if (error.message && error.message.includes('auth')) {
-            return res.status(500).json({
-                error: 'auth-error',
-                message: 'Authentication failed. Please check your HUGGINGFACE_API_KEY.'
-            });
-        }
 
         return res.status(500).json({
             error: 'internal',
