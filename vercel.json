@@ -10,16 +10,24 @@
             "destination": "/api/generateQuiz.js"
         },
         {
+            "source": "/api/generateChatResponse",
+            "destination": "/api/generateChatResponse.js"
+        },
+        {
+            "source": "/api/generateInsight",
+            "destination": "/api/generateInsight.js"
+        },
+        {
+            "source": "/api/generateReadingPlan",
+            "destination": "/api/generateReadingPlan.js"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
     ],
     "functions": {
-        "api/generateToken.js": {
-            "memory": 1024,
-            "maxDuration": 10
-        },
-        "api/generateQuiz.js": {
+        "api/*.js": {
             "memory": 1024,
             "maxDuration": 30
         }
