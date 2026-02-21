@@ -23,7 +23,8 @@ import {
     AlertCircle,
     FileText,
     ImageIcon,
-    Save
+    Save,
+    Download
 } from 'lucide-react';
 import { initGoogleAuth, uploadFileToDrive } from '../../utils/googleDriveService';
 import { notifyNewEBook } from '../../utils/notificationService';
@@ -202,12 +203,42 @@ export const LibraryManager: React.FC = () => {
                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Manage Digital Resources</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-church-gold hover:bg-amber-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-church-gold/20 transition-all active:scale-95"
-                >
-                    <Plus size={18} /> Add New Book
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={async () => {
+                            if (books.length === 0) return;
+                            const confirmExport = confirm("Choose export format:\nOK for Excel (XLSX)\nCancel for PDF Document");
+                            const headers = ["Title", "Author", "Category", "Size"];
+                            const excelData = books.map(b => ({
+                                Title: b.title,
+                                Author: b.author,
+                                Category: b.category || 'General',
+                                Size: b.fileSize > 0 ? `${(b.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'N/A'
+                            }));
+                            const pdfData = books.map(b => [
+                                b.title,
+                                b.author,
+                                b.category || 'General',
+                                b.fileSize > 0 ? `${(b.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'N/A'
+                            ]);
+                            const utils = await import('../../utils/exportUtils');
+                            if (confirmExport) {
+                                utils.exportToExcel(excelData, `Library_Catalog_${new Date().toISOString().slice(0, 10)}`);
+                            } else {
+                                utils.exportToPDF(headers, pdfData, `Library_Catalog_${new Date().toISOString().slice(0, 10)}`, "Doxa Portal - E-Book Library Catalog");
+                            }
+                        }}
+                        className="hidden md:flex items-center gap-2 px-5 py-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 text-gray-600 dark:text-gray-300 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                    >
+                        <Download size={14} /> Export Catalog
+                    </button>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-church-gold hover:bg-amber-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-church-gold/20 transition-all active:scale-95"
+                    >
+                        <Plus size={18} /> Add New Book
+                    </button>
+                </div>
             </div>
 
             {loading ? (

@@ -55,7 +55,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-white dark:bg-[#050505] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-700 selection:bg-church-green selection:text-white">
+            <div className="min-h-screen relative bg-white dark:bg-[#050505] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-700 selection:bg-church-green selection:text-white overflow-x-hidden">
+                {/* Dynamic Atmospheric Blobs */}
+                <div className="glass-bg">
+                    <div className="blob w-[60vw] h-[60vw] bg-church-green/10 -top-[10%] -right-[10%] animate-blob"></div>
+                    <div className="blob w-[40vw] h-[40vw] bg-church-gold/10 top-1/2 -left-[10%] animate-blob" style={{ animationDelay: '-4s' }}></div>
+                    <div className="blob w-[50vw] h-[50vw] bg-blue-500/10 -bottom-[10%] left-1/2 animate-blob" style={{ animationDelay: '-2s' }}></div>
+                </div>
 
                 {/* --- Sticky Header --- */}
                 <header
@@ -110,16 +116,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     <div className="max-w-6xl mx-auto text-center relative z-10">
                         <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full glass-card border-gray-100 dark:border-white/5 mb-10 animate-fade-in">
                             <span className="w-2 h-2 rounded-full bg-church-green animate-pulse"></span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">A World of Fellowship Awaits</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">Welcome Home</span>
                         </div>
 
                         <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-8 leading-[0.85] tracking-tighter text-gray-900 dark:text-white animate-fade-in-up">
                             Experience <br className="hidden md:block" />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-church-green via-emerald-500 to-church-gold">Divine Presence.</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-church-green via-emerald-500 to-church-gold">God's Presence.</span>
                         </h1>
 
                         <p className="max-w-3xl mx-auto text-lg md:text-2xl text-gray-500 dark:text-gray-400 mb-14 leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                            Doxa Portal isn't just an app—it's a digital sanctuary. From life-changing sermons to direct intercession, we bridge the gap between you and the body of Christ.
+                            Doxa Portal is your online community home. Access sermons, prayer, events, Bible resources and live sessions — all in one place.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
@@ -169,11 +175,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 md:mb-24 gap-8">
                             <div className="max-w-2xl">
-                                <h4 className="text-church-green text-xs font-black uppercase tracking-[0.4em] mb-4">Divine Ecosystem</h4>
-                                <h2 className="text-3xl md:text-6xl font-black dark:text-white tracking-tighter leading-none">Complete Tools for <br className="hidden md:block" /> your <span className="text-church-gold">Soul's Growth.</span></h2>
+                                <h4 className="text-church-green text-xs font-black uppercase tracking-[0.4em] mb-4">Features</h4>
+                                <h2 className="text-3xl md:text-6xl font-black dark:text-white tracking-tighter leading-none">Everything you need <br className="hidden md:block" /> to <span className="text-church-gold">grow and connect.</span></h2>
                             </div>
                             <p className="max-w-xs text-gray-500 font-medium text-base md:text-lg leading-relaxed md:mb-4">
-                                Curated experiences designed to nurture your spirit and connect the community.
+                                Curated experiences designed to help you grow and connect with the community.
                             </p>
                         </div>
 
@@ -181,49 +187,49 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             {[
                                 {
                                     icon: <BookOpen size={28} />,
-                                    title: "Enlightened Sermons",
-                                    desc: "Immerse yourself in our divine archive of audio and video sermons.",
+                                    title: "Inspirational Sermons",
+                                    desc: "Access our complete library of audio and video messages.",
                                     tag: "HD Audio"
                                 },
                                 {
                                     icon: <Calendar size={28} />,
-                                    title: "Dynamic Events",
+                                    title: "Events",
                                     desc: "Join live services and community gatherings with effortless scheduling.",
                                     tag: "Real-time"
                                 },
                                 {
                                     icon: <Heart size={28} />,
-                                    title: "Prayer Sanctuary",
-                                    desc: "Share your burdens and intercede for others in a sacred digital space.",
-                                    tag: "Sacred"
+                                    title: "Prayer Wall",
+                                    desc: "Share your requests and pray for others in a safe space.",
+                                    tag: "Safe"
                                 },
                                 {
                                     icon: <Star size={28} />,
                                     title: "Faith Journey",
-                                    desc: "Track your spiritual growth, earn badges, and celebrate milestones.",
+                                    desc: "Track your growth, earn badges, and celebrate milestones.",
                                     tag: "Personalized"
                                 },
                                 {
                                     icon: <Brain size={28} />,
-                                    title: "Biblical Quizzes",
+                                    title: "Bible Quizzes",
                                     desc: "Test your knowledge and grow in your understanding of the Word.",
                                     tag: "Interactive"
                                 },
                                 {
                                     icon: <BookOpen size={28} />,
-                                    title: "Immersive Bible",
+                                    title: "Bible Reader",
                                     desc: "Read and study the Word with our focused, premium reader experience.",
                                     tag: "Scripture"
                                 },
                                 {
                                     icon: <ImageIcon size={28} />,
-                                    title: "Sacred Gallery",
+                                    title: "Gallery",
                                     desc: "Explore visual moments of our community through our curated gallery.",
                                     tag: "Visuals"
                                 },
                                 {
                                     icon: <Users size={28} />,
-                                    title: "Spiritual Testimonies",
+                                    title: "Testimonies",
                                     desc: "Share your amazing stories of faith and be encouraged by others.",
                                     tag: "Inspiring"
                                 }
@@ -251,7 +257,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             <div className="flex-1 text-center md:text-left">
                                 <h2 className="text-3xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6 md:mb-8">Built for the <br /><span className="text-church-gold">Modern Believer.</span></h2>
                                 <p className="text-white/60 text-base md:text-xl font-medium mb-8 md:mb-12 leading-relaxed">
-                                    Doxa Portal combines state-of-the-art technology with time-honored spiritual values. It's safe, secure, and purely professional.
+                                    Doxa Portal combines modern technology with deep community values. It's safe, secure, and built for real people.
                                 </p>
                                 <div className="flex flex-wrap gap-6 md:gap-8 justify-center md:justify-start">
                                     <div className="flex items-center gap-3 md:gap-4">
@@ -296,7 +302,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                             <Star size={48} className="text-church-gold fill-current" />
                         </div>
                         <h3 className="text-3xl md:text-5xl font-black italic tracking-tighter dark:text-white mb-10 leading-tight">
-                            "A revolutionary approach to digital fellowship. The Doxa Portal provides a sanctuary for my soul in the midst of a busy world."
+                            "Doxa Portal changed how I connect with my community. Everything I need is right here."
                         </h3>
                         <div className="flex items-center justify-center">
                             <div className="w-16 h-16 rounded-[1.5rem] bg-gray-200 overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl">
@@ -315,13 +321,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     <div className="max-w-4xl mx-auto text-center text-white relative z-10">
                         <h2 className="text-5xl md:text-7xl font-black mb-10 tracking-tighter leading-[0.85]">Ready to Begin <br /> Your Journey?</h2>
                         <p className="text-xl md:text-2xl text-white/80 mb-16 max-w-2xl mx-auto font-medium leading-relaxed">
-                            Join thousands who are maturing together in faith. Your sanctuary is just one click away.
+                            Join thousands already connected. Get access to sermons, prayer, events and more — completely free.
                         </p>
                         <button
                             onClick={() => onNavigate('register')}
                             className="px-16 py-7 rounded-2xl bg-white text-church-green font-black text-sm uppercase tracking-[0.4em] hover:bg-gray-100 transition-all shadow-2xl hover:scale-110 active:scale-95 border-b-4 border-gray-200"
                         >
-                            Create Your Sanctuary
+                            Create Your Account
                         </button>
                     </div>
                 </section>
@@ -338,7 +344,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                                     <span className="font-black text-2xl tracking-tighter dark:text-white uppercase italic">Doxa <span className="text-church-green">Portal</span></span>
                                 </div>
                                 <p className="text-gray-500 font-medium max-w-sm leading-relaxed text-lg">
-                                    Harnessing innovation to nurture spirits and unify the body of Christ across the digital frontier.
+                                    Connecting people through faith, community, and purpose.
                                 </p>
                             </div>
                             <div>

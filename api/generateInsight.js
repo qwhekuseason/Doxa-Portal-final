@@ -1,4 +1,5 @@
-const { HfInference } = require('@huggingface/inference');
+// Vercel Serverless Function for AI Bible Insights using Google Gemini
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 module.exports = async (req, res) => {
     // Enable CORS
@@ -16,7 +17,6 @@ module.exports = async (req, res) => {
         return;
     }
 
-    // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({
             error: 'method-not-allowed',
@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
             });
         }
 
-        const apiKey = process.env.HUGGINGFACE_API_KEY;
+        const apiKey = process.env.VITE_GEMINI_API_KEY;
         if (!apiKey) {
             return res.status(500).json({
                 error: 'configuration-error',
@@ -42,38 +42,28 @@ module.exports = async (req, res) => {
             });
         }
 
-        const hf = new HfInference(apiKey);
-        const response = await hf.chatCompletion({
-            model: 'mistralai/Mistral-7B-Instruct-v0.3',
-            messages: [
-                {
-                    role: 'user',
-                    content: `Summarize the spiritual essence of ${book} ${chapter} in exactly 2 professional and inspiring sentences. Base it on this text: ${content.substring(0, 2000)}`
-                }
-            ],
-            max_tokens: 200,
-            temperature: 0.7,
-        });
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+        const prompt = `Summarize the spiritual essence of ${book} ${chapter} in exactly 2 professional and inspiring sentences. Base it on this text: ${content.substring(0, 3000)}`;
+
+        console.log(`📡 [AI Progress] Sending insight request to Gemini for ${book} ${chapter}...`);
+        const result = await model.generateContent(prompt);
+        console.log('⏳ [AI Progress] Waiting for API response...');
+        const response = await result.response;
+        console.log('✅ [AI Progress] API Response received!');
+        const text = response.text();
 
         return res.status(200).json({
             success: true,
-            insight: response.choices[0].message.content
+            insight: text
         });
 
     } catch (error) {
         console.error('❌ Error in generateInsight:', error);
-
-        // Check for specific Hugging Face errors
-        if (error.message && error.message.includes('auth')) {
-            return res.status(500).json({
-                error: 'auth-error',
-                message: 'Authentication failed. Please check your HUGGINGFACE_API_KEY.'
-            });
-        }
-
         return res.status(500).json({
             error: 'internal',
-            message: `AI Error: ${error.message || 'Failed to generate insight.'}`
+            message: error.message || 'Failed to generate insight'
         });
     }
 };

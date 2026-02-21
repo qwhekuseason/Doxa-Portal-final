@@ -10,7 +10,8 @@ export interface AIResponse {
 export async function generateAIResponse(
     userMessage: string,
     userName: string,
-    conversationContext?: string[]
+    conversationContext?: string[],
+    dynamicData?: any
 ): Promise<AIResponse> {
     try {
         const response = await fetch('/api/generateChatResponse', {
@@ -21,28 +22,38 @@ export async function generateAIResponse(
             body: JSON.stringify({
                 userMessage,
                 userName,
-                conversationContext
+                conversationContext,
+                dynamicData
             }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to generate response');
+            const errorText = await response.text().catch(() => 'Unknown error');
+            if (response.status === 429) {
+                throw new Error("The AI is a bit busy right now (quota exceeded). Please try again in a minute! ⏳");
+            }
+            throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}`);
         }
+
+        const data = await response.json();
 
         return {
             text: data.text,
             success: true
         };
     } catch (error: any) {
-        console.error('AI generation error:', error);
+        console.error('💥 [Doxa AI Service] Critical Error:', error);
+
+        // If we have a more specific error, log it for debugging
+        if (error.message) {
+            console.log('📝 [Doxa AI Debug] Error details:', error.message);
+        }
 
         // Fallback responses for common scenarios
         const fallbackResponses = [
             "I'm here to help! Could you rephrase your question? 🙏",
             "That's a great question! Let me think... Actually, I'm having trouble right now. Please try again! 💭",
-            "I'd love to help, but I'm experiencing some technical difficulties. Please reach out to a church leader! 🤝"
+            "I'd love to help, but I'm experiencing some technical difficulties. Please reach out to a family leader! 🤝"
         ];
 
         return {

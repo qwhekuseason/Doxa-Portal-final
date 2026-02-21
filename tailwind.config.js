@@ -31,9 +31,14 @@ export default {
                 display: ['Outfit', 'Inter', 'sans-serif'],
             },
             boxShadow: {
-                'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-                'glass-sm': '0 4px 16px 0 rgba(31, 38, 135, 0.05)',
-                'premium': '0 20px 50px -12px rgba(0, 0, 0, 0.1)',
+                'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                'glass-sm': '0 4px 16px 0 rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                'glass-heavy': '0 30px 60px -12px rgba(0, 0, 0, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.15)',
+                'glass-dark': '0 30px 60px -12px rgba(0, 0, 0, 0.45), 0 18px 36px -18px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                'premium': '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                'card-hover': '0 40px 80px -15px rgba(0, 0, 0, 0.3)',
+                'card-hover-dark': '0 40px 80px -15px rgba(0, 0, 0, 0.6)',
+                'vibrant': '0 10px 40px -10px rgba(22, 163, 74, 0.3)',
             },
             borderRadius: {
                 '4xl': '2rem',

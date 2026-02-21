@@ -38,11 +38,11 @@ export const defaultRTCConfig = {
  * Video encoding configuration
  */
 export const videoEncoderConfig = {
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
     frameRate: 30,
-    bitrateMin: 400,
-    bitrateMax: 1500,
+    bitrateMin: 600,
+    bitrateMax: 3000,
 };
 
 /**
@@ -51,7 +51,7 @@ export const videoEncoderConfig = {
 export const audioEncoderConfig = {
     sampleRate: 48000,
     stereo: true,
-    bitrate: 48,
+    bitrate: 128,
 };
 
 /**

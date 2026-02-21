@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
-import { Sermon, UserProfile, CalendarEvent } from '../types';
+import { Sermon, UserProfile, CalendarEvent, ReadingPlan, UserPlanProgress } from '../types';
 import {
   BookOpen,
   Calendar,
@@ -17,14 +17,15 @@ import {
   MessageSquare,
   Hand,
   Coins,
-  QrCode
+  QrCode,
+  Sparkles,
+  ArrowRight,
+  Target
 } from 'lucide-react';
 import { SkeletonCard, SectionHeader, StatCard } from '../components/UIComponents';
-import { useTheme } from '../components/ThemeContext';
 import { parseDateSafe } from '../utils/dateUtils';
 import { StoryDevotional } from '../components/StoryDevotional';
 import { AttendanceScanner } from '../components/AttendanceScanner';
-
 
 // Static VersES Collection
 const VERSES = [
@@ -61,333 +62,319 @@ const EventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
   }, [event?.date]);
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 border border-white/20 shadow-xl overflow-hidden group">
+    <div className="glass-card !bg-white/20 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-5 border border-white/20 shadow-2xl overflow-hidden group spring-interaction">
       <div className="absolute inset-0 shimmer-bg opacity-10"></div>
-      <div className="bg-church-green text-white p-3 rounded-xl shadow-lg shadow-church-green/30 group-hover:scale-110 transition-transform">
-        <Clock size={20} />
+      <div className="bg-church-green text-white w-14 h-14 rounded-2xl shadow-xl shadow-church-green/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+        <Clock size={24} />
       </div>
       <div className="relative z-10">
-        <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.2em]">Next Service</p>
-        <p className="text-xl font-black text-white font-mono tracking-tight">{timeLeft}</p>
+        <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.3em] mb-1">Upcoming Event</p>
+        <p className="text-2xl font-black text-white font-mono tracking-tighter">{timeLeft}</p>
       </div>
     </div>
   );
 };
 
-const MiniEventCountdown: React.FC<{ event: CalendarEvent }> = ({ event }) => {
-  const [timeLeft, setTimeLeft] = useState('');
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const eventDate = parseDateSafe(event?.date);
-      if (!eventDate) return;
-      const difference = +eventDate - +new Date();
-      if (difference > 0) {
-        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const h = Math.floor((difference / (1000 * 60 * 60)) % 24);
-        const m = Math.floor((difference / 1000 / 60) % 60);
-        setTimeLeft(`${d}d ${h}h ${m}m`);
-      } else {
-        setTimeLeft('Now');
-      }
-    };
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 60000);
-    return () => clearInterval(timer);
-  }, [event?.date]);
-
-  return <span className="text-[10px] font-black font-mono tracking-tight text-church-green">{timeLeft || 'Loading...'}</span>;
-};
-
 interface HomeScreenProps {
-  user?: UserProfile;
+  user: UserProfile | null;
   onNavigate: (tab: string) => void;
   onMessageUser?: (target: { uid: string; displayName: string; photoURL?: string }) => void;
   onStoryStateChange?: (isActive: boolean) => void;
 }
 
-// Define queries outside (stable refs)
-const sermonQ = query(collection(db, 'sermons'), orderBy('date', 'desc'), limit(3));
-// Note: time is fixed at module load, which is acceptable for stability
-const eventQ = query(collection(db, 'events'), where('date', '>=', new Date().toISOString()), orderBy('date', 'asc'), limit(4));
-
-const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onMessageUser, onStoryStateChange }) => {
-  const { theme } = useTheme();
+const HomeView: React.FC<HomeScreenProps> = ({ user, onNavigate, onMessageUser, onStoryStateChange }) => {
   const [showScanner, setShowScanner] = useState(false);
 
+  // Queries
+  const sermonQ = useMemo(() => query(collection(db, 'sermons'), orderBy('date', 'desc'), limit(5)), []);
+  const eventQ = useMemo(() => query(collection(db, 'events'), where('date', '>=', new Date().toISOString()), orderBy('date', 'asc'), limit(3)), []);
+
   const { data: recentSermons, loading: sermonsLoading } = useFirestoreQuery<Sermon>(sermonQ);
-  const { data: upcomingEvents, loading: eventsLoading } = useFirestoreQuery<CalendarEvent>(eventQ);
+  const { data: upcomingEvents } = useFirestoreQuery<CalendarEvent>(eventQ);
 
   const nextEvent = upcomingEvents[0];
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 5) return 'Good Night';
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }, []);
-
   const dailyVerse = useMemo(() => {
-    const day = new Date().getDate();
-    return VERSES[day % VERSES.length];
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24);
+    return VERSES[dayOfYear % VERSES.length];
   }, []);
+
+  if (showScanner) return <AttendanceScanner user={user} onClose={() => setShowScanner(false)} />;
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
-      {showScanner && user && <AttendanceScanner user={user} onClose={() => setShowScanner(false)} />}
-
-      {/* Story Devotionals */}
-      <StoryDevotional onMessageUser={onMessageUser} onStateChange={onStoryStateChange} />
-
-      {/* Hero Welcome Section */}
-      <section className="relative rounded-3xl overflow-hidden shadow-premium group">
-        {/* ... existing hero code ... */}
-        {/* Add Scanner Button here */}
+    <div className="space-y-12 pb-24">
+      {/* Top Welcome Bar */}
+      <div className="flex items-center justify-between animate-page-enter animate-stagger-1">
+        <div className="flex items-center gap-5">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-church-green blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
+            <img
+              src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=16a34a&color=fff`}
+              className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-white/10 relative z-10 shadow-xl"
+              alt="Avatar"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-church-green uppercase tracking-[0.3em] mb-1 text-left">Welcome Back</p>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter text-left leading-none">
+              {user?.displayName ? `Shalom, ${user.displayName.split(' ')[0]}` : 'Shalom, Friend'}
+            </h2>
+          </div>
+        </div>
         <button
           onClick={() => setShowScanner(true)}
-          className="absolute top-6 right-6 z-20 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all active:scale-95 group/scan"
+          className="w-14 h-14 glass-card !bg-white/50 dark:!bg-white/10 rounded-2xl flex items-center justify-center text-church-green shadow-sm active:scale-95 spring-interaction"
         >
-          <QrCode size={18} className="group-hover/scan:scale-110 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">Check In</span>
+          <QrCode size={24} />
         </button>
+      </div>
 
+      {/* Hero Spotlight Section */}
+      <section className="relative rounded-[3rem] overflow-hidden shadow-2xl group min-h-[280px] flex items-center animate-page-enter animate-stagger-2 glass-sheen">
         {/* Dynamic Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-church-green to-emerald-900 group-hover:scale-105 transition-transform duration-[2000ms]"></div>
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-church-gold/20 rounded-full blur-[80px] animate-float"></div>
-        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-white/10 rounded-full blur-[80px] animate-pulse-slow"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-church-green via-emerald-800 to-black group-hover:scale-110 transition-transform duration-[5000ms]"></div>
+        <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-church-gold/20 rounded-full blur-[120px] -mr-32 -mt-32 animate-pulse-slow"></div>
+        <div className="absolute -bottom-24 -left-24 w-[300px] h-[300px] bg-church-green/30 rounded-full blur-[100px] animate-blob"></div>
 
-        <div className="relative z-10 p-6 md:p-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center gap-3 animate-fade-in-up">
-                <span className="px-2.5 py-1 bg-white/20 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full backdrop-blur-md border border-white/20">Faith Dashboard</span>
-                {user?.streak && user.streak.count > 0 && (
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-500 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-orange-500/20">
-                    <Flame size={10} fill="currentColor" /> {user.streak.count} Day Streak
-                  </span>
-                )}
-                <span className="w-1.5 h-1.5 rounded-full bg-church-gold animate-pulse"></span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-sans font-black text-white tracking-tighter leading-tight">
-                {greeting},<br />
-                <span className="text-gradient-gold drop-shadow-sm">{user?.displayName?.split(' ')[0] || 'Member'}</span>
-              </h1>
-              <p className="text-white/70 font-medium text-sm md:text-base max-w-xl leading-relaxed">
-                Your personal growth platform. Access sermons, engage with the community, and track your spiritual progress.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-4 md:w-72">
-              {nextEvent ? (
-                <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                  <EventCountdown event={nextEvent} />
-                  <p className="mt-2 text-center text-white/50 text-[9px] font-black uppercase tracking-widest truncate">{nextEvent.title}</p>
-                </div>
-              ) : (
-                <div className="p-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl animate-fade-in-up">
-                  <p className="text-[9px] font-black text-white/60 mb-1 uppercase tracking-[0.2em]">Wisdom for now</p>
-                  <p className="text-white font-serif italic text-sm md:text-base leading-relaxed line-clamp-3">"{dailyVerse.text}"</p>
+        <div className="relative z-10 p-10 flex flex-col md:flex-row md:items-center justify-between gap-10 w-full text-left">
+          <div className="space-y-6 flex-1">
+            <div className="flex items-center gap-3">
+              <span className="px-4 py-1.5 bg-white/20 backdrop-blur-xl border border-white/20 text-white text-[9px] font-black uppercase tracking-[0.3em] rounded-full">Daily Focus</span>
+              {user?.streak && user.streak.count > 0 && (
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-orange-500 text-white text-[9px] font-black uppercase tracking-[0.3em] rounded-full shadow-lg shadow-orange-500/30">
+                  <Flame size={12} fill="currentColor" /> {user.streak.count} DAYS STREAK
                 </div>
               )}
             </div>
+            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none italic">
+              Living with <br />
+              <span className="text-church-gold drop-shadow-2xl">Purpose</span>
+            </h1>
+            <p className="text-white/80 text-sm md:text-base font-medium max-w-md leading-relaxed">
+              "Commit your work to the Lord, and your plans will be established." — Proverbs 16:3
+            </p>
+          </div>
+
+          <div className="md:w-80 shrink-0">
+            {nextEvent && <EventCountdown event={nextEvent} />}
           </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {/* Active Reading Plans Section */}
+      <ActivePlansSection user={user} onNavigate={onNavigate} />
+
+      {/* Quick Stats Grid */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-6 animate-page-enter animate-stagger-3">
         <StatCard
-          title="Sermons"
+          title="Sermons Heard"
           value={user?.stats?.sermonsHeard || 0}
           icon={<BookOpen />}
           color="bg-church-green"
           onClick={() => onNavigate('sermons')}
         />
         <StatCard
-          title="Points"
+          title="Bible Wisdom"
           value={user?.stats?.quizPoints || 0}
           icon={<Star />}
           color="bg-church-gold"
           onClick={() => onNavigate('quiz')}
         />
         <StatCard
-          title="Quizzes"
-          value={user?.stats?.quizzesTaken || 0}
-          icon={<TrendingUp />}
-          color="bg-blue-500"
-          onClick={() => onNavigate('quiz')}
-        />
-        <StatCard
-          title="Best Streak"
-          value={user?.streak?.best || 0}
+          title="Community"
+          value={user?.streak?.count || 0}
           icon={<Flame />}
           color="bg-orange-500"
           onClick={() => onNavigate('profile')}
         />
+        <StatCard
+          title="Bible Knowledge"
+          value={user?.stats?.quizzesTaken || 0}
+          icon={<Brain />}
+          color="bg-blue-500"
+          onClick={() => onNavigate('quiz')}
+        />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-        {/* Left Column: Feed */}
-        <div className="lg:col-span-2 space-y-12">
+      <div className="space-y-16 animate-page-enter animate-stagger-4">
+        {/* Story Devotional */}
+        <section className="space-y-6">
+          <SectionHeader
+            title="Daily Word"
+            subtitle="A verse to carry with you today."
+            icon={<Sparkles className="text-church-gold" />}
+          />
 
-          {/* Latest Sermons */}
-          <div className="space-y-6">
-            <SectionHeader
-              title="Latest Sermons"
-              subtitle="Access the latest insights and sermons from our library."
-              action={
-                <button onClick={() => onNavigate('sermons')} className="px-5 py-2.5 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-church-green hover:text-white transition-all shadow-sm">
-                  Explore All
-                </button>
-              }
-            />
-
-            {sermonsLoading ? (
-              <div className="grid grid-cols-1 gap-6">
-                {[1, 2].map(i => <SkeletonCard key={i} height="h-44" />)}
+          <div className="glass-card p-10 rounded-[3rem] relative overflow-hidden group border border-white/20 dark:border-white/5 shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+            <div className="relative z-10 space-y-4">
+              <p className="text-2xl md:text-3xl font-serif italic text-gray-900 dark:text-white leading-relaxed tracking-tight group-hover:scale-[1.01] transition-transform duration-700">
+                "{dailyVerse.text}"
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-church-gold to-transparent"></div>
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-church-gold">{dailyVerse.reference}</span>
               </div>
+            </div>
+          </div>
+
+          <StoryDevotional onMessageUser={onMessageUser} onStateChange={onStoryStateChange} />
+        </section>
+
+        {/* Latest Sermons */}
+        <section className="space-y-8">
+          <SectionHeader
+            title="Recent Sermons"
+            subtitle="Catch up on the latest and greatest messages."
+            action={
+              <button onClick={() => onNavigate('sermons')} className="flex items-center gap-2 text-church-green text-[10px] font-black uppercase tracking-[0.2em] spring-interaction">
+                View All <ArrowRight size={14} />
+              </button>
+            }
+          />
+
+          <div className="flex overflow-x-auto gap-8 pb-10 -mx-4 px-4 hide-scrollbar snap-x snap-mandatory">
+            {sermonsLoading ? (
+              [1, 2, 3].map(i => <div key={i} className="min-w-[300px] snap-center"><SkeletonCard height="h-[450px]" /></div>)
             ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {recentSermons.slice(0, 2).map((sermon, idx) => (
-                  <div
-                    key={sermon.id}
-                    onClick={() => onNavigate('sermons')}
-                    className="group flex flex-col md:flex-row gap-4 p-1 glass-card border-white/40 rounded-3xl hover:shadow-premium hover:-translate-y-1 transition-all duration-500 cursor-pointer overflow-hidden animate-fade-in-up"
-                    style={{ animationDelay: `${idx * 0.1}s` }}
-                  >
-                    <div className="md:w-48 h-40 md:h-auto font-black relative overflow-hidden rounded-2xl">
-                      <img
-                        src={sermon.coverUrl}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                        alt=""
-                        loading="lazy"
-                        onError={(e) => (e.currentTarget.src = 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=1000')}
-                      />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform">
-                          <PlayCircle size={20} fill="currentColor" />
-                        </div>
-                      </div>
-                    </div>
+              recentSermons.map((sermon) => (
+                <div
+                  key={sermon.id}
+                  onClick={() => onNavigate('sermons')}
+                  className="min-w-[300px] md:min-w-[380px] snap-center group relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl card-pop active:scale-95 transition-all cursor-pointer"
+                >
+                  <img
+                    src={sermon.coverUrl}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[5000ms]"
+                    alt=""
+                    onError={(e) => (e.currentTarget.src = 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&q=80&w=1000')}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
 
-                    <div className="flex-1 p-5 flex flex-col justify-center">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="bg-church-green/10 text-church-green text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border border-church-green/10">{sermon.series || 'SUNDAY SERIES'}</span>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5"><Calendar size={12} /> {parseDateSafe(sermon.date)?.toLocaleDateString()}</span>
-                      </div>
-                      <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white group-hover:text-church-green transition-colors leading-tight mb-1 tracking-tighter line-clamp-2">
-                        {sermon.title}
-                      </h3>
-                      <p className="text-[10px] md:text-xs text-gray-400 font-medium mb-3 line-clamp-1 italic">By {sermon.speaker}</p>
+                  <div className="absolute top-6 left-6">
+                    <span className="px-4 py-2 bg-white/20 backdrop-blur-xl border border-white/20 text-white text-[9px] font-black uppercase tracking-widest rounded-full">{sermon.series || 'Mastery'}</span>
+                  </div>
 
-                      <div className="flex items-center gap-6 pt-2 border-t border-gray-100 dark:border-white/5 opacity-60">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight text-gray-500">
-                          <Clock size={12} className="text-church-green" />
-                          <span>{sermon.duration || '45 MIN'}</span>
-                        </div>
-                        {/* Views removed as we do not track them yet */}
+                  <div className="absolute inset-x-0 bottom-0 p-8 space-y-3 text-left">
+                    <h3 className="text-2xl font-black text-white leading-tight tracking-tighter drop-shadow-xl group-hover:text-church-green transition-colors">{sermon.title}</h3>
+                    <div className="flex items-center justify-between">
+                      <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] italic">{sermon.speaker}</p>
+                      <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white scale-0 group-hover:scale-100 transition-all">
+                        <PlayCircle size={20} />
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Right Column: Actions & Verse */}
-        <div className="space-y-12">
-
-          {/* Bible Verse Spotlight (Moved Higher) */}
-          <div className="relative p-6 glass-card border-church-gold/30 rounded-3xl overflow-hidden group shadow-premium">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-church-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-1000"></div>
-
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="p-3 bg-church-gold/10 rounded-xl mb-4 text-church-gold">
-                <Star size={24} fill="currentColor" />
-              </div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-church-gold/60 mb-4">Daily Inspiration</p>
-              <blockquote className="text-base font-serif text-gray-900 dark:text-white italic leading-relaxed mb-5">
-                "{dailyVerse.text}"
-              </blockquote>
-              <div className="w-12 h-0.5 bg-church-gold/20 rounded-full mb-3"></div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">— {dailyVerse.reference}</p>
-
-              <button onClick={() => onNavigate('bible')} className="mt-8 px-8 py-3 bg-church-gold text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-church-gold/30 hover:scale-105 transition-all active:scale-95">
-                Read Bible
+        {/* Community Highlight */}
+        <section className="glass-card p-10 rounded-[3rem] border border-white/20 dark:border-white/5 relative overflow-hidden group glass-sheen">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/10 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+            <div className="w-24 h-24 bg-church-green/20 rounded-[2rem] flex items-center justify-center text-church-green shrink-0">
+              <Users size={48} />
+            </div>
+            <div className="text-center md:text-left space-y-4">
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Community Hub</h3>
+              <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed max-w-lg">
+                Join the global Doxa family in our community streams. Share testimonies, prayer requests, and grow with brothers and sisters worldwide.
+              </p>
+              <button onClick={() => onNavigate('chat')} className="flex items-center gap-3 px-8 py-4 bg-church-green text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest shadow-xl shadow-church-green/20 spring-interaction">
+                Join the Chat <ArrowRight size={14} />
               </button>
             </div>
           </div>
-
-          {/* Upcoming Gatherings List */}
-          {upcomingEvents.length > 1 && (
-            <div className="space-y-6">
-              <SectionHeader title="Coming Up" />
-              <div className="space-y-4">
-                {upcomingEvents.slice(1).map(event => {
-                  const eventDate = parseDateSafe(event.date);
-                  const isToday = eventDate && eventDate.getDate() === new Date().getDate();
-                  const timeDiff = eventDate ? +eventDate - +new Date() : 0;
-                  const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                  return (
-                    <div key={event.id} className="glass-card p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/5 transition-colors cursor-pointer" onClick={() => onNavigate('events')}>
-                      <div className="bg-gray-100 dark:bg-white/5 rounded-xl p-2.5 text-center min-w-[50px] border border-gray-100 dark:border-white/5">
-                        <div className="text-[9px] font-black text-church-green uppercase tracking-tighter mb-0.5">
-                          {eventDate?.toLocaleString('default', { month: 'short' })}
-                        </div>
-                        <div className="text-xl font-black dark:text-white leading-none">
-                          {eventDate?.getDate()}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-black dark:text-white truncate group-hover:text-church-green transition-colors">{event.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <MiniEventCountdown event={event} />
-                          <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase">{event.type}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          <div className="space-y-6 lg:sticky lg:top-8">
-            <SectionHeader title="Actions" />
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: 'prayer', label: 'Prayer', icon: <Hand />, color: 'text-red-500', bg: 'bg-red-500/5 hover:bg-red-500/10' },
-                { id: 'quiz', label: 'Quiz', icon: <Brain />, color: 'text-church-green', bg: 'bg-church-green/5 hover:bg-church-green/10' },
-                { id: 'bible', label: 'Bible', icon: <BookOpen />, color: 'text-blue-500', bg: 'bg-blue-500/5 hover:bg-blue-500/10' },
-                { id: 'events', label: 'Events', icon: <Calendar />, color: 'text-purple-500', bg: 'bg-purple-500/5 hover:bg-purple-500/10' },
-                { id: 'chat', label: 'Connect', icon: <MessageSquare />, color: 'text-orange-500', bg: 'bg-orange-500/5 hover:bg-orange-500/10' },
-                { id: 'giving', label: 'Give', icon: <Coins />, color: 'text-church-gold', bg: 'bg-church-gold/5 hover:bg-church-gold/10' },
-              ].map((action, idx) => (
-                <button
-                  key={action.id}
-                  onClick={() => onNavigate(action.id)}
-                  className={`aspect-square p-2 ${action.bg} glass-card border-none rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 group shadow-sm`}
-                >
-                  <div className={`${action.color} p-2 rounded-xl bg-white/50 dark:bg-black/20 group-hover:bg-white/80 dark:group-hover:bg-white/10 transition-colors`}>
-                    {React.cloneElement(action.icon as React.ReactElement, { size: 20 })}
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                    {action.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 };
 
-export default HomeScreen;
+const ActivePlansSection: React.FC<{ user: UserProfile | null, onNavigate: (tab: string) => void }> = ({ user, onNavigate }) => {
+  const progressQ = useMemo(() => query(
+    collection(db, 'user_plan_progress'),
+    where('uid', '==', user?.uid || ''),
+    where('status', '==', 'active'),
+    limit(3)
+  ), [user?.uid]);
+
+  const { data: progressData, loading } = useFirestoreQuery<UserPlanProgress>(progressQ);
+  const [plans, setPlans] = useState<ReadingPlan[]>([]);
+
+  // Fetch plan details for active progress
+  useEffect(() => {
+    if (progressData.length > 0) {
+      const fetchPlans = async () => {
+        try {
+          const planPromises = progressData.map(p => getDoc(doc(db, 'reading_plans', p.planId)));
+          const planSnaps = await Promise.all(planPromises);
+
+          const fetchedPlans = planSnaps
+            .filter(snap => snap.exists())
+            .map(snap => ({ id: snap.id, ...snap.data() } as ReadingPlan));
+
+          setPlans(fetchedPlans);
+        } catch (err) {
+          console.error("Error fetching home screen plans:", err);
+        }
+      };
+      fetchPlans();
+    }
+  }, [progressData]);
+
+  if (loading || progressData.length === 0) return null;
+
+  return (
+    <section className="space-y-6 animate-page-enter animate-stagger-2.5">
+      <SectionHeader
+        title="Your Journey"
+        subtitle="Keep growing in the Word."
+        icon={<Target className="text-church-green" />}
+        action={
+          <button onClick={() => onNavigate('reading-plans')} className="flex items-center gap-2 text-church-green text-[10px] font-black uppercase tracking-[0.2em] spring-interaction">
+            View All Plans <ArrowRight size={14} />
+          </button>
+        }
+      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {plans.map((plan, idx) => {
+          const progress = progressData.find(p => p.planId === plan.id);
+          const percent = progress ? Math.round((progress.completedDays.length / plan.duration) * 100) : 0;
+          return (
+            <div
+              key={plan.id}
+              onClick={() => onNavigate('reading-plans')}
+              className="glass-card p-6 rounded-[2.5rem] border border-white/20 active:scale-95 transition-all cursor-pointer group relative overflow-hidden glass-sheen"
+            >
+              <div className="flex items-center gap-4 mb-4 relative z-10">
+                <img src={plan.coverUrl} className="w-12 h-12 rounded-2xl object-cover shadow-lg" alt="" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-black text-sm uppercase tracking-tight truncate dark:text-white group-hover:text-church-green transition-colors">{plan.title}</h4>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{plan.duration - (progress?.completedDays.length || 0)} Days left</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 relative z-10">
+                <div className="flex justify-between items-center text-[9px] font-black text-church-green uppercase tracking-widest">
+                  <span>Progress</span>
+                  <span>{percent}%</span>
+                </div>
+                <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-church-green transition-all duration-1000"
+                    style={{ width: `${percent}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+export default HomeView;

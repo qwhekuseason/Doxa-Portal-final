@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { X, Sparkles } from 'lucide-react';
-import { createNotification, sendBrowserNotification, notifyLiveReaction } from '../utils/notificationService';
+import { notifyLiveReaction } from '../utils/notificationService';
 
 interface Reaction {
     id: string;
@@ -192,7 +192,8 @@ export const LivePulse: React.FC<LivePulseProps> = ({ uid, displayName }) => {
             });
 
             // Create notification for all users
-            await notifyLiveReaction(senderName, emojiMap[emoji] || emoji);
+            await notifyLiveReaction(senderName, emojiMap[emoji] || emoji, uid);
+
 
             // Haptic/Visual feedback
             if ('vibrate' in navigator) navigator.vibrate(10);

@@ -6,6 +6,9 @@ export interface NotificationData {
     message: string;
     type: 'info' | 'success' | 'warning' | 'error';
     targetUsers?: string[]; // If empty/undefined, it's a global notification
+    category?: 'message' | 'sermon' | 'event' | 'testimony' | 'prayer' | 'quiz' | 'study' | 'live' | 'gallery' | 'ebook';
+    targetId?: string;
+    senderUid?: string;
 }
 
 /**
@@ -28,7 +31,7 @@ export const createNotification = async (data: NotificationData) => {
 /**
  * Sends a browser notification (if permission granted)
  */
-export const sendBrowserNotification = async (title: string, body: string) => {
+export const sendBrowserNotification = async (title: string, body: string, tag: string = 'doxa-alert') => {
     if (!('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
@@ -37,7 +40,7 @@ export const sendBrowserNotification = async (title: string, body: string) => {
             icon: '/logo.png',
             badge: '/logo.png',
             vibrate: [100, 50, 100],
-            tag: 'doxa-alert',
+            tag,
             renotify: true
         };
 
@@ -59,26 +62,28 @@ export const sendBrowserNotification = async (title: string, body: string) => {
  * Helper functions for specific notification types
  */
 
-export const notifyNewSermon = async (sermonTitle: string) => {
+export const notifyNewSermon = async (sermonId: string, sermonTitle: string) => {
     const notification: NotificationData = {
         title: '🎙️ New Sermon Available',
         message: `"${sermonTitle}" has been added to the library`,
-        type: 'success'
+        type: 'success',
+        category: 'sermon',
+        targetId: sermonId
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
-export const notifyNewEvent = async (eventTitle: string, eventDate: string) => {
+export const notifyNewEvent = async (eventId: string, eventTitle: string, eventDate: string) => {
     const notification: NotificationData = {
         title: '📅 New Event Scheduled',
         message: `"${eventTitle}" on ${eventDate}`,
-        type: 'info'
+        type: 'info',
+        category: 'event',
+        targetId: eventId
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyTestimonyApproved = async (authorName: string) => {
@@ -89,7 +94,6 @@ export const notifyTestimonyApproved = async (authorName: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyPrayerApproved = async (authorName: string) => {
@@ -100,7 +104,6 @@ export const notifyPrayerApproved = async (authorName: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewGalleryImage = async (caption: string) => {
@@ -111,7 +114,6 @@ export const notifyNewGalleryImage = async (caption: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewQuiz = async (topic: string, difficulty: string) => {
@@ -122,7 +124,6 @@ export const notifyNewQuiz = async (topic: string, difficulty: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewStudyPlan = async (planTitle: string, category: string) => {
@@ -133,7 +134,6 @@ export const notifyNewStudyPlan = async (planTitle: string, category: string) =>
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewStory = async (authorName: string, type: string) => {
@@ -144,7 +144,6 @@ export const notifyNewStory = async (authorName: string, type: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewPrayerRequest = async (authorName: string) => {
@@ -155,7 +154,6 @@ export const notifyNewPrayerRequest = async (authorName: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyNewLiveMeeting = async (meetingCode: string) => {
@@ -166,20 +164,18 @@ export const notifyNewLiveMeeting = async (meetingCode: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
-export const notifyChatMessage = async (senderName: string, text: string, groupName: string = 'Community') => {
+export const notifyChatMessage = async (senderName: string, text: string, senderUid: string, groupName: string = 'Community') => {
     const notification: NotificationData = {
         title: `💬 ${senderName} in ${groupName}`,
         message: text.length > 50 ? `${text.substring(0, 47)}...` : text,
-        type: 'info'
+        type: 'info',
+        category: 'message',
+        senderUid: senderUid
     };
 
     await createNotification(notification);
-    // We might not want browser notifications for every message to avoid spamming, 
-    // but the user asked for "everything".
-    sendBrowserNotification(notification.title, notification.message);
 };
 
 export const notifyHandRaised = async (userName: string, roomName: string) => {
@@ -190,14 +186,14 @@ export const notifyHandRaised = async (userName: string, roomName: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
-export const notifyLiveReaction = async (userName: string, emoji: string) => {
+export const notifyLiveReaction = async (userName: string, emoji: string, senderUid: string) => {
     const notification: NotificationData = {
         title: '✨ Live Interaction',
         message: `${userName} reacted with ${emoji}`,
-        type: 'info'
+        type: 'info',
+        senderUid: senderUid
     };
 
     await createNotification(notification);
@@ -211,17 +207,31 @@ export const notifyNewEBook = async (title: string, author: string) => {
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
 };
 
-export const notifyDirectMessage = async (senderName: string, text: string, receiverUid: string) => {
+export const notifyDirectMessage = async (senderUid: string, senderName: string, text: string, receiverUid: string) => {
     const notification: NotificationData = {
         title: `📧 Message from ${senderName}`,
         message: text.length > 50 ? `${text.substring(0, 47)}...` : text,
         type: 'info',
-        targetUsers: [receiverUid]
+        targetUsers: [receiverUid],
+        category: 'message',
+        targetId: senderUid,
+        senderUid: senderUid
     };
 
     await createNotification(notification);
-    sendBrowserNotification(notification.title, notification.message);
+};
+
+export const notifyWatchStart = async (watchName: string, theme: string) => {
+    const notification: NotificationData = {
+        title: `⏰ ${watchName} Has Begun`,
+        message: `It is time for "${theme}". Press in to prayer!`,
+        type: 'info',
+        category: 'prayer'
+    };
+
+    // We don't store this in DB to avoid spamming the log every 3 hours for everyone
+    // But we will use the browser notification
+    sendBrowserNotification(notification.title, notification.message, 'watch-reminder');
 };

@@ -1,4 +1,4 @@
-// Vercel Serverless Function for AI Quiz Generation using Google Gemini
+// Vercel Serverless Function for AI Reading Plan Generation using Google Gemini
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 module.exports = async (req, res) => {
@@ -17,6 +17,7 @@ module.exports = async (req, res) => {
         return;
     }
 
+    // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({
             error: 'method-not-allowed',
@@ -25,12 +26,13 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const { topic, difficulty = 'intermediate', questionCount = 5 } = req.body;
+        const { topic, duration = 7, category = 'bible', difficulty = 'intermediate' } = req.body;
 
-        if (!topic) {
+        // Validate inputs
+        if (!topic || typeof topic !== 'string') {
             return res.status(400).json({
                 error: 'invalid-argument',
-                message: 'topic is required'
+                message: 'topic is required and must be a string'
             });
         }
 
@@ -42,31 +44,37 @@ module.exports = async (req, res) => {
             });
         }
 
-        console.log('🤖 AI Quiz Request for topic:', topic);
+        console.log('🤖 AI Request for topic:', topic);
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
-        const prompt = `You are a Bible Quiz generator. Create a valid JSON object for a quiz about "${topic}" with difficulty "${difficulty}".
+        const prompt = `You are a Bible Reading Plan generator. Create a valid JSON object for a reading plan about "${topic}" for exactly ${duration} days.
+The category is "${category}" and difficulty is "${difficulty}".
 
 Format strictly as JSON:
 {
-  "topic": "${topic}",
+  "title": "Title",
+  "description": "Description",
+  "duration": ${duration},
+  "category": "${category}",
   "difficulty": "${difficulty}",
-  "questions": [
+  "days": [
     {
-      "question": "Question text here",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctIndex": 0
+      "dayNumber": 1,
+      "title": "Day 1: Title",
+      "description": "Short reflection.",
+      "passages": ["John 1:1-18"]
     }
   ]
 }
 
-- Generate exactly ${questionCount} questions.
+- Generate exactly ${duration} days.
 - Ensure valid JSON.
+- Provide real, relevant Bible passages.
 - Return ONLY the JSON object, NO markdown tags, NO preamble.`;
 
-        console.log(`📡 [AI Progress] Sending quiz request to Gemini: ${topic}...`);
+        console.log(`📡 [AI Progress] Sending request to Gemini (${duration} days)...`);
         const result = await model.generateContent(prompt);
         console.log('⏳ [AI Progress] Waiting for API response...');
         const response = await result.response;
@@ -75,7 +83,7 @@ Format strictly as JSON:
 
         if (!text) throw new Error('No response from AI model');
 
-        console.log('📝 Received AI Quiz response, length:', text.length);
+        console.log('📝 Received AI response, length:', text.length);
 
         // Sanitize response
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -87,19 +95,19 @@ Format strictly as JSON:
         }
         text = text.substring(firstBrace, lastBrace + 1);
 
-        const quizData = JSON.parse(text);
+        const planData = JSON.parse(text);
 
         return res.status(200).json({
             success: true,
-            quiz: quizData
+            plan: planData
         });
 
     } catch (error) {
-        console.error('❌ Error generating quiz:', error);
+        console.error('❌ Error generating reading plan:', error);
 
         return res.status(500).json({
             error: 'internal',
-            message: error.message || 'Failed to generate quiz'
+            message: error.message || 'Failed to generate reading plan'
         });
     }
 };

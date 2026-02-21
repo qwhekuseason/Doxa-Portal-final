@@ -106,7 +106,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
     const [isCameraOn, setIsCameraOn] = useState(true);
     const [isMicOn, setIsMicOn] = useState(true);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
-    const [activeSidebar, setActiveSidebar] = useState<'none' | 'chat' | 'people'>('none');
+    const [activeSidebar, setActiveSidebar] = useState<'none' | 'chat' | 'people' | 'details'>('none');
     const [pinnedUid, setPinnedUid] = useState<string | null>(null);
     const [isHandRaised, setIsHandRaised] = useState(false);
     const [lastReaction, setLastReaction] = useState<Reaction | null>(null);
@@ -165,7 +165,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         let active = true;
         if (!inCall && !previewTrack && !loading) {
             AgoraRTC.createCameraVideoTrack({
-                encoderConfig: { width: 640, height: 360, frameRate: 15 }
+                encoderConfig: { width: 1280, height: 720, frameRate: 30 }
             }).then(track => {
                 if (active) {
                     setPreviewTrack(track);
@@ -425,10 +425,13 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 setPreviewTrack(null);
             } else {
                 videoTrack = await AgoraRTC.createCameraVideoTrack({
-                    encoderConfig: { width: 1280, height: 720, frameRate: 30 }
+                    encoderConfig: { width: 1920, height: 1080, frameRate: 30, bitrateMin: 1000, bitrateMax: 3000 },
+                    optimizationMode: "detail"
                 });
             }
-            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+                encoderConfig: "high_quality_stereo"
+            });
 
             await agoraClient.publish([videoTrack, audioTrack]);
 
@@ -587,7 +590,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
             });
 
             // Send notification
-            await notifyLiveReaction(currentUser?.displayName || 'Guest', emoji);
+            await notifyLiveReaction(currentUser?.displayName || 'Guest', emoji, currentUser?.uid || 'guest');
         } catch (err) {
             console.error('Error sending reaction:', err);
         }
@@ -605,7 +608,8 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 }
 
                 const camTrack = await AgoraRTC.createCameraVideoTrack({
-                    encoderConfig: { width: 1280, height: 720, frameRate: 30 }
+                    encoderConfig: { width: 1920, height: 1080, frameRate: 30 },
+                    optimizationMode: "detail"
                 });
 
                 await client.publish(camTrack);
@@ -660,7 +664,8 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
         if (count === 2) return 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto';
         if (count <= 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-6xl mx-auto';
         if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mx-auto';
-        return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mx-auto';
+        if (count <= 12) return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mx-auto';
+        return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 mx-auto';
     };
 
     const ControlButton = ({
@@ -1055,7 +1060,7 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                     <div className="w-full lg:w-[360px] bg-white dark:bg-[#121212] lg:rounded-2xl lg:shadow-2xl flex flex-col absolute inset-0 lg:static z-20 border-l lg:border border-white/5">
                         <div className="p-5 flex items-center justify-between border-b border-white/5">
                             <h2 className="text-xs font-black uppercase tracking-widest text-church-gold">
-                                {activeSidebar === 'chat' ? 'In-call Messages' : 'Participants'}
+                                {activeSidebar === 'chat' ? 'In-call Messages' : activeSidebar === 'people' ? 'Participants' : 'Meeting Details'}
                             </h2>
                             <button onClick={() => setActiveSidebar('none')} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/50">
                                 <X size={20} />
@@ -1063,6 +1068,26 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 custom-scrollbar">
+                            {activeSidebar === 'details' && (
+                                <div className="space-y-6">
+                                    <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] shadow-xl">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Room Identity</p>
+                                        <p className="text-2xl font-black text-white tracking-tighter uppercase">{roomName}</p>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] shadow-xl">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Connection Info</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-church-green animate-pulse"></div>
+                                            <p className="text-xl font-black text-white tracking-tight">Active Live Session</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] shadow-xl">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Participants</p>
+                                        <p className="text-2xl font-black text-white tracking-tight">{participantCount} People Connected</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {activeSidebar === 'people' && (
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 ring-1 ring-church-green/20">
@@ -1219,8 +1244,9 @@ const LiveSessionScreen: React.FC<LiveSessionScreenProps> = ({ initialRoom = '',
                 {/* Right: Panel Toggles */}
                 <div className="flex items-center gap-2 md:gap-4 w-1/4 justify-end">
                     <button
-                        onClick={() => setActiveSidebar('none')} // Toggle logic handled in buttons below
-                        className="p-3 text-white/50 hover:text-white transition-colors lg:hidden"
+                        onClick={() => setActiveSidebar(activeSidebar === 'details' ? 'none' : 'details')}
+                        className={`p-3 rounded-full transition-all lg:hidden ${activeSidebar === 'details' ? 'bg-church-gold/20 text-church-gold' : 'text-white/50 hover:text-white'}`}
+                        title="Meeting Details"
                     >
                         <Info size={20} />
                     </button>

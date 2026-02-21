@@ -53,7 +53,13 @@ const HIGHLIGHT_COLORS = {
 };
 type HighlightColor = keyof typeof HIGHLIGHT_COLORS;
 
-const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
+interface BibleScreenProps {
+    user: UserProfile;
+    context?: { book?: string, chapter?: number } | null;
+    onClearContext?: () => void;
+}
+
+const BibleScreen: React.FC<BibleScreenProps> = ({ user, context, onClearContext }) => {
     const { theme: globalTheme } = useTheme();
     const [fontSize, setFontSize] = useState(18);
     const [localTheme, setLocalTheme] = useState<'light' | 'dark' | 'sepia' | 'midnight'>('light');
@@ -73,6 +79,17 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     const [savedHighlights, setSavedHighlights] = useState<Record<number, HighlightColor>>({});
     const [aiInsight, setAiInsight] = useState<string | null>(null);
     const [isGenInsight, setIsGenInsight] = useState(false);
+
+    // Context sync
+    useEffect(() => {
+        if (context?.book) {
+            setBook(context.book);
+            if (context.chapter) {
+                setChapter(context.chapter);
+            }
+            onClearContext?.();
+        }
+    }, [context]);
 
     // Initial theme sync
     useEffect(() => {
@@ -160,37 +177,53 @@ const BibleScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     return (
         <div className={`transition-all duration-700 min-h-screen relative pb-40 ${bgClass} dark:bg-black`}>
 
-            {/* Minimal Sticky Nav */}
-            <nav className={`sticky top-0 z-40 transition-all duration-500 ${isImmersive ? '-translate-y-full' : 'translate-y-0'}`}>
-                <div className="glass-header px-4 sm:px-10 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-4 border-b border-black/5 dark:border-white/5">
-                    <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar">
+            {/* Premium Floated Nav */}
+            <nav className={`fixed top-4 inset-x-4 z-50 transition-all duration-700 ${isImmersive ? 'opacity-0 -translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+                <div className="max-w-xl mx-auto glass-card !bg-white/70 dark:!bg-black/70 backdrop-blur-3xl px-4 py-2 border border-white/40 dark:border-white/10 shadow-2xl rounded-[2rem] flex items-center justify-between gap-2 overflow-hidden">
+                    <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
                         <button
                             onClick={() => { setPickerStep('books'); setPickerOpen(true); }}
-                            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5 bg-black/5 dark:bg-white/5 hover:bg-church-green/10 rounded-xl sm:rounded-[1.25rem] transition-all active:scale-95 border border-transparent hover:border-church-green/30 shrink-0"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-church-green/10 text-church-green rounded-[1.25rem] transition-all active:scale-90 shrink-0"
                         >
-                            <BookOpen size={16} className="text-church-green" />
-                            <span className="font-black text-[9px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em]">{book} {chapter}</span>
-                            <ChevronDown size={12} className="opacity-40" />
+                            <BookOpen size={16} />
+                            <span className="font-black text-[10px] uppercase tracking-widest">{book} {chapter}</span>
                         </button>
                         <button
                             onClick={() => { setPickerStep('version'); setPickerOpen(true); }}
-                            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5 bg-black/5 dark:bg-white/5 hover:bg-church-gold/10 rounded-xl sm:rounded-[1.25rem] transition-all active:scale-95 border border-transparent hover:border-church-gold/30 shrink-0"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-church-gold/10 text-church-gold rounded-[1.25rem] transition-all active:scale-90 shrink-0"
                         >
-                            <Globe size={16} className="text-church-gold" />
-                            <span className="font-black text-[9px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em]">{version}</span>
+                            <Globe size={16} />
+                            <span className="font-black text-[10px] uppercase tracking-widest">{version}</span>
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <button onClick={handleGenerateInsight} disabled={isGenInsight} className={`p-3 rounded-2xl transition-all ${aiInsight ? 'bg-church-gold text-white shadow-premium-gold' : 'bg-black/5 dark:bg-white/5 text-church-gold hover:bg-church-gold/10'}`}>
-                            {isGenInsight ? <RefreshCcw size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                            onClick={handleGenerateInsight}
+                            disabled={isGenInsight}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${aiInsight ? 'bg-church-gold text-white shadow-lg shadow-church-gold/20' : 'bg-gray-100 dark:bg-white/5 text-church-gold'}`}
+                        >
+                            {isGenInsight ? <RefreshCcw size={14} className="animate-spin" /> : <Sparkles size={16} />}
                         </button>
-                        <button onClick={() => setIsImmersive(!isImmersive)} className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all hidden md:flex">
-                            <Maximize2 size={18} />
+                        <button
+                            onClick={() => setIsImmersive(true)}
+                            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 text-gray-400 flex items-center justify-center hover:bg-church-green/10 hover:text-church-green transition-all"
+                        >
+                            <Maximize2 size={16} />
                         </button>
                     </div>
                 </div>
             </nav>
+
+            <div className={`fixed inset-0 pointer-events-none transition-opacity duration-1000 ${isImmersive ? 'opacity-100' : 'opacity-0'} bg-gradient-to-b from-black/20 via-transparent to-black/20 z-10`}></div>
+            {isImmersive && (
+                <button
+                    onClick={() => setIsImmersive(false)}
+                    className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 p-4 bg-church-green text-white rounded-full shadow-2xl shadow-church-green/40 animate-bounce active:scale-90 transition-all"
+                >
+                    <ChevronDown size={24} />
+                </button>
+            )}
 
             <main className={`max-w-2xl mx-auto px-6 py-12 transition-all duration-1000 ${isLoading ? 'opacity-30 blur-2xl scale-95' : 'opacity-100 scale-100'}`}>
 

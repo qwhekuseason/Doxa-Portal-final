@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Loader2, ChevronRight, ArrowUpRight, Bell, Sun, Moon, Plus, Users, Calendar, Activity, TrendingUp, ChevronUp, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { useNotifications, DoxaNotification } from '../hooks/useNotifications';
 
 // --- Hooks ---
 export const useClickOutside = (ref: React.RefObject<HTMLElement>, handler: () => void) => {
@@ -27,15 +28,23 @@ export const SkeletonCard: React.FC<{ height?: string }> = ({ height = "h-48" })
   </div>
 );
 
-export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ size = 48, color }) => {
+export const LoadingSpinner: React.FC<{ size?: number; color?: string }> = ({ size = 64, color }) => {
   const sizePx = typeof size === 'number' ? `${size}px` : size;
   return (
-    <div className="flex flex-col justify-center items-center p-4 gap-4">
+    <div className="flex flex-col justify-center items-center p-8 gap-8 animate-page-enter">
       <div className="relative" style={{ width: sizePx, height: sizePx }}>
-        <div className={`w-full h-full border-4 ${color ? color.replace('text-', 'border-').replace('/20', '') + '/20' : 'border-church-green/20'} ${color ? color.replace('text-', 'border-') : 'border-t-church-green'} rounded-full animate-spin border-t-transparent`}></div>
-        <Loader2 className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse ${color ? color.replace('border-', 'text-') : 'text-church-green'}`} size={size ? size * 0.4 : 20} />
+        <div className={`absolute inset-0 rounded-full border-[10px] ${color ? color.replace('text-', 'border-').replace('/20', '') + '/10' : 'border-church-green/10'} blur-xl`}></div>
+        <div className={`w-full h-full border-[2px] ${color ? color.replace('text-', 'border-').replace('/20', '') + '/20' : 'border-church-green/20'} ${color ? color.replace('text-', 'border-') : 'border-t-church-green'} rounded-full animate-spin border-t-transparent shadow-[0_0_20px_rgba(22,163,74,0.3)]`}></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Sparkles className={`animate-pulse ${color ? color.replace('border-', 'text-') : 'text-church-green'}`} size={size * 0.4} />
+        </div>
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 animate-pulse">Initializing Platform...</span>
+      <div className="flex flex-col items-center gap-2">
+        <span className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-900 dark:text-white animate-pulse">Initializing Portal</span>
+        <div className="w-12 h-1 bg-church-green/20 rounded-full overflow-hidden">
+          <div className="w-full h-full bg-church-green animate-shimmer scale-x-50 origin-left"></div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -106,42 +115,37 @@ export const StatCard: React.FC<{
   title: string;
   value: string | number;
   icon: React.ReactNode;
-  trend?: string;
   color: string;
+  trend?: string;
   loading?: boolean;
   onClick?: () => void;
-}> = ({ title, value, icon, trend, color, loading, onClick }) => {
-  const colorBase = color.split('-')[1];
-
+}> = ({ title, value, icon, color, trend, loading, onClick }) => {
   if (loading) return <SkeletonCard height="h-32" />;
 
-  const shadowClass = colorBase === 'gold' ? 'shadow-premium-gold' : colorBase === 'green' ? 'shadow-premium-green' : 'shadow-premium';
-
   return (
-    <div onClick={onClick} className={`group relative glass-card p-5 md:p-6 rounded-[2rem] ${shadowClass} hover:-translate-y-2 transition-all duration-500 overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}>
-      <div className={`absolute -top-12 -right-12 w-32 h-32 bg-${colorBase}-500/10 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150 group-hover:bg-${colorBase}-500/20`}></div>
+    <div
+      onClick={onClick}
+      className={`glass-card p-8 rounded-[2.5rem] card-pop relative overflow-hidden group cursor-pointer border border-white/20 dark:border-white/5 spring-interaction ${onClick ? 'active:scale-95' : ''}`}
+    >
+      <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-[2000ms]`}></div>
 
-      <div className="relative z-10">
-        <div className="flex justify-between items-start mb-4 md:mb-6">
-          <div className={`p-3 md:p-4 rounded-2xl ${color} bg-opacity-10 dark:bg-opacity-20 text-${colorBase}-600 dark:text-${colorBase}-400 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-sm animate-float`}>
-            {React.isValidElement(icon)
-              ? React.cloneElement(icon as React.ReactElement<any>, { size: 24, className: 'md:w-6 md:h-6' })
-              : icon
-            }
+      <div className="relative z-10 flex items-center gap-6">
+        <div className={`w-16 h-16 rounded-2xl ${color} bg-opacity-10 dark:bg-opacity-20 flex items-center justify-center transition-all duration-700 group-hover:scale-110 group-hover:rotate-6`}>
+          <div className={`${color.replace('bg-', 'text-')} group-hover:drop-shadow-[0_0_8px_currentColor]`}>
+            {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 28 }) : icon}
           </div>
-          {trend && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 dark:bg-green-500/20 rounded-xl border border-green-500/20">
-              <TrendingUp size={12} className="text-green-500" />
-              <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">{trend}</span>
-            </div>
-          )}
         </div>
-        <div>
-          <div className="flex items-baseline gap-2 mb-1.5">
-            <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tighter truncate leading-none">{value}</h3>
-            <div className="w-2 h-2 rounded-full bg-church-green animate-pulse"></div>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-1">
+            <h3 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">{value}</h3>
+            {trend && (
+              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${trend.startsWith('+') ? 'bg-church-green/10 text-church-green' : 'bg-rose-500/10 text-rose-500'} border border-current/10`}>
+                {trend}
+              </span>
+            )}
           </div>
-          <p className="text-[10px] md:text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] truncate">{title}</p>
+          <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] font-sans">{title}</p>
         </div>
       </div>
     </div>
@@ -157,37 +161,63 @@ export const SidebarItem: React.FC<{
 }> = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${active
-      ? 'bg-gradient-to-r from-church-green to-emerald-700 text-white shadow-xl shadow-church-green/30 scale-[1.02] z-10'
-      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-church-green dark:hover:text-church-gold hover:translate-x-1'
+    className={`w-full flex items-center gap-4 px-5 py-4 rounded-3xl spring-interaction group relative overflow-hidden ${active
+      ? 'bg-church-green text-white shadow-heavy-green scale-[1.02] z-10'
+      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-church-green hover:translate-x-2'
       }`}
   >
-    {active && (
-      <div className="absolute inset-0 bg-white/10 opacity-20 pointer-events-none"></div>
-    )}
-    <div className={`relative z-10 transition-all duration-500 ${active ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-6 group-hover:text-church-green dark:group-hover:text-gold-500'}`}>
+    <div className={`relative z-10 transition-all duration-700 ${active ? 'scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]' : 'group-hover:scale-110 group-active:scale-90 opacity-60 group-hover:opacity-100'}`}>
       {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 }) : icon}
     </div>
-    <span className={`relative z-10 font-bold text-[11px] uppercase tracking-[0.2em] ${active ? 'opacity-100 font-black' : 'opacity-60 group-hover:opacity-100 transition-opacity'}`}>{label}</span>
+    <span className={`relative z-10 font-black text-[10px] uppercase tracking-[0.2em] ${active ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'}`}>{label}</span>
     <div className="ml-auto relative z-10">
       {badge !== undefined && badge > 0 ? (
-        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${active ? 'bg-white text-church-green' : 'bg-church-gold text-white animate-pulse shadow-lg shadow-church-gold/20'}`}>
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${active ? 'bg-white text-church-green' : 'bg-red-500 text-white shadow-lg shadow-red-500/20 animate-pulse'}`}>
           {badge}
         </span>
       ) : active ? (
-        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] animate-pulse"></div>
+        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_white] animate-pulse"></div>
       ) : null}
     </div>
   </button>
 );
 
-import { useNotifications } from '../hooks/useNotifications';
-
-export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => void; userId?: string; isAdmin?: boolean }> = ({ isOpen, onClose, userId, isAdmin }) => {
-  const { notifications, markAsRead, markAllAsRead, loading } = useNotifications(userId, isAdmin);
+export const NotificationPopover: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onClear?: () => void;
+  userId?: string;
+  isAdmin?: boolean;
+  onNavigate?: (tab: string) => void;
+  onMessageUser?: (target: { uid: string; displayName: string; photoURL?: string }) => void;
+}> = ({ isOpen, onClose, onClear, userId, isAdmin, onNavigate, onMessageUser }) => {
+  const { notifications, markAsRead, clearAll, loading } = useNotifications(userId, isAdmin);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(popoverRef, onClose);
+
+  const handleNotificationClick = (notif: DoxaNotification) => {
+    markAsRead(notif.id);
+
+    // Deep Linking Logic
+    if (notif.category === 'message') {
+      if (notif.targetId && onMessageUser) {
+        onMessageUser({ uid: notif.targetId, displayName: notif.title.replace('📧 Message from ', '').replace('💬 ', '').split(' in ')[0] });
+      } else if (onNavigate) {
+        onNavigate('chat');
+      }
+    } else if (notif.category === 'sermon' && onNavigate) {
+      onNavigate('sermons');
+    } else if (notif.category === 'event' && onNavigate) {
+      onNavigate('events');
+    } else if (notif.category === 'testimony' && onNavigate) {
+      onNavigate('testimonies');
+    } else if (notif.category === 'prayer' && onNavigate) {
+      onNavigate('prayer');
+    }
+
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -202,7 +232,7 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="max-h-[400px] overflow-y-auto hide-scrollbar">
+      <div className="max-h-[400px] overflow-y-auto hide-scrollbar flex-1">
         {loading ? (
           <div className="p-12 text-center">
             <Loader2 className="animate-spin text-church-green mx-auto mb-2" size={24} />
@@ -211,13 +241,13 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center">
             <Bell className="text-gray-200 dark:text-gray-800 mb-4" size={48} />
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">End of Stream</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Notifications Cleared</p>
           </div>
         ) : (
           notifications.map(notif => (
             <div
               key={notif.id}
-              onClick={() => markAsRead(notif.id)}
+              onClick={() => handleNotificationClick(notif)}
               className={`p-5 border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-all ${!notif.read ? 'bg-church-green/5 dark:bg-church-green/10' : ''}`}
             >
               <div className="flex justify-between items-start gap-3">
@@ -239,7 +269,7 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
       </div>
       <div className="p-4 border-t border-gray-100 dark:border-white/5 text-center bg-gray-50/30 dark:bg-white/5">
         <button
-          onClick={markAllAsRead}
+          onClick={() => { clearAll(); onClear?.(); }}
           className="text-[10px] font-black uppercase tracking-[0.2em] text-church-green hover:text-emerald-600 transition-colors"
         >
           Clear All Notifications
@@ -248,6 +278,7 @@ export const NotificationPopover: React.FC<{ isOpen: boolean; onClose: () => voi
     </div>
   );
 };
+
 
 // --- Toast System ---
 export interface Toast {
@@ -318,6 +349,7 @@ export const NotificationBanner: React.FC<{
     </div>
   );
 };
+
 
 export const BackToTop: React.FC = () => {
   const [visible, setVisible] = React.useState(false);
@@ -459,3 +491,71 @@ const Pause: React.FC<{ [key: string]: any }> = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
 );
 
+
+export const StatusModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}> = ({ isOpen, onClose, type, title, message, actionLabel, onAction }) => {
+  if (!isOpen) return null;
+
+  const themes = {
+    success: {
+      icon: <CheckCircle2 size={48} />,
+      color: "text-church-green",
+      bg: "bg-church-green/10",
+      accent: "bg-church-green",
+      glow: "shadow-church-green/30"
+    },
+    error: {
+      icon: <AlertCircle size={48} />,
+      color: "text-red-500",
+      bg: "bg-red-500/10",
+      accent: "bg-red-500",
+      glow: "shadow-red-500/30"
+    },
+    info: {
+      icon: <Sparkles size={48} />,
+      color: "text-church-gold",
+      bg: "bg-church-gold/10",
+      accent: "bg-church-gold",
+      glow: "shadow-church-gold/30"
+    }
+  };
+
+  const theme = themes[type];
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fade-in" onClick={onClose}></div>
+      <div className="relative w-full max-w-sm glass-card !bg-white/80 dark:!bg-gray-900/80 backdrop-blur-2xl rounded-[3rem] p-10 flex flex-col items-center text-center shadow-2xl animate-bounce-in border border-white/40 dark:border-white/10">
+        <div className={`w-24 h-24 ${theme.bg} ${theme.color} rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl ${theme.glow} animate-float`}>
+          {theme.icon}
+        </div>
+        <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">{title}</h3>
+        <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-10">{message}</p>
+
+        <div className="w-full space-y-3">
+          {actionLabel && (
+            <button
+              onClick={() => { onAction?.(); onClose(); }}
+              className={`w-full py-5 ${theme.accent} text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] shadow-xl ${theme.glow} hover:scale-[1.02] active:scale-95 transition-all`}
+            >
+              {actionLabel}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="w-full py-5 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

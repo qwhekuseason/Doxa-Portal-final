@@ -143,7 +143,7 @@ export const LiveRoomManager: React.FC = () => {
                             Google Meet-style Sessions
                         </p>
                         <p className="text-[11px] leading-relaxed text-blue-600/70 dark:text-blue-400/70 font-medium">
-                            Clicking "Create Instant Meeting" generates a unique code (e.g., <code className="bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded font-mono text-blue-700 dark:text-blue-300 font-bold">abc-def-ghi</code>). Share this code with members to let them join. Up to 17 people can join a single call.
+                            Clicking "Create Instant Meeting" generates a unique code (e.g., <code className="bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded font-mono text-blue-700 dark:text-blue-300 font-bold">abc-def-ghi</code>). Share this code with members to let them join. Up to 50 people can join a single call.
                         </p>
                     </div>
                 </div>
@@ -229,7 +229,7 @@ export const LiveRoomManager: React.FC = () => {
                         "Click 'Create Instant Meeting' to generate a unique code.",
                         "Copy the meeting code (e.g., abc-def-ghi).",
                         "Share it with members to let them join via 'Live Sessions'.",
-                        "Up to 17 people can join a single call."
+                        "Up to 50 people can join a single call."
                     ].map((step, i) => (
                         <div key={i} className="flex gap-3 text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">
                             <span className="font-black text-church-green w-4">{i + 1}.</span>

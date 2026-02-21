@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, deleteDoc, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { ServiceReviewSession, ServiceReview } from '../../types';
-import { Plus, Trash2, QrCode, ToggleLeft, ToggleRight, ExternalLink, MessageSquare, Star, Users, Calendar, Download, ChevronRight, Loader2, ListFilter, TrendingUp, BarChart3, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, QrCode, ExternalLink, MessageSquare, Star, Users, Calendar, Download, ChevronRight, Loader2, ListFilter, TrendingUp, BarChart3, Copy, Check } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 export const ServiceReviewManager: React.FC = () => {
@@ -91,30 +91,37 @@ export const ServiceReviewManager: React.FC = () => {
         return (sum / sessReviews.length).toFixed(1);
     };
 
-    const exportToCSV = (sessionId: string, sessionTitle: string) => {
+    const handleExport = async (sessionId: string, sessionTitle: string) => {
         const sessReviews = reviews[sessionId] || [];
         if (sessReviews.length === 0) return;
 
-        const headers = ["Date", "Name", "Rating", "Experience", "Highlights", "Suggestions"];
-        const rows = sessReviews.map(r => [
-            r.createdAt?.toDate?.().toLocaleDateString() || "",
-            r.displayName || "Anonymous",
-            r.rating,
-            `"${(r.generalExperience || "").replace(/"/g, '""')}"`,
-            `"${(r.highlights || "").replace(/"/g, '""')}"`,
-            `"${(r.suggestions || "").replace(/"/g, '""')}"`
-        ]);
+        const confirmExport = confirm("Choose export format:\nOK for Excel (XLSX)\nCancel for PDF Document");
+        const fileName = `Reviews_${sessionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
 
-        const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `reviews_${sessionTitle.replace(/\s+/g, '_')}_${new Date().toLocaleDateString()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (confirmExport) {
+            // Excel Export
+            const excelData = sessReviews.map(r => ({
+                'Date': r.createdAt?.toDate?.().toLocaleDateString() || "",
+                'Name': r.displayName || "Anonymous",
+                'Rating': r.rating,
+                'Experience': r.generalExperience || "",
+                'Highlights': r.highlights || "",
+                'Suggestions': r.suggestions || ""
+            }));
+            const utils = await import('../../utils/exportUtils');
+            utils.exportToExcel(excelData, fileName);
+        } else {
+            // PDF Export
+            const headers = ["Date", "Name", "Rating", "Experience"]; // Keep it shorter for PDF
+            const pdfData = sessReviews.map(r => [
+                r.createdAt?.toDate?.().toLocaleDateString() || "",
+                r.displayName || "Anonymous",
+                r.rating.toString(),
+                (r.generalExperience || "").substring(0, 50) + "..."
+            ]);
+            const utils = await import('../../utils/exportUtils');
+            utils.exportToPDF(headers, pdfData, fileName, `Feedback: ${sessionTitle}`);
+        }
     };
 
     return (
@@ -215,11 +222,19 @@ export const ServiceReviewManager: React.FC = () => {
                                         <h3 className="text-xl font-black dark:text-white leading-tight">{session.title}</h3>
                                     </div>
                                     <button
+                                        role="switch"
+                                        aria-checked={session.isActive}
                                         onClick={() => toggleSession(session.id, session.isActive)}
-                                        className={`p-2 rounded-xl transition-all ${session.isActive ? 'text-green-500' : 'text-gray-400'}`}
-                                        title={session.isActive ? 'Session is Active' : 'Session is closed'}
+                                        title={session.isActive ? 'Session is Active — click to close' : 'Session is closed — click to open'}
+                                        className={`relative w-14 h-8 rounded-full transition-all duration-300 flex-shrink-0 shadow-inner ${session.isActive
+                                                ? 'bg-church-green shadow-church-green/30'
+                                                : 'bg-gray-300 dark:bg-white/10'
+                                            }`}
                                     >
-                                        {session.isActive ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                                        <span
+                                            className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md pointer-events-none transition-transform duration-300 ${session.isActive ? 'translate-x-6' : 'translate-x-0'
+                                                }`}
+                                        />
                                     </button>
                                 </div>
 
@@ -279,10 +294,10 @@ export const ServiceReviewManager: React.FC = () => {
                             Feedback for {selectedSession.title}
                         </h4>
                         <button
-                            onClick={() => exportToCSV(selectedSession.id, selectedSession.title)}
+                            onClick={() => handleExport(selectedSession.id, selectedSession.title)}
                             className="text-[10px] font-black text-church-green uppercase tracking-widest flex items-center gap-2 hover:underline"
                         >
-                            <Download size={14} /> Export CSV
+                            <Download size={14} /> Export Report
                         </button>
                     </div>
 

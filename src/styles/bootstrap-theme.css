@@ -2,7 +2,7 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
-/* Church Color Overrides */
+/* Family Brand Color Overrides */
 :root {
   --church-green: #1f7a3a;
   --church-gold: #c8a528;
@@ -17,7 +17,7 @@
   transition: all 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
-/* Church Button Styling */
+/* Brand Button Styling */
 .btn-church {
   background: linear-gradient(90deg, var(--church-green), var(--church-gold));
   border: none;
@@ -77,11 +77,15 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Focus Ring */
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   box-shadow: 0 0 0 0.2rem rgba(31, 122, 58, 0.15);
   border-color: var(--church-green);
 }

@@ -160,7 +160,7 @@ const QuizScreen: React.FC<{ user: UserProfile; onNavigate?: (tab: string) => vo
 
     return (
       <div className="animate-fade-in max-w-2xl mx-auto py-12">
-        <div className="glass-card rounded-[3rem] p-12 shadow-premium text-center border-white/20 relative overflow-hidden">
+        <div className="glass-card card-pop glass-glow rounded-[3rem] p-12 shadow-premium text-center border-white/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
           <button onClick={resetQuiz} className="absolute top-6 right-6 p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-gray-400 hover:text-gray-900 dark:hover:text-white">
@@ -273,7 +273,7 @@ const QuizScreen: React.FC<{ user: UserProfile; onNavigate?: (tab: string) => vo
         </div>
 
         {/* Question Card */}
-        <div className="glass-card rounded-[3rem] p-10 md:p-14 shadow-premium border-white/20 relative group overflow-hidden animate-fade-in-up">
+        <div className="glass-card card-pop glass-glow rounded-[3rem] p-10 md:p-14 shadow-premium border-white/20 relative group overflow-hidden animate-fade-in-up">
           <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
           {/* Question Category */}
@@ -420,7 +420,7 @@ const QuizScreen: React.FC<{ user: UserProfile; onNavigate?: (tab: string) => vo
             ) : quizzes.map((quiz: Quiz, idx: number) => (
               <div
                 key={quiz.id}
-                className="group glass-card border-white/40 dark:border-white/5 rounded-[2.5rem] p-8 hover:shadow-premium hover:-translate-y-2 transition-all duration-700 relative overflow-hidden flex flex-col h-full animate-fade-in-up"
+                className="group glass-card card-pop glass-glow border-white/40 dark:border-white/5 rounded-[2.5rem] p-8 shadow-premium transition-all duration-700 relative overflow-hidden flex flex-col h-full animate-fade-in-up"
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
                 <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:scale-150 ${quiz.difficulty === 'easy' ? 'bg-green-500' :
@@ -475,7 +475,7 @@ const QuizScreen: React.FC<{ user: UserProfile; onNavigate?: (tab: string) => vo
       {
         isGeneratorOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-            <div className="glass-card rounded-[3rem] w-full max-w-lg p-10 shadow-premium relative overflow-hidden">
+            <div className="glass-card card-pop glass-glow rounded-[3rem] w-full max-w-lg p-10 shadow-premium relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-church-gold/10 rounded-full blur-[80px] -mr-16 -mt-16"></div>
 
               <h3 className="text-3xl font-black text-white mb-2 relative z-10">AI Bible Quiz Generator</h3>
@@ -571,7 +571,7 @@ const LeaderboardView: React.FC = () => {
         return (
           <div
             key={player.uid}
-            className={`glass-card flex items-center gap-6 p-6 rounded-3xl hover:-translate-x-2 transition-all duration-500 group animate-fade-in-up border-2 ${borderColor} ${bgColor}`}
+            className={`glass-card card-pop glass-glow flex items-center gap-6 p-6 rounded-3xl group animate-fade-in-up border-2 ${borderColor} ${bgColor}`}
             style={{ animationDelay: `${idx * 0.05}s` }}
           >
             {/* Rank Number */}

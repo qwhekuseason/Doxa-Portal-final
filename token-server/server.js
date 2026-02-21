@@ -110,11 +110,14 @@ app.post('/generateToken', (req, res) => {
 // Quiz generation endpoint (reusing the Vercel handler logic)
 app.post('/generateQuiz', generateQuizHandler);
 
-const generateChatResponseHandler = require('../api/generateChatResponse.cjs');
+const generateChatResponseHandler = require('../api/generateChatResponse.js');
 app.post('/generateChatResponse', generateChatResponseHandler);
 
 const generateInsightHandler = require('../api/generateInsight.js');
 app.post('/generateInsight', generateInsightHandler);
+
+const generateReadingPlanHandler = require('../api/generateReadingPlan.js');
+app.post('/generateReadingPlan', generateReadingPlanHandler);
 
 // Start HTTP server
 app.listen(PORT, '0.0.0.0', () => {

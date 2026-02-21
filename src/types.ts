@@ -29,6 +29,11 @@ export interface UserProfile {
     lastChecked: string;
     best: number;
   };
+  // Settings & Preferences
+  themePreference?: 'light' | 'dark';
+  notificationsEnabled?: boolean;
+  showStats?: boolean;
+  showBirthdate?: boolean;
 }
 
 export interface AuthState {
@@ -261,3 +266,29 @@ export interface ServiceReview {
   createdAt: any;
 }
 
+export interface ReadingPlan {
+  id: string;
+  title: string;
+  description: string;
+  coverUrl?: string;
+  duration: number; // in days
+  category: 'bible' | 'devotional' | 'topical';
+  days: {
+    dayNumber: number;
+    title: string;
+    description?: string;
+    passages: string[]; // e.g. ["John 1:1-18", "Psalm 1"]
+  }[];
+  createdAt: any;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface UserPlanProgress {
+  id: string;
+  uid: string;
+  planId: string;
+  startDate: any;
+  completedDays: number[]; // Array of day numbers completed
+  lastActive: any;
+  status: 'active' | 'completed' | 'dropped';
+}

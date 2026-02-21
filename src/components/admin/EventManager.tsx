@@ -4,7 +4,8 @@ import { db } from '../../firebase';
 import { notifyNewEvent } from '../../utils/notificationService';
 import { useFirestoreQuery } from '../../hooks';
 import { CalendarEvent } from '../../types';
-import { Calendar, Trash2, Plus, MapPin, Loader2, Clock, Video } from 'lucide-react';
+import { Calendar, Trash2, Plus, MapPin, Loader2, Clock, Video, AlertCircle } from 'lucide-react';
+import { StatusModal } from '../UIComponents';
 
 export const EventManager: React.FC = () => {
     const nowStr = useMemo(() => {
@@ -20,6 +21,7 @@ export const EventManager: React.FC = () => {
 
     const { data: events, loading, error } = useFirestoreQuery<CalendarEvent>(q);
     const [submitting, setSubmitting] = useState(false);
+    const [status, setStatus] = useState<{ open: boolean, type: 'success' | 'error' | 'info', title: string, message: string } | null>(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -35,14 +37,14 @@ export const EventManager: React.FC = () => {
 
         setSubmitting(true);
         try {
-            await addDoc(collection(db, 'events'), {
+            const docRef = await addDoc(collection(db, 'events'), {
                 ...formData,
                 createdAt: new Date().toISOString(),
                 createdBy: 'admin' // In real app, user.uid
             });
             // Send notification
             const eventDate = new Date(formData.date).toLocaleDateString();
-            await notifyNewEvent(formData.title, eventDate);
+            await notifyNewEvent(docRef.id, formData.title, eventDate);
             setFormData({
                 title: '',
                 description: '',
@@ -51,22 +53,40 @@ export const EventManager: React.FC = () => {
                 location: '',
                 meetingLink: ''
             });
-            alert('Event created successfully');
+            setStatus({
+                open: true,
+                type: 'success',
+                title: 'Event Launched!',
+                message: `"${formData.title}" has been added to the calendar and members have been notified.`
+            });
         } catch (err) {
             console.error(err);
-            alert('Failed to create event');
+            setStatus({
+                open: true,
+                type: 'error',
+                title: 'Submission Failed',
+                message: 'We could not create the event. Please check your connection and try again.'
+            });
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Delete this event?')) return;
+        // We'll use a standard confirm for now or build a specialized ConfirmModal if needed
+        if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+
         try {
             await deleteDoc(doc(db, 'events', id));
+            // Show subtle success instead of full modal
         } catch (err) {
             console.error(err);
-            alert('Failed to delete event');
+            setStatus({
+                open: true,
+                type: 'error',
+                title: 'Deletion Failed',
+                message: 'The event could not be removed from the database.'
+            });
         }
     };
 
@@ -209,6 +229,17 @@ export const EventManager: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {status && (
+                <StatusModal
+                    isOpen={status.open}
+                    onClose={() => setStatus(null)}
+                    type={status.type}
+                    title={status.title}
+                    message={status.message}
+                    actionLabel="Perfect"
+                />
+            )}
         </div>
     );
 };

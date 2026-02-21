@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirestoreQuery } from '../hooks';
-import { RecentActivityFeed } from '../components/AdminViews';
+import { RecentActivityFeed } from '../components/admin/AdminCommon';
 import { Users, BookOpen, MessageCircle, Heart, AlertTriangle, ArrowUpRight, Shield, Zap, Image as ImageIcon, BarChart3, TrendingUp, TrendingDown, Star, Bell } from 'lucide-react';
 import { StatCard } from '../components/UIComponents';
 import { AttendanceProjector } from '../components/admin/AttendanceProjector';
@@ -11,14 +11,19 @@ import { UserProfile } from '../types';
 import { createNotification, sendBrowserNotification } from '../utils/notificationService';
 
 const ActionButton: React.FC<{ label: string; icon: React.ReactNode; color: string; onClick?: () => void }> = ({ label, icon, color, onClick }) => (
-  <button onClick={onClick} className="group flex items-center justify-between p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer">
-    <div className="flex items-center gap-3">
-      <div className={`p-2.5 rounded-lg ${color} bg-opacity-10 dark:bg-opacity-20`}>
+  <button
+    onClick={onClick}
+    className="group flex items-center justify-between p-5 rounded-[2rem] glass-card glass-glow spring-interaction !bg-white/40 dark:!bg-white/5"
+  >
+    <div className="flex items-center gap-4">
+      <div className={`p-4 rounded-2xl ${color} bg-opacity-10 dark:bg-opacity-20 transition-all duration-700 group-hover:scale-110 group-hover:rotate-6`}>
         <div className={`${color.replace('bg-', 'text-')}`}>{icon}</div>
       </div>
-      <span className="font-bold text-gray-700 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition-colors">{label}</span>
+      <span className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 group-hover:text-church-green transition-colors">{label}</span>
     </div>
-    <ArrowUpRight size={18} className="text-gray-300 group-hover:text-church-green group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
+      <ArrowUpRight size={18} className="text-church-green" />
+    </div>
   </button>
 );
 
@@ -47,6 +52,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
       alert("Test notification sent! Check the bell icon.");
     }
   };
+
 
   const userQ = useMemo(() => query(collection(db, 'users')), []);
   const sermonQ = useMemo(() => query(collection(db, 'sermons')), []);
@@ -105,46 +111,46 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
   };
 
   return (
-    <div className="space-y-8 animate-fade-in-up pb-20">
+    <div className="space-y-8 pb-20">
 
       {/* Header - Minimal Pop */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-8 border-b border-gray-100 dark:border-white/5 animate-page-enter animate-stagger-1">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold uppercase tracking-widest rounded-full">Administrator</span>
-            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-100 dark:border-green-800">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Online
+          <div className="flex items-center gap-2 mb-3">
+            <span className="px-3 py-1 bg-black dark:bg-white text-white dark:text-black text-[9px] font-black uppercase tracking-[0.2em] rounded-full">System Access</span>
+            <span className="flex items-center gap-2 text-[9px] font-black text-church-green bg-church-green/10 px-3 py-1 rounded-full border border-church-green/20 uppercase tracking-widest">
+              <div className="w-2 h-2 bg-church-green rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div> Active Session
             </span>
           </div>
-          <h1 className="text-4xl font-serif font-bold text-gray-900 dark:text-white tracking-tight">System Overview</h1>
-          <p className="text-gray-500 mt-1 font-medium">Welcome back. Here's what's happening {timeFilter === '7days' ? 'this week' : 'this month'}.</p>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">System Overview</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium text-sm">Welcome back. Here's what's happening {timeFilter === '7days' ? 'this week' : 'this month'}.</p>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-900 p-1.5 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-wrap gap-2">
+        <div className="glass-card p-2 rounded-2xl flex flex-wrap gap-2">
           <button
             onClick={() => setTimeFilter('7days')}
-            className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold border transition-all ${timeFilter === '7days'
-              ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
-              : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all spring-interaction ${timeFilter === '7days'
+              ? 'bg-church-green text-white shadow-lg shadow-church-green/20'
+              : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
             7 Days
           </button>
           <button
             onClick={() => setTimeFilter('30days')}
-            className={`px-4 py-2 rounded-lg shadow-sm text-sm font-bold border transition-all ${timeFilter === '30days'
-              ? 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-church-green scale-105'
-              : 'text-gray-500 hover:text-black dark:hover:text-white border-transparent'
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all spring-interaction ${timeFilter === '30days'
+              ? 'bg-church-green text-white shadow-lg shadow-church-green/20'
+              : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
             30 Days
           </button>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 my-auto mx-1"></div>
+          <div className="w-px h-6 bg-gray-100 dark:bg-white/10 my-auto mx-1"></div>
           <button
             onClick={handleTestNotification}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-church-green/10 text-church-green hover:bg-church-green hover:text-white transition-all text-sm font-bold border border-church-green/20"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-church-gold/10 text-church-gold hover:bg-church-gold hover:text-white transition-all text-[10px] font-black uppercase tracking-widest border border-church-gold/20 spring-interaction"
             title="Send test notification to verify system"
           >
-            <Bell size={14} /> Test Notif
+            <Bell size={14} /> Test
           </button>
         </div>
       </div>
@@ -163,9 +169,9 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
         <div className="lg:col-span-2 space-y-8">
 
           {/* Stats Row - High Contrast Pop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-page-enter animate-stagger-2">
             <StatCard
-              title="Members"
+              title="Global Members"
               value={users.length}
               icon={<Users />}
               color="bg-church-green"
@@ -174,7 +180,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
               onClick={() => navigateTo('admin-users')}
             />
             <StatCard
-              title="Content Library"
+              title="Media Assets"
               value={sermons.length}
               icon={<BookOpen />}
               color="bg-blue-600"
@@ -182,7 +188,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
               onClick={() => navigateTo('admin-sermons')}
             />
             <StatCard
-              title="Pending Testimonies"
+              title="Testimonies"
               value={testimonies.length}
               icon={<Shield />}
               color="bg-purple-600"
@@ -190,7 +196,7 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
               onClick={() => navigateTo('admin-testimonies')}
             />
             <StatCard
-              title="Support Requests"
+              title="Crisis Support"
               value={prayers.length}
               icon={<Heart />}
               color="bg-rose-500"
@@ -232,9 +238,11 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
           )}
 
           {/* Quick Actions - "Pop" Buttons */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2 animate-fade-in"><Zap size={14} /> Quick Management</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-bottom duration-500 delay-100">
+          <div className="animate-page-enter animate-stagger-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-6 flex items-center gap-3">
+              <Zap size={14} className="text-church-gold" /> Quick Actions
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ActionButton label="Launch Attendance Projector" icon={<Users size={20} />} color="bg-indigo-600" onClick={() => setShowProjector(true)} />
               <ActionButton label="Review Attendance Analytics" icon={<BarChart3 size={20} />} color="bg-emerald-600" onClick={() => navigateTo('admin-attendance')} />
               <ActionButton label="Review Support" icon={<Heart size={20} />} color="bg-rose-500" onClick={() => navigateTo('admin-prayers')} />
@@ -249,13 +257,16 @@ const AdminDashboardScreen: React.FC<AdminDashboardProps> = ({ onNavigate, addTo
         </div>
 
         {/* Sidebar - Activity Feed */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-shadow sticky top-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold font-serif text-xl dark:text-white">Live Activity</h3>
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+        <div className="lg:col-span-1 animate-page-enter animate-stagger-4">
+          <div className="glass-card p-8 rounded-[2.5rem] sticky top-6">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col">
+                <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tighter">Live Activity</h3>
+                <p className="text-[10px] font-black text-church-green uppercase tracking-widest mt-1">Real-time Stream</p>
+              </div>
+              <div className="w-3 h-3 bg-church-green rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
             </div>
-            <div className="max-h-[calc(100vh-200px)] overflow-y-auto hide-scrollbar">
+            <div className="max-h-[calc(100vh-280px)] overflow-y-auto hide-scrollbar">
               <RecentActivityFeed />
             </div>
           </div>

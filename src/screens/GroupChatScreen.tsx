@@ -69,7 +69,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
             });
 
             // Send notification
-            await notifyChatMessage(user.displayName, sentText);
+            await notifyChatMessage(user.displayName, sentText, user.uid);
 
             // Check if AI was mentioned
             if (isAIMention(sentText)) {
@@ -269,7 +269,7 @@ const GroupChatScreen: React.FC<GroupChatScreenProps> = ({ user, onBack, onUserC
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Message Community... (use @Doxa for AI)"
                             rows={1}
-                            className="flex-1 bg-transparent border-none focus:ring-0 py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none max-h-32 hide-scrollbar"
+                            className="flex-1 bg-transparent border-none focus:ring-0 py-2.5 text-[16px] font-medium text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none max-h-32 hide-scrollbar"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();

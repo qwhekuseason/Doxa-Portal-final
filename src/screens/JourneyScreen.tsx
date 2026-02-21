@@ -57,7 +57,7 @@ const JourneyScreen: React.FC<{ user: UserProfile }> = ({ user }) => {
     const currentLevel = totalXP > 2000 ? "General" : totalXP > 1000 ? "Warrior" : "Faithful";
 
     const badges = [
-        { title: "Born Again", desc: "Joined the Doxa family", icon: "🏠", locked: false },
+        { title: "New Beginning", desc: "Joined the Doxa family", icon: "🏠", locked: false },
         { title: "Prayer Warrior", desc: "5 prayer requests submitted", icon: "🤝", locked: prayers < 5 },
         { title: "Word Expert", desc: "Gained 500 Quiz XP", icon: "🎓", locked: quizXP < 500 },
         { title: "Faithful Listener", desc: "10 sermons heard", icon: "🎧", locked: sermonsHeard < 10 },

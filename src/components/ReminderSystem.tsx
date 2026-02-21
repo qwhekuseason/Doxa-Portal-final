@@ -4,16 +4,17 @@ import { db } from '../firebase';
 import { useToast } from './UIComponents';
 import { sendBrowserNotification } from '../utils/notificationService';
 
-export const ReminderSystem: React.FC<{ userId: string }> = ({ userId }) => {
+export const ReminderSystem: React.FC<{ userId?: string }> = ({ userId }) => {
     const { addToast } = useToast();
 
     useEffect(() => {
+        if (!userId) return;
+
         const checkReminders = async () => {
             const now = new Date();
             const todayStr = now.toISOString().slice(5, 10); // MM-DD
             const fullTodayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
-            // Storage key for notified items to avoid duplicates
             const storageKey = `doxa_notified_${userId}_${fullTodayStr}`;
             const notifiedStr = localStorage.getItem(storageKey) || '{}';
             const remindedItems = JSON.parse(notifiedStr);
@@ -30,10 +31,8 @@ export const ReminderSystem: React.FC<{ userId: string }> = ({ userId }) => {
                         const birthKey = `birthday_${doc.id}`;
                         if (!remindedItems[birthKey]) {
                             if (data.uid === userId) {
-                                addToast("Happy Birthday! We celebrate you today! 🎂", "success");
                                 sendBrowserNotification("Happy Birthday!", "We celebrate you today! 🎂");
                             } else {
-                                addToast(`It's ${data.displayName}'s birthday today! Send a wish! 🎈`, "info");
                                 sendBrowserNotification("Birthday Reminder", `It's ${data.displayName}'s birthday today! 🎈`);
                             }
                             remindedItems[birthKey] = true;
@@ -43,7 +42,6 @@ export const ReminderSystem: React.FC<{ userId: string }> = ({ userId }) => {
 
                 // 2. Check Events
                 const eventsRef = collection(db, 'events');
-                // Fetch events from today onwards
                 const eq = query(eventsRef, where('date', '>=', fullTodayStr + 'T00:00'));
                 const eventSnapshot = await getDocs(eq);
 
@@ -56,34 +54,29 @@ export const ReminderSystem: React.FC<{ userId: string }> = ({ userId }) => {
                     let reminderType = '';
                     let message = '';
 
-                    if (diffMins > 1430 && diffMins <= 1445) { // ~24 hours before
-                        reminderType = '24h';
-                        message = `Reminder: "${event.title}" is tomorrow at ${eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}! 📅`;
+                    if (diffMins > 115 && diffMins <= 125) { // ~2 hours before
+                        reminderType = '2h';
+                        message = `Reminder: "${event.title}" starts in 2 hours! ⏳`;
                     } else if (diffMins > 55 && diffMins <= 65) { // ~1 hour before
                         reminderType = '1h';
-                        message = `Starting in 1 hour: "${event.title}"! Get ready! ⏳`;
+                        message = `Starting in 1 hour: "${event.title}"! Get ready! ⏰`;
                     } else if (diffMins > 25 && diffMins <= 35) { // ~30 mins before
                         reminderType = '30m';
                         message = `30 minutes to go: "${event.title}" is about to start! ❤️`;
-                    } else if (diffMins > -15 && diffMins <= 5) { // Just started or starting
-                        reminderType = 'now';
-                        message = `LIVE NOW: "${event.title}" has started! Join in! ✨`;
                     }
 
                     if (reminderType) {
                         const eventKey = `event_${doc.id}_${reminderType}`;
                         if (!remindedItems[eventKey]) {
-                            addToast(message, reminderType === 'now' ? "success" : "info");
-                            sendBrowserNotification("Doxa Portal Event", message);
+                            sendBrowserNotification("Event Reminder", message);
                             remindedItems[eventKey] = true;
                         }
                     }
                 });
 
-                // Save updated notified items
                 localStorage.setItem(storageKey, JSON.stringify(remindedItems));
 
-                // Cleanup old storage entries (older than today)
+                // Cleanup old logic
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key?.startsWith('doxa_notified_') && !key.endsWith(fullTodayStr)) {
@@ -96,10 +89,7 @@ export const ReminderSystem: React.FC<{ userId: string }> = ({ userId }) => {
             }
         };
 
-        // Run immediately after 3s
         const initialTimer = setTimeout(checkReminders, 3000);
-
-        // Then run every 5 minutes
         const intervalTimer = setInterval(checkReminders, 5 * 60 * 1000);
 
         return () => {

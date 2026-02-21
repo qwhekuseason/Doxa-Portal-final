@@ -31,8 +31,10 @@ import {
   Camera,
   Upload,
   Shield,
-  Calendar
+  Calendar,
+  LogOut
 } from 'lucide-react';
+import { StatusModal } from './UIComponents';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register' | 'verify' | 'forgot';
@@ -298,13 +300,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
       )}
 
       {/* Refined Background Decor */}
-      <div className="fixed inset-0 z-0 bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-700">
-        <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-church-green/5 rounded-full blur-[120px] animate-pulse-slow"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-[30vw] h-[30vw] bg-church-gold/5 rounded-full blur-[100px]"></div>
+      <div className="glass-bg">
+        <div className="blob w-[60vw] h-[60vw] bg-church-green/10 -top-[10%] -right-[10%] animate-blob"></div>
+        <div className="blob w-[40vw] h-[40vw] bg-church-gold/10 -bottom-[10%] -left-[10%] animate-blob" style={{ animationDelay: '-4s' }}></div>
       </div>
 
       {/* Main Content Container */}
-      <div className="relative z-10 w-full max-w-[1100px] grid md:grid-cols-2 gap-0 overflow-hidden bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl rounded-[2.5rem] shadow-premium border border-white/40 dark:border-white/5 mx-4">
+      <div className="relative z-10 w-full max-w-[1100px] grid md:grid-cols-2 gap-0 overflow-hidden glass-card rounded-[2.5rem] mx-4 transition-all duration-700">
 
         {/* Left Side: Brand Imagery/Message */}
         <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-church-green to-emerald-900 relative overflow-hidden">
@@ -319,15 +321,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-black text-white leading-none tracking-tighter mb-6">
-              Connect with the <span className="text-church-gold">Community.</span>
+              Connect with the <span className="text-church-gold">Family.</span>
             </h2>
             <p className="text-white/70 text-lg font-medium leading-relaxed max-w-sm">
-              Access deep biblical insights, real-time fellowship, and a community of faith that grows together.
+              Access deep biblical insights, real-time fellowship, and a family of faith that grows together.
             </p>
           </div>
 
           <div className="relative z-10 space-y-6">
-            <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10">
+            <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10 glass-glow card-pop">
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white"><Shield size={24} /></div>
               <div>
                 <p className="text-xs font-black text-white uppercase tracking-widest leading-none mb-1">Secure & Private</p>
@@ -358,10 +360,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               {authMode === 'verify' && "Email Verification"}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-              {authMode === 'login' && "Sign in to access your dashboard."}
-              {authMode === 'register' && "Join our global faith community."}
-              {authMode === 'forgot' && "Enter your email to receive a password reset link."}
+              {authMode === 'login' && !successMsg && "Sign in to access your dashboard."}
+              {authMode === 'register' && !successMsg && "Join our global faith community."}
+              {authMode === 'forgot' && !successMsg && "Enter your email to receive a password reset link."}
               {authMode === 'verify' && "Please verify your email address to continue."}
+              {(authMode === 'forgot' || authMode === 'register') && successMsg && "Check your inbox for further instructions."}
             </p>
           </div>
 
@@ -398,7 +401,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
             </button>
           )}
 
-          {authMode === 'forgot' && (
+          {(authMode === 'forgot' || (authMode === 'register' && successMsg)) && (
             <button
               onClick={() => { setAuthMode('login'); setError(null); setSuccessMsg(null); }}
               className="mb-8 flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-church-green transition-colors"
@@ -472,18 +475,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
-              />
-            </div>
+            {(!successMsg && (authMode === 'login' || authMode === 'register' || authMode === 'forgot')) && (
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:border-church-green/50 focus:ring-4 focus:ring-church-green/5 outline-none transition-all text-gray-900 dark:text-white font-medium"
+                />
+              </div>
+            )}
 
-            {authMode !== 'forgot' && (
+            {(!successMsg && authMode !== 'forgot' && authMode !== 'verify') && (
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                 <input
@@ -496,7 +501,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
-            {authMode === 'register' && (
+            {(!successMsg && authMode === 'register') && (
               <div className="relative group animate-fade-in">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-church-green transition-colors" size={16} />
                 <input
@@ -509,46 +514,87 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
-            {authMode === 'verify' && (
-              <div className="space-y-6 animate-fade-in text-center">
-                <div className="p-8 bg-church-green/5 dark:bg-church-green/10 rounded-3xl border border-church-green/20">
-                  <div className="w-16 h-16 bg-church-green/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <Mail className="text-church-green" size={32} />
+            {(authMode === 'verify' || (authMode === 'forgot' && successMsg)) && (
+              <div className="space-y-8 animate-fade-in text-center flex-1 flex flex-col justify-center py-4">
+                <div className="relative mx-auto w-24 h-24 mb-2">
+                  <div className="absolute inset-0 bg-church-green/10 rounded-[2.5rem] animate-pulse"></div>
+                  <div className="relative w-24 h-24 bg-church-green/20 rounded-[2rem] flex items-center justify-center border border-church-green/30">
+                    <Mail className="text-church-green" size={40} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-2">Check your email</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    We've sent a verification link to <span className="text-church-green font-bold">{email}</span>. Please click the link in your email to activate your account.
-                  </p>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-church-gold rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white dark:border-gray-900">
+                    <CheckCircle2 size={16} />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={handleCheckVerification}
-                    disabled={loading}
-                    className="w-full h-[64px] bg-church-green hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
-                  >
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="font-black text-xs uppercase tracking-[0.3em] relative z-10">I've verified my email</span>}
-                    <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-                  </button>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                      {authMode === 'verify' ? "Check your email" : "Reset Link Sent"}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed px-4">
+                      {authMode === 'verify'
+                        ? <>We've sent a verification link to <span className="text-church-green font-bold">{email || auth.currentUser?.email}</span>. Click the link to activate your account.</>
+                        : <>We've sent a password reset link to <span className="text-church-gold font-bold">{email}</span>. Check your inbox to proceed.</>
+                      }
+                    </p>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleResendVerification}
-                    disabled={loading}
-                    className="w-full py-4 text-[10px] font-black text-gray-400 hover:text-church-gold uppercase tracking-widest transition-colors"
-                  >
-                    Didn't receive code? Resend link
-                  </button>
+                  {authMode === 'verify' ? (
+                    <div className="space-y-4">
+                      <button
+                        type="button"
+                        onClick={handleCheckVerification}
+                        disabled={loading}
+                        className="w-full h-16 bg-church-green hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-church-green/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
+                      >
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="font-black text-[11px] uppercase tracking-[0.3em] relative z-10">I've verified my email</span>}
+                        <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+                      </button>
+
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={handleResendVerification}
+                          disabled={loading}
+                          className="text-[10px] font-black text-gray-400 hover:text-church-gold uppercase tracking-widest transition-colors py-2"
+                        >
+                          Didn't receive code? Resend link
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => auth.signOut()}
+                          className="text-[10px] font-black text-red-400 hover:text-red-500 uppercase tracking-widest transition-colors py-2 flex items-center justify-center gap-2"
+                        >
+                          <LogOut size={12} /> Use a different account
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('login'); setSuccessMsg(null); }}
+                      className="w-full h-16 bg-gray-900 dark:bg-white text-white dark:text-black rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      Back to Sign In
+                    </button>
+                  )}
+                </div>
+
+                <div className="pt-4 px-8">
+                  <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                      Tip: If you don't see the email, check your <span className="text-church-gold">Spam</span> or <span className="text-church-gold">Junk</span> folder.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
-            {authMode === 'login' && (
+            {(!successMsg && authMode === 'login') && (
               <div className="flex justify-end pt-1">
                 <button
                   type="button"
-                  onClick={() => setAuthMode('forgot')}
+                  onClick={() => { setAuthMode('forgot'); setError(null); }}
                   className="text-[10px] font-black text-gray-400 hover:text-church-gold uppercase tracking-widest transition-colors"
                 >
                   Forgot Password?
@@ -570,7 +616,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
               </div>
             )}
 
-            {authMode !== 'verify' && (
+            {(!successMsg && authMode !== 'verify') && (
               <button
                 type="submit"
                 disabled={loading}
@@ -623,6 +669,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onBack }) =>
       <p className="absolute bottom-8 text-center text-gray-400 dark:text-gray-600 text-[10px] font-black uppercase tracking-[0.5em] animate-fade-in">
         Doxa Digital Systems &copy; {new Date().getFullYear()}
       </p>
+      <StatusModal
+        isOpen={!!successMsg || !!error}
+        onClose={() => { setSuccessMsg(null); setError(null); }}
+        type={error ? 'error' : 'success'}
+        title={error ? 'Action Failed' : (authMode === 'forgot' ? 'Reset Link Sent' : 'Success')}
+        message={error || successMsg || ''}
+        actionLabel={error ? 'Try Again' : 'Awesome'}
+      />
     </div>
   );
 };

@@ -7,7 +7,7 @@ const AboutScreen: React.FC = () => {
         <div className="max-w-6xl mx-auto space-y-12 md:space-y-20 pb-24 md:pb-20 animate-fade-in-up px-4 md:px-0">
             <SectionHeader
                 title="Mission & Vision"
-                subtitle="Doxa Portal is more than a platform; it's a digital extension of our church, built to keep our believers connected to the word."
+                subtitle="Doxa Portal is more than a platform; it's a digital extension of our family, built to keep our believers connected to the word."
             />
 
             {/* Vision & Mission Cards */}

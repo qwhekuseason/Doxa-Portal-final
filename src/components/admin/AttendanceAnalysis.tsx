@@ -139,6 +139,39 @@ export const AttendanceAnalysis: React.FC<{ onBack: () => void }> = ({ onBack })
         }
     };
 
+    const handleExport = () => {
+        if (sessions.length === 0) return;
+
+        const confirmExport = confirm("Choose export format:\nOK for Excel (XLSX)\nCancel for PDF Document");
+
+        if (confirmExport) {
+            // Excel Export
+            const excelData = sessions.map(s => ({
+                'Session ID': s.id,
+                'Date': s.createdAt?.toDate?.()?.toLocaleDateString() || s.createdAt || 'N/A',
+                'Status': s.active ? 'Ongoing' : 'Closed',
+                'Total Attendees': s.attendeeCount,
+                'New Members': s.newMemberCount
+            }));
+            import('../../utils/exportUtils').then(utils => {
+                utils.exportToExcel(excelData, `Attendance_Report_${new Date().toISOString().slice(0, 10)}`);
+            });
+        } else {
+            // PDF Export
+            const headers = ["Session ID", "Date", "Status", "Post/Present", "Newcomers"];
+            const pdfData = sessions.map(s => [
+                s.id,
+                s.createdAt?.toDate?.()?.toLocaleDateString() || s.createdAt || 'N/A',
+                s.active ? 'Live' : 'Closed',
+                s.attendeeCount.toString(),
+                s.newMemberCount.toString()
+            ]);
+            import('../../utils/exportUtils').then(utils => {
+                utils.exportToPDF(headers, pdfData, `Attendance_Report_${new Date().toISOString().slice(0, 10)}`, "Doxa Portal - Attendance Analytics Report");
+            });
+        }
+    };
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center p-20">
             <LoadingSpinner />
@@ -162,7 +195,10 @@ export const AttendanceAnalysis: React.FC<{ onBack: () => void }> = ({ onBack })
                         <p className="text-xs text-gray-500 font-medium">Review yearly participation and newcomer growth</p>
                     </div>
                 </div>
-                <button className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10">
+                <button
+                    onClick={handleExport}
+                    className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10"
+                >
                     <Download size={14} /> Export Report
                 </button>
             </div>

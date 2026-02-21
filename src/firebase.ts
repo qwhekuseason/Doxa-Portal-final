@@ -24,7 +24,19 @@ export const auth = getAuth(app);
 // Initialize Firestore with standard settings to ensure stability
 export const db = getFirestore(app);
 
-export const messaging = getMessaging(app);
+// Initialize Messaging safely
+let messagingInternal = null;
+if (typeof window !== 'undefined') {
+  try {
+    // Note: getMessaging() itself checks for support but throws if unsupported.
+    // It's better to use isSupported() if we want to be safe, 
+    // but in some versions getMessaging() is enough if we catch the error.
+    messagingInternal = getMessaging(app);
+  } catch (error) {
+    console.warn("Firebase Messaging is not supported in this browser environment.", error);
+  }
+}
+export const messaging = messagingInternal;
 
 // Initialize Firebase Functions
 export const functions = getFunctions(app);

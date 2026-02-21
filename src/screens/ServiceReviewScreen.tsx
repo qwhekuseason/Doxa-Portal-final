@@ -6,12 +6,13 @@ import { Star, Send, CheckCircle2, MessageSquare, Calendar, Loader2, ArrowLeft, 
 import { SectionHeader } from '../components/UIComponents';
 
 interface ServiceReviewScreenProps {
-    user: UserProfile;
+    user?: UserProfile | null;
     sessionId?: string;
     onBack?: () => void;
 }
 
 const ServiceReviewScreen: React.FC<ServiceReviewScreenProps> = ({ user, sessionId, onBack }) => {
+    const [nickname, setNickname] = useState('');
     const [session, setSession] = useState<ServiceReviewSession | null>(null);
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
@@ -28,12 +29,17 @@ const ServiceReviewScreen: React.FC<ServiceReviewScreenProps> = ({ user, session
         if (sessionId) {
             // Fetch specific session
             const fetchSession = async () => {
-                const docRef = doc(db, 'service_review_sessions', sessionId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().isActive) {
-                    setSession({ id: docSnap.id, ...docSnap.data() } as ServiceReviewSession);
+                try {
+                    const docRef = doc(db, 'service_review_sessions', sessionId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists() && docSnap.data().isActive) {
+                        setSession({ id: docSnap.id, ...docSnap.data() } as ServiceReviewSession);
+                    }
+                } catch (e) {
+                    console.error("Permission or fetch error:", e);
+                } finally {
+                    setLoading(false);
                 }
-                setLoading(false);
             };
             fetchSession();
         } else {
@@ -51,6 +57,9 @@ const ServiceReviewScreen: React.FC<ServiceReviewScreenProps> = ({ user, session
                     setSession({ id: snapshot.docs[0].id, ...data } as ServiceReviewSession);
                 }
                 setLoading(false);
+            }, (error) => {
+                console.error("Service Review Session Listener Error:", error);
+                setLoading(false);
             });
         }
 
@@ -65,12 +74,13 @@ const ServiceReviewScreen: React.FC<ServiceReviewScreenProps> = ({ user, session
         try {
             await addDoc(collection(db, 'service_reviews'), {
                 sessionId: session?.id,
-                uid: user.uid,
-                displayName: user.displayName,
+                uid: user?.uid || 'guest',
+                displayName: user?.displayName || nickname || 'Guest',
                 rating,
                 generalExperience,
                 highlights,
                 suggestions,
+                isGuest: !user,
                 createdAt: serverTimestamp()
             });
             setSubmitted(true);
@@ -155,6 +165,26 @@ const ServiceReviewScreen: React.FC<ServiceReviewScreenProps> = ({ user, session
                 <div className="absolute top-0 right-0 w-64 h-64 bg-church-green/5 blur-[80px] -mr-32 -mt-32 group-hover:bg-church-green/10 transition-colors"></div>
 
                 <form onSubmit={handleSubmit} className="relative z-10 space-y-12">
+                    {/* Guest Nickname (Only if unauthenticated) */}
+                    {!user && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <label className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-3">
+                                <span className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                                    <PenTool size={16} />
+                                </span>
+                                Your Nickname (Guest)
+                            </label>
+                            <input
+                                type="text"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                placeholder="Enter your name or nickname..."
+                                className="w-full bg-gray-50 dark:bg-white/5 border-2 border-transparent focus:border-church-green/20 rounded-2xl p-6 text-gray-700 dark:text-gray-100 font-bold outline-none transition-all placeholder:text-gray-400"
+                                required
+                            />
+                        </div>
+                    )}
+
                     {/* Rating Section */}
                     <div className="space-y-6">
                         <label className="text-sm font-black text-gray-400 uppercase tracking-widest block text-center">

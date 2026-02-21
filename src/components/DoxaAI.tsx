@@ -1,72 +1,223 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import { generateAIResponse } from '../utils/aiService';
+import { UserProfile, CalendarEvent } from '../types';
 
 interface Message {
     id: string;
     text: string;
     sender: 'user' | 'ai';
-    timestamp: Date;
+    timestamp: any;
 }
 
-export const DoxaAI: React.FC = () => {
+interface DoxaAIProps {
+    user: UserProfile | null;
+}
+
+export const DoxaAI: React.FC<DoxaAIProps> = ({ user }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: 'welcome',
-            text: "Hi! I'm Doxa AI. How can I assist you today with your spiritual journey or church activities? 🙏",
-            sender: 'ai',
-            timestamp: new Date()
-        }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [aiContextData, setAiContextData] = useState<any>(null);
+    const lastFetchRef = useRef<number>(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    // Load messages from Firestore
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const q = query(
+            collection(db, 'ai_conversations'),
+            where('uid', '==', user.uid),
+            orderBy('createdAt', 'asc'),
+            limit(100)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty && messages.length === 0) {
+                // Initial welcome message if no history
+                setMessages([
+                    {
+                        id: 'welcome',
+                        text: `Hi ${user.displayName.split(' ')[0]}! I'm Doxa AI. How can I assist you today with your spiritual journey or family activities? 🙏`,
+                        sender: 'ai',
+                        timestamp: new Date()
+                    }
+                ]);
+            } else {
+                const history = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    text: doc.data().text,
+                    sender: doc.data().sender,
+                    timestamp: doc.data().createdAt?.toDate() || new Date()
+                })) as Message[];
+
+                // Sort client-side to avoid composite index requirement
+                history.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+                // If history is empty after fetching (unlikely due to first block but safe)
+                if (history.length === 0) {
+                    setMessages([
+                        {
+                            id: 'welcome',
+                            text: `Hi ${user.displayName.split(' ')[0]}! I'm Doxa AI. How can I assist you today with your spiritual journey or family activities? 🙏`,
+                            sender: 'ai',
+                            timestamp: new Date()
+                        }
+                    ]);
+                } else {
+                    setMessages(history);
+                }
+            }
+        }, (error) => {
+            console.error("🔥 [Doxa AI] Snapshot error:", error);
+            if (error.code === 'permission-denied') {
+                setMessages([{
+                    id: 'error-perm',
+                    text: "I don't have permission to access your chat history. Please contact an administrator. 🔒",
+                    sender: 'ai',
+                    timestamp: new Date()
+                }]);
+            } else if (error.message.includes('requires an index')) {
+                setMessages([{
+                    id: 'error-index',
+                    text: "The chat system needs an index to display your history. Please open your Browser Console (F12) and click the provided Firebase link to create it! It takes about 2 minutes to activate. 🚀",
+                    sender: 'ai',
+                    timestamp: new Date()
+                }]);
+            } else {
+                setMessages([{
+                    id: 'error-general',
+                    text: `Chat sync failed: ${error.message}. Please refresh.`,
+                    sender: 'ai',
+                    timestamp: new Date()
+                }]);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
+
+    // Fetch dynamic context (events, birthdays)
+    const refreshAIContext = async () => {
+        if (!user) return;
+
+        // Caching: If we have data and fetched in the last 5 minutes, skip
+        const nowMs = Date.now();
+        if (aiContextData && (nowMs - lastFetchRef.current < 5 * 60 * 1000)) {
+            console.log("💾 [Doxa AI] Using cached context");
+            return;
+        }
+
+        try {
+            // 1. Upcoming Events - Use same format as EventManager for consistent comparison
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            const now = new Date(Date.now() - tzoffset).toISOString().slice(0, 16);
+
+            const eventSnap = await getDocs(query(collection(db, 'events'), where('date', '>=', now), limit(10)));
+            const events = eventSnap.docs.map(d => ({
+                title: d.data().title,
+                date: d.data().date,
+                type: d.data().type,
+                location: d.data().location || 'Family Portal'
+            }));
+
+            // 2. Birthdays (Current month and next month)
+            // Optimization: Only fetch a subset of users or use a dedicated birthday field if possible
+            // For now, we'll limit to 100 recent users to avoid crashing on large databases
+            const userSnap = await getDocs(query(collection(db, 'users'), limit(100)));
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
+            const nextMonth = (currentMonth % 12) + 1;
+
+            const upcomingBirthdays = userSnap.docs
+                .map(d => d.data())
+                .filter(u => {
+                    if (!u.dateOfBirth) return false;
+                    try {
+                        const dob = new Date(u.dateOfBirth);
+                        if (isNaN(dob.getTime())) return false;
+                        const month = dob.getMonth() + 1;
+                        return month === currentMonth || month === nextMonth;
+                    } catch { return false; }
+                })
+                .map(u => ({
+                    name: u.displayName,
+                    birthday: u.dateOfBirth
+                }))
+                .slice(0, 15);
+
+            const newContext = {
+                upcomingEvents: events,
+                upcomingBirthdays,
+                userRole: user.role,
+                currentDate: new Date().toLocaleDateString(),
+                currentTime: new Date().toLocaleTimeString()
+            };
+
+            setAiContextData(newContext);
+            lastFetchRef.current = Date.now();
+            console.log("📊 [Doxa AI] Context refreshed:", newContext);
+        } catch (err) {
+            console.error("❌ [Doxa AI] Failed to fetch context:", err);
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             scrollToBottom();
+            // Only refresh context if it's been more than 5 minutes or haven't fetched yet
+            refreshAIContext();
         }
-    }, [messages, isOpen]);
+    }, [isOpen]); // Removed messages dependency to avoid excessive fetching
 
     const handleSendMessage = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (!inputText.trim() || isLoading) return;
+        if (!inputText.trim() || isLoading || !user?.uid) return;
 
-        const userMsg: Message = {
-            id: Date.now().toString(),
-            text: inputText,
-            sender: 'user',
-            timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, userMsg]);
+        const userText = inputText;
         setInputText('');
         setIsLoading(true);
 
         try {
-            // Get recent context (last 5 messages) to provide continuity
+            console.log("🚀 [Doxa AI] Getting response for:", userText);
+            // 1. Save User Message to Firestore
+            await addDoc(collection(db, 'ai_conversations'), {
+                uid: user.uid,
+                text: userText,
+                sender: 'user',
+                createdAt: serverTimestamp()
+            });
+
+            // 2. Get AI Response
+            console.log("📡 [Doxa AI] Calling AI service...");
             const context = messages.slice(-5).map(m => `${m.sender === 'user' ? 'User' : 'AI'}: ${m.text}`);
+            const response = await generateAIResponse(userText, user.displayName, context, aiContextData);
+            console.log("✅ [Doxa AI] Response received!");
 
-            const response = await generateAIResponse(userMsg.text, 'User', context);
-
-            const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
+            // 3. Save AI Response to Firestore
+            console.log("✨ [Doxa AI] Saving response to history...");
+            await addDoc(collection(db, 'ai_conversations'), {
+                uid: user.uid,
                 text: response.text,
                 sender: 'ai',
-                timestamp: new Date()
-            };
+                createdAt: serverTimestamp()
+            });
+            console.log("🎉 [Doxa AI] Process complete.");
 
-            setMessages(prev => [...prev, aiMsg]);
         } catch (error) {
-            console.error('Failed to get AI response:', error);
+            console.error('💥 [Doxa AI] Failed to get response:', error);
+            // We don't save error messages to Firestore
             const errorMsg: Message = {
-                id: (Date.now() + 1).toString(),
+                id: 'error-' + Date.now(),
                 text: "I'm having trouble connecting right now. Please try again later. 😔",
                 sender: 'ai',
                 timestamp: new Date()
@@ -103,7 +254,7 @@ export const DoxaAI: React.FC = () => {
                     />
 
                     {/* Chat Window */}
-                    <div className="bg-white dark:bg-[#121b22] w-full sm:w-[400px] h-[85vh] sm:h-[600px] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col pointer-events-auto overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 relative border border-white/10">
+                    <div className="glass-morphic w-full sm:w-[400px] h-[85vh] sm:h-[600px] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl flex flex-col pointer-events-auto overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 relative border border-white/20 dark:border-white/10">
                         {/* Header */}
                         <div className="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
@@ -126,7 +277,7 @@ export const DoxaAI: React.FC = () => {
                         </div>
 
                         {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0b141a] custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent custom-scrollbar">
                             {messages.map((msg) => (
                                 <div
                                     key={msg.id}
@@ -141,7 +292,7 @@ export const DoxaAI: React.FC = () => {
                   `}>
                                         {msg.text}
                                         <div className={`text-[9px] mt-1 font-bold opacity-60 ${msg.sender === 'user' ? 'text-purple-200 text-right' : 'text-gray-400'}`}>
-                                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {msg.timestamp instanceof Date ? msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -159,7 +310,7 @@ export const DoxaAI: React.FC = () => {
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-3 bg-white dark:bg-[#202c33] border-t border-gray-100 dark:border-white/5 shrink-0">
+                        <div className="p-3 bg-white/20 dark:bg-black/20 backdrop-blur-md border-t border-white/10 dark:border-white/5 shrink-0">
                             <form
                                 onSubmit={handleSendMessage}
                                 className="flex items-end gap-2 bg-gray-100 dark:bg-[#2a3942] p-1.5 rounded-[24px] border border-transparent focus-within:border-purple-500/30 focus-within:ring-2 focus-within:ring-purple-500/10 transition-all"
@@ -177,7 +328,7 @@ export const DoxaAI: React.FC = () => {
                                         }
                                     }}
                                     placeholder="Ask anything..."
-                                    className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] max-h-32 min-h-[44px] py-2.5 px-2 text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none leading-relaxed"
+                                    className="flex-1 bg-transparent border-none focus:ring-0 text-[16px] max-h-32 min-h-[44px] py-2.5 px-2 text-gray-800 dark:text-gray-100 placeholder-gray-500 resize-none leading-relaxed"
                                     rows={1}
                                 />
                                 <button
