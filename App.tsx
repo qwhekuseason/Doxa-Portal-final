@@ -62,14 +62,14 @@ const EventManager = React.lazy(() => import('./src/components/admin/EventManage
 const LiveRoomManager = React.lazy(() => import('./src/components/admin/LiveRoomManager').then(m => ({ default: m.LiveRoomManager })));
 
 // Admin Views
-const AdminSermonManager = React.lazy(() => import('./src/components/admin/SermonManager').then(m => ({ default: m.AdminSermonManager })));
-const AdminUserManager = React.lazy(() => import('./src/components/admin/UserManager').then(m => ({ default: m.AdminUserManager })));
-const AdminTestimonyManager = React.lazy(() => import('./src/components/admin/TestimonyManager').then(m => ({ default: m.AdminTestimonyManager })));
-const AdminQuizManager = React.lazy(() => import('./src/components/admin/QuizManager').then(m => ({ default: m.AdminQuizManager })));
-const AdminGalleryManager = React.lazy(() => import('./src/components/admin/GalleryManager').then(m => ({ default: m.AdminGalleryManager })));
-const AdminSettingsManager = React.lazy(() => import('./src/components/admin/SystemSettingsManager').then(m => ({ default: m.AdminSettingsManager })));
-const AdminStudyPlanManager = React.lazy(() => import('./src/components/admin/StudyPlanManager').then(m => ({ default: m.AdminStudyPlanManager })));
-const AdminReadingPlanManager = React.lazy(() => import('./src/components/admin/ReadingPlanManager').then(m => ({ default: m.AdminReadingPlanManager })));
+const AdminSermonManager = React.lazy(() => import('@/src/components/admin/SermonManager').then(m => ({ default: m.AdminSermonManager })));
+const AdminUserManager = React.lazy(() => import('@/src/components/admin/UserManager').then(m => ({ default: m.AdminUserManager })));
+const AdminTestimonyManager = React.lazy(() => import('@/src/components/admin/TestimonyManager').then(m => ({ default: m.AdminTestimonyManager })));
+const AdminQuizManager = React.lazy(() => import('@/src/components/admin/QuizManager').then(m => ({ default: m.AdminQuizManager })));
+const AdminGalleryManager = React.lazy(() => import('@/src/components/admin/GalleryManager').then(m => ({ default: m.AdminGalleryManager })));
+const AdminSettingsManager = React.lazy(() => import('@/src/components/admin/SystemSettingsManager').then(m => ({ default: m.AdminSettingsManager })));
+const AdminStudyPlanManager = React.lazy(() => import('@/src/components/admin/StudyPlanManager').then(m => ({ default: m.AdminStudyPlanManager })));
+const AdminReadingPlanManager = React.lazy(() => import('@/src/components/admin/ReadingPlanManager').then(m => ({ default: m.AdminReadingPlanManager })));
 
 
 
